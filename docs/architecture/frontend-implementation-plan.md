@@ -283,3 +283,10 @@ These are source-level changes only; runtime verification remains pending until 
 - Read-back confirmed the implementation and test source. Runtime tests, typecheck and production build have not been executed locally.
 - CI run [#773](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45858710374) failed in both validation jobs. The GitHub job-log endpoint returned BlobNotFound, so the failing step is still unknown. The workflow definition itself runs `npm ci` followed by separate workspace validation commands; no root cause is asserted without logs.
 - Checklist remains 34/50 (68.0%). This source improvement does not complete the broader accessibility or end-to-end acceptance criteria.
+
+
+### Follow-up CI evidence — run #775
+
+- The documentation-only commit [7a92794](https://github.com/bijanbijane/EnglishCodeApp/commit/7a927942e191d529740cfa83fca6a4c59236424a) also triggered run [#775](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45858821056), where both frontend and backend validation jobs failed.
+- The frontend job log endpoint again returned `BlobNotFound`; the job API lists the failed jobs but does not expose step details.
+- Because this run was triggered by a documentation-only commit, the repeated failure is evidence of a persistent branch/workflow-level validation problem rather than a failure introduced by that documentation edit. It still does not identify the failing step or prove the exact root cause.
