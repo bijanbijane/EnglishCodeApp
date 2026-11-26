@@ -5,10 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "dev:cloudflare": "wrangler dev --env dev --remote",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:migrate:local": "wrangler d1 migrations apply englishcode-local --local",
-    "db:seed:local": "wrangler d1 execute englishcode-local --local --file=../../database/seeds/0001_demo.sql"
+    "db:seed:local": "wrangler d1 execute englishcode-local --local --file=../../database/seeds/0001_demo.sql",
+    "db:migrate:dev": "wrangler d1 migrations apply englishcodeapp-dev --remote --env dev",
+    "db:seed:dev": "wrangler d1 execute englishcodeapp-dev --remote --env dev --file=../../database/seeds/0001_demo.sql",
+    "deploy:dev:dry-run": "wrangler deploy --env dev --dry-run",
+    "deploy:dev": "wrangler deploy --env dev"
   },
   "dependencies": {
     "hono": "^4.8.0"
