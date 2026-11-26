@@ -27,7 +27,8 @@ export default function App() {
     if (hostInitialized.current || lessonState.status === "loading" || sessionState.status === "checking") return;
     hostInitialized.current = true;
     initializeTelegramHost();
-    return bindTelegramLayoutMetrics();
+    const cleanup = bindTelegramLayoutMetrics();
+    return () => { cleanup(); hostInitialized.current = false; };
   }, [lessonState.status, sessionState.status]);
   useEffect(() => {
     let active = true;
