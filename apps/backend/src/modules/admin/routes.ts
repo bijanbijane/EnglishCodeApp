@@ -4,6 +4,7 @@ import { errorBody } from "../../shared/errors";
 import { requireSession } from "../auth/middleware";
 import { createAdminAuditStatement } from "./audit";
 import { requireRole } from "./authorization";
+import { decodeAdminPageCursor, encodeAdminPageCursor } from "./pagination";
 
 export const adminRoutes = new Hono<AppEnv>();
 
