@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ApiContractError, ApiError, apiGet, unwrapApiEnvelope } from "../src/shared/api/client.ts";
+import { ApiContractError, ApiError, apiGet, apiRequest, unwrapApiEnvelope } from "../src/shared/api/client.ts";
 
 test("unwraps a documented success envelope", () => {
   assert.deepEqual(unwrapApiEnvelope<{ id: string }>({ data: { id: "user-1" } }), { id: "user-1" });
@@ -31,6 +31,8 @@ test("attaches bearer credentials only when the caller supplies a token", async 
     await apiGet("/private", { accessToken: "test-token" });
     assert.equal(capturedHeaders?.get("Authorization"), "Bearer test-token");
     await apiGet("/public");
+    assert.equal(capturedHeaders?.has("Authorization"), false);
+    await apiRequest("/untrusted", { headers: { Authorization: "Bearer caller-supplied" } });
     assert.equal(capturedHeaders?.has("Authorization"), false);
   } finally {
     globalThis.fetch = originalFetch;
