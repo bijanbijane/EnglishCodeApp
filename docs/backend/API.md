@@ -12,7 +12,7 @@ Public. Body:
 { "initData": "<raw Telegram.WebApp.initData>" }
 ```
 
-The backend verifies the Telegram HMAC signature and auth_date before creating/updating the internal user and issuing a session.
+The backend verifies the Telegram HMAC signature, rejects duplicate parameters, enforces auth_date freshness, and records the signed hash in D1 to reject replay. A consumed initData value cannot be used again.
 
 Success: `200` with `data.token`, `data.tokenType = "Bearer"`, `data.expiresAt`, and the minimal user object. The client must not log the token or put it in a URL.
 
@@ -49,7 +49,7 @@ The authenticated user ID is derived only from the session. A user ID in a reque
 | 400 | Invalid request body or fields |
 | 401 | Missing, invalid, or expired session / Telegram data |
 | 404 | Route, lesson, question, or owned attempt not found |
-| 409 | Domain conflict, e.g. a lesson without questions |
+| 409 | Domain conflict, including replayed Telegram initData or a lesson without questions |
 | 503 | Required storage or authentication configuration unavailable |
 
 ## Explicit non-goals
