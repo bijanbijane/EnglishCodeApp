@@ -48,17 +48,23 @@ export default function App() {
 
   const retrySession = useCallback(async () => {
     setSessionState({ status: "checking" });
-    const result = await retryTelegramSessionBootstrap();
-    setSessionState(result);
+    try {
+      setSessionState(await retryTelegramSessionBootstrap());
+    } catch (error) {
+      setSessionState({ status: "error", message: error instanceof Error ? error.message : "ورود به حساب انجام نشد." });
+    }
   }, []);
 
   const loadLessons = useCallback(async () => {
+    const requestId = ++lessonRequestId.current;
     setLessonState({ status: "loading" });
     try {
       const lessons = await getLessons();
-      setLessonState({ status: "ready", lessons });
+      if (requestId === lessonRequestId.current) setLessonState({ status: "ready", lessons });
     } catch (error) {
-      setLessonState({ status: "error", message: error instanceof Error ? error.message : "خطای پیش‌بینی‌نشده‌ای رخ داد." });
+      if (requestId === lessonRequestId.current) {
+        setLessonState({ status: "error", message: error instanceof Error ? error.message : "خطای پیش‌بینی‌نشده‌ای رخ داد." });
+      }
     }
   }, []);
 
