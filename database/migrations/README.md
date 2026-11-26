@@ -39,7 +39,7 @@ Migration 0002 خودش telegram_auth_replays و index انقضا را ایجا�
 - user_roles stores server-side role grants; roles are never read from client claims.
 - admin_audit_events stores minimal metadata and append-only actor/action/resource/request facts.
 - Ordinary updates/deletes are blocked. Account deletion may null the actor only; the audit event remains.
-- There is no public role-grant or admin publishing API yet. Bootstrap/revocation is owner-controlled.
+- No public role-grant endpoint exists. Protected content author/reviewer/admin routes use these grants; bootstrap/revocation is owner-controlled.
 
 ## 0008 — Immutable assessment results and progress facts
 - attempt_results snapshots score, earned/total weight, correct/question counts, pinned lesson/policy versions and completion time.
@@ -66,4 +66,4 @@ Migration 0002 خودش telegram_auth_replays و index انقضا را ایجا�
 - برای هر migration، شواهد اجرا، schema diff و recovery note ثبت شود.
 - اجرای production فقط پس از backup/restore drill و تأیید مستقل مالک مجاز است.
 
-Migrationهای 0004 تا 0008 روی Wrangler Local D1 اجرا و مسیر upgrade نیز با دادهٔ synthetic آزمایش شده است؛ هیچ‌یک روی Cloudflare remote یا production اجرا نشده‌اند.
+Migrationهای 0004 تا 0009 روی Wrangler Local D1 اجرا و مسیر upgrade نیز با دادهٔ synthetic آزمایش شده است؛ هیچ‌یک روی Cloudflare remote یا production اجرا نشده‌اند.

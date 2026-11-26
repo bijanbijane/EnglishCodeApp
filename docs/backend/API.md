@@ -59,4 +59,4 @@ Review decisions, publication, draft creation and audit writes are executed in t
 - 503 required storage/auth configuration unavailable
 
 ## Not implemented
-No admin content API, role-grant API, account linking/merge, payments, subscriptions, AI tutor, media upload, Queue consumer, content authoring/review/publishing, account deletion workflow or production deployment. RBAC/audit foundation exists, but no privileged route is exposed.
+No public role-grant/bootstrap API, audit query API, account linking/merge, payments, subscriptions, AI tutor, media upload, Queue consumer, account deletion workflow or production deployment. Protected content author/reviewer/admin routes exist, but the workflow still needs idempotent command keys and a role-management process.

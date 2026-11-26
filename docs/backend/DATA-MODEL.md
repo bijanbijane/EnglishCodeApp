@@ -68,7 +68,7 @@ SQL migration files are the schema source of truth. This page describes the bran
 - Attempt result facts and progress events are append-only; user_progress is a rebuildable projection.
 
 ## Target but not yet implemented
-Content authoring/review/publishing API, account linking/merge, four-skill evidence, media assets/jobs, durable outbox/queues, entitlements, analytics aggregates and account deletion workflows.
+Role bootstrap/revocation and audit query APIs, account linking/merge, four-skill evidence, media assets/jobs, durable outbox/queues, entitlements, analytics aggregates and account deletion workflows.
 
 ## Migration discipline
 1. Add a new numbered SQL migration; do not edit an applied migration.

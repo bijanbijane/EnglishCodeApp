@@ -11,7 +11,7 @@
 |---|---|
 | `npm ci --no-audit --no-fund` | Passed |
 | `npm run typecheck` | Passed; frontend and backend |
-| `npm test` | Passed; 11 files / 41 tests on latest run |
+| `npm test` | Passed; 12 files / 45 tests on latest run |
 | `npm run build:frontend` | Passed |
 | `git diff --check` | Passed |
 
@@ -21,7 +21,7 @@ An initial typecheck found missing Node type declarations and a WebCrypto `Buffe
 
 Using Wrangler with the explicit `--local` flag:
 - `npm run db:migrate:local`
-- Applied migrations 0001 through 0008 successfully.
+- Applied migrations 0001 through 0009 successfully.
 - D1 migration registry reported no pending migrations.
 
 ## Upgrade/backfill path
@@ -87,10 +87,11 @@ The review race was serialized in this local runtime; this does not prove the st
 - Migration backfills completed attempts, creates corresponding events, then rebuilds `user_progress` from events.
 - Completion now writes the result fact, event and projection in one D1 batch. Repeated completion does not duplicate either fact.
 - Added `rebuildUserProgress` service. Its delete/reinsert projection work is one D1 batch scoped to a single user.
-- Added role-check middleware and a constrained audit writer foundation; no admin endpoint or public role grant exists.
+- Added role-check middleware and constrained audit writer; protected content author/reviewer/admin routes now exist. No public role-grant endpoint exists.
+- Migration 0009 and the complete content draft/review/publish flow were exercised on Worker + Local D1. Review events and audit facts were verified; public DTO remained answer-key free.
 
 ### Local D1 evidence
-A fresh isolated Local D1 database applied migrations 0001..0008 in order. A second isolated database applied 0001..0007, then received a synthetic completed attempt and an intentionally stale progress projection before 0008 was applied. The post-migration query returned:
+A fresh isolated Local D1 database applied migrations 0001..0009 in order. A second isolated database applied 0001..0007, then received a synthetic completed attempt and an intentionally stale progress projection before 0008 was applied. The post-migration query returned:
 - result score 100, earned weight 1, total weight 1;
 - correct count 1, question count 1;
 - exactly one progress event for the attempt;
@@ -126,18 +127,18 @@ The immutable result/event facts use restrictive user references. Account deleti
 - Draft creation, submit, reviewer decision and publish each include the corresponding admin audit insert in the same D1 batch.
 
 ### Actual Worker + Local D1 flow
-Using three synthetic Telegram users with separate author/reviewer/admin roles:
-1. Author created lesson version 2 with two questions — 201.
-2. Author attempted reviewer decision — 403.
-3. Author submitted their own draft — 201.
-4. Author attempted self-review — 403.
-5. Separate reviewer approved — 200.
-6. Reviewer attempted publish — 403.
-7. Admin published approved version — 200.
-8. Public lesson question endpoint switched to version 2 and returned updated prompt/options without answer_key.
-9. Reviewer queue/detail returned the review request and private answer key; author access to reviewer queue returned 403.
-10. Review history contained exactly submitted/approved/published events; audit log contained content.version.created, content.review.submitted, content.review.approved and content.version.published.
-11. Direct UPDATE of the published question version was rejected by the existing published-content immutability trigger.
+Using synthetic Telegram users with distinct author-only, reviewer-only and admin roles (plus a deliberate author+reviewer combination to test self-review):
+1. An ordinary authenticated user without content role attempted draft creation — 403.
+2. Author created lesson version 2 with two weighted questions — 201.
+3. Author submitted the draft for review — 201.
+4. The same author, even when also holding reviewer role, attempted to approve their own draft — 403 SELF_REVIEW_FORBIDDEN.
+5. Separate reviewer approved the draft — 200.
+6. Admin published the approved version — 200; public lesson list switched to version 2 and public question DTO omitted answer_key.
+7. Author version list returned the author's draft/version history — 200.
+8. Reviewer queue and review detail returned 200; reviewer detail included private answer keys as required for assessment.
+9. Author-only account was denied queue and detail access — 403; reviewer and author-only accounts were denied the admin publish route — 403.
+10. Review history contained submitted/approved/published events; audit log contained content.version.created, content.review.submitted, content.review.approved and content.version.published.
+11. Direct UPDATE of the published question version was rejected by the published-content immutability trigger.
 
 ### Current workspace gate
 - Typecheck: passed (frontend + backend).
