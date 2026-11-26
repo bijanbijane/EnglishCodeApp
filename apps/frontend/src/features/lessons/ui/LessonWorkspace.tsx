@@ -62,7 +62,7 @@ function QuestionCard({ question, index, attemptId, onSubmitted }: {
                 key={id ?? question.id + "-" + optionIndex}
                 type="button"
                 aria-pressed={selected === id}
-                disabled={!id || Boolean(result)}
+                disabled={!id || Boolean(result) || submitting}
                 onClick={() => setSelected(id)}
               >
                 <span className="answer-option__marker">{String.fromCharCode(65 + optionIndex)}</span>
