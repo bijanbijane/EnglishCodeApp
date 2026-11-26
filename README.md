@@ -2,7 +2,7 @@
 
 پلتفرم آموزش زبان انگلیسی با محوریت Telegram Bot و Telegram Mini App؛ با مسیر توسعهٔ تدریجی به وب‌اپلیکیشن و اپلیکیشن موبایل.
 
-> **وضعیت مخزن (۲۶ نوامبر ۲۰۲۶):** پایهٔ اجرایی بک‌اند روی `main` ثبت شده است: Worker/Hono، health/readiness، API خواندنی محتوای منتشرشده، migration اولیه D1، seed محلی، تست اولیه و workflow CI. ورود تلگرام و صدور نشست هنوز کامل نیست؛ middleware نشست، پروفایل، attempt/answer، grading سمت سرور و ثبت progress پیاده‌سازی شده‌اند، اما رفتار D1 و هم‌زمانی آن‌ها هنوز integration-test نشده است. تست‌ها و Local D1 هنوز اجرا و تأیید نشده‌اند؛ هیچ remote migration یا deployment انجام نشده است.
+> **وضعیت مخزن (۲۶ نوامبر ۲۰۲۶):** پایهٔ اجرایی بک‌اند روی `main` ثبت شده است: Worker/Hono، health/readiness، API خواندنی محتوای منتشرشده، migration اولیه D1، seed محلی، تست اولیه و workflow CI. ورود تلگرام و صدور نشست هنوز کامل نیست؛ middleware نشست، پروفایل، attempt/answer، grading سمت سرور و ثبت progress پیاده‌سازی شده‌اند، اما رفتار D1 و هم‌زمانی آن‌ها هنوز integration-test نشده است. تست‌ها و Local D1 هنوز اجرا و تأیید نشده‌اند؛ محیط Wrangler برای Worker توسعه و D1 جداگانه پیکربندی شده، اما Worker موجود هنوز فقط bootstrap است و سورس کامل بک‌اند deploy نشده؛ هیچ remote migration انجام نشده است.
 
 ## هدف محصول
 
@@ -166,3 +166,4 @@ EnglishCodeApp/
 - [Backend data model](docs/backend/DATA-MODEL.md)
 - [Backend security baseline](docs/backend/SECURITY.md)
 - [Backend operations](docs/backend/OPERATIONS.md)
+- [Backend deployment runbook](docs/backend/DEPLOYMENT.md)
