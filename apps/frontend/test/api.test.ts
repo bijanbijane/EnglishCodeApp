@@ -58,4 +58,39 @@ describe("frontend API client", () => {
 
     await expect(api.courses()).rejects.toThrow("The server returned an invalid response.");
   });
+
+  it("loads progress records with the backend lesson and course fields", async () => {
+    const records = [{
+      lesson_id: "lesson-1",
+      course_id: "course-1",
+      best_score: 85,
+      completed_count: 2,
+      lesson_title: "Present simple",
+      last_completed_at: "2026-11-26T12:00:00.000Z",
+    }];
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: records }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(api.progress()).resolves.toEqual(records);
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/me/progress");
+  });
+
+  it("revokes the current server session through the logout endpoint", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { loggedOut: true } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    setAccessToken("active-session");
+
+    await expect(api.logout()).resolves.toEqual({ loggedOut: true });
+
+    const request = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/auth/logout");
+    expect(request.method).toBe("POST");
+    expect(new Headers(request.headers).get("Authorization")).toBe("Bearer active-session");
+  });
 });
