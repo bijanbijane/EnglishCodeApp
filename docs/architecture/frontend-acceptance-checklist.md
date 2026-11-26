@@ -91,3 +91,8 @@ This checklist operationalizes `frontend-product-spec.md`. Check an item only wh
 - [ ] Review evidence is recorded.
 - [ ] PR remains Draft until acceptance is satisfied.
 - [ ] No production migration, deployment or paid resource activation without separate authorization.
+
+
+## Current source implementation note — 2026-11-26
+
+The branch now contains a searchable lesson catalog, public question retrieval, Telegram Bot API 9.0 SecureStorage session bootstrap, authenticated attempt/answer/complete requests, server-confirmed feedback and score, a basic session/profile screen, logout, and Telegram BackButton/safe-area/theme integration. These are implementation artifacts only. The relevant checklist items above remain unchecked until typecheck, production build, automated integration tests and Telegram device tests provide evidence. Browser authentication remains unavailable because the backend does not yet expose a secure HttpOnly cookie/session contract.
