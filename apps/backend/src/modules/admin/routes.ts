@@ -219,7 +219,7 @@ adminRoutes.post(
     const requestId = c.req.param("requestId");
     const review = await c.env.DB.prepare(
       "SELECT id,author_user_id,status FROM content_review_requests WHERE id=? LIMIT 1"
-    ).bind(requestId).first<{ id: string; author_user_id: string; status: string }>();
+    ).bind(requestId).first<{ id: string; author_user_id: string | null; status: string }>();
     if (!review) return c.json(errorBody("REVIEW_NOT_FOUND", "Review request was not found.", c.get("requestId")), 404);
     if (review.author_user_id === actor) {
       return c.json(errorBody("SELF_REVIEW_FORBIDDEN", "Authors cannot review their own content.", c.get("requestId")), 403);
@@ -367,7 +367,7 @@ adminRoutes.get(
       "FROM content_review_requests r INNER JOIN lesson_versions lv ON lv.id=r.lesson_version_id " +
       "WHERE r.id=? LIMIT 1"
     ).bind(c.req.param("requestId")).first<{
-      id: string; status: string; author_user_id: string; reviewed_by_user_id: string | null;
+      id: string; status: string; author_user_id: string | null; reviewed_by_user_id: string | null;
       reason_code: string | null; submitted_at: string; reviewed_at: string | null;
       lesson_version_id: string; lesson_id: string; version: number; title: string; level: string;
     }>();
