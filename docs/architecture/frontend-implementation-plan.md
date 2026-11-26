@@ -272,3 +272,14 @@ These are source-level changes only; runtime verification remains pending until 
 - Read-back confirms four `aria-current` bindings and the new test are present. The test, typecheck and production build have not been executed in this environment; this change is not verified.
 - The workflow-run lookup returned no PR-triggered run for the latest commit at the time of inspection. No inference about CI success is justified.
 - Checklist coverage remains 34/50 (68.0%); this targeted source change does not close the broader accessibility acceptance gate. Keyboard/screen-reader walkthrough, contrast, zoom/reflow and Telegram iOS/Android checks remain open.
+
+
+## Lesson progress semantics — 2026-11-26
+
+- Replaced the visual-only lesson progress track with a semantic `role="progressbar"`, including a Persian accessible name and numeric `aria-valuemin`, `aria-valuemax`, and `aria-valuenow` values.
+- Progress percentage is derived from the number of server-accepted answers; completion reports 100%. The existing visual width continues to use the same derived percentage.
+- Added a source-contract test for the progressbar role, accessible name and numeric value.
+- Implementation commit: [cad2381](https://github.com/bijanbijane/EnglishCodeApp/commit/cad23815dcb1ae1aac5d03d945e0c989a2127197). Test commit: [909abe3](https://github.com/bijanbijane/EnglishCodeApp/commit/909abe30d39b3500d7612145a9d8e64380991ee8).
+- Read-back confirmed the implementation and test source. Runtime tests, typecheck and production build have not been executed locally.
+- CI run [#773](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45858710374) failed in both validation jobs. The GitHub job-log endpoint returned BlobNotFound, so the failing step is still unknown. The workflow definition itself runs `npm ci` followed by separate workspace validation commands; no root cause is asserted without logs.
+- Checklist remains 34/50 (68.0%). This source improvement does not complete the broader accessibility or end-to-end acceptance criteria.
