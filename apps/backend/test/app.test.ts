@@ -22,7 +22,7 @@ describe("EnglishCodeApp API", () => {
     expect(await response.json()).toEqual({ data: [{ id: "lesson-1", title: "Greetings", level: "A1", position: 1 }] });
   });
   it("returns a clear unavailable response when D1 is not configured", async () => {
-    const response = await app.request("/api/v1/lessons");
+    const response = await app.request("/api/v1/lessons", {}, {});
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ error: { code: "DATABASE_UNAVAILABLE" } });
   });

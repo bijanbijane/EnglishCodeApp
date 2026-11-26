@@ -40,7 +40,7 @@ Vocabulary content is currently seeded/managed outside the public API.
 - 400 invalid body/query
 - 401 missing/invalid/expired session or Telegram data
 - 404 route/resource/not-enrolled item
-- 409 replay, conflicting answer, idempotency-key reuse or concurrent review conflict
+- 409 replay, answer after completion, conflicting answer, idempotency-key reuse or stale concurrent review conflict
 - 503 required storage/auth configuration unavailable
 
 ## Not implemented

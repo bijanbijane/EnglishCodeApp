@@ -189,11 +189,14 @@ learningRoutes.post("/attempts/:attemptId/answers", requireAuth, async (c) => {
     return c.json(errorBody("INVALID_REQUEST", "questionId and answerId are required.", c.get("requestId")), 400);
   }
   const attempt = await c.env.DB.prepare(
-    "SELECT id,lesson_id,lesson_version_id FROM lesson_attempts " +
-    "WHERE id=? AND user_id=? AND status='started' LIMIT 1"
+    "SELECT id,lesson_id,lesson_version_id,status FROM lesson_attempts " +
+    "WHERE id=? AND user_id=? LIMIT 1"
   ).bind(c.req.param("attemptId"), c.get("user").id)
-    .first<{ id: string; lesson_id: string; lesson_version_id: string }>();
-  if (!attempt) return c.json(errorBody("ATTEMPT_NOT_FOUND", "Active lesson attempt was not found.", c.get("requestId")), 404);
+    .first<{ id: string; lesson_id: string; lesson_version_id: string; status: string }>();
+  if (!attempt) return c.json(errorBody("ATTEMPT_NOT_FOUND", "Lesson attempt was not found.", c.get("requestId")), 404);
+  if (attempt.status !== "started") {
+    return c.json(errorBody("ATTEMPT_NOT_ACTIVE", "This attempt is no longer accepting answers.", c.get("requestId")), 409);
+  }
 
   const question = await c.env.DB.prepare(
     "SELECT source_question_id,answer_key,explanation FROM question_versions " +

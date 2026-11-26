@@ -8,7 +8,10 @@
     "dev:backend": "npm run dev --workspace @englishcode/backend",
     "build:frontend": "npm run build --workspace @englishcode/frontend",
     "typecheck": "npm run typecheck --workspace @englishcode/frontend && npm run typecheck --workspace @englishcode/backend",
-    "test": "npm run test --workspace @englishcode/backend"
+    "test": "npm run test --workspace @englishcode/backend",
+    "db:migrate:local": "wrangler d1 migrations apply englishcode-local --local",
+    "db:migrations:local": "wrangler d1 migrations list englishcode-local --local",
+    "dev:worker": "wrangler dev --local"
   },
   "engines": { "node": ">=22" }
 }

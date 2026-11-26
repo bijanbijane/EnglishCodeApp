@@ -3,35 +3,36 @@
 Status labels: implemented in source, SQL-smoke-tested, Local D1 verified, CI verified, production approved. These are separate evidence levels.
 
 ## G0 — Reproducible build and P0 correctness
-- [ ] GitHub Actions exposes logs/steps; current jobs fail before steps are reported.
-- [ ] Commit a reproducible root lockfile and use npm ci.
-- [ ] Green typecheck, backend tests and frontend build on one commit.
-- [x] Independent fixed Telegram HMAC vector added (not yet executed in CI).
-- [ ] Local D1 migrations from empty database and upgrade path.
-- [ ] Local D1 duplicate-login race: at most one valid session.
-- [ ] Local D1 conflicting answer and completion race tests.
-- [ ] Verify D1 batch changes()/conditional write behavior on Workers D1.
+- [ ] Hosted GitHub Actions exposes logs/steps; current jobs fail before steps are reported.
+- [x] Root lockfile committed locally and `npm ci` passes; push/hosted CI evidence pending.
+- [x] Typecheck, backend tests (32/32) and frontend build pass on the same local checkout.
+- [x] Independent fixed Telegram HMAC vector included and Telegram tests pass locally.
+- [x] Local D1 migrations from empty database (0001..0006).
+- [x] Local D1 upgrade/backfill path from 0001 legacy data through 0006.
+- [x] Local D1 duplicate-login race: one 200 session and one 409 replay rejection.
+- [x] Local D1 answer/completion race, post-completion answer rejection and duplicate completion/progress idempotency.
+- [x] D1 batch conditional-write behavior verified on Wrangler Local D1; remote D1 remains unverified.
 
 ## G1 — Identity decoupling
 - [x] Provider-neutral user_identities table and uniqueness constraints added in migration 0004.
 - [x] Existing Telegram identities backfilled without changing users.id.
 - [x] Verified Telegram login writes provider mapping; identity service and unit tests added.
-- [ ] Local D1 migration/backfill verification.
+- [x] Local D1 migration/backfill verification on isolated upgrade database.
 - [ ] Account linking only with fresh proof of both identities; audited merge workflow later.
 
 ## G2 — Versioned learning content
 - [x] lesson_versions and question_versions tables added; existing content backfilled as v1.
 - [x] Attempts pin lesson_version and assessment_policy_version.
 - [x] Published version immutability triggers and publication pointer validation added.
-- [x] Public question DTO test added; array response shape preserved and answer key omitted.
-- [ ] Local D1 migration and route tests.
+- [x] Public question DTO preserves the array shape and omits answer keys.
+- [x] Local D1 migration and Worker route verification.
 - [ ] Content authoring/review/publish API with RBAC and audit.
 
 ## G3 — Assessment and progress integrity
 - [x] Fixed percentage assessment policy version seeded.
 - [x] Score query uses weights from pinned question version.
 - [x] Conditional completion/progress write implemented in source.
-- [ ] Local D1 concurrency and replay tests.
+- [x] Local D1 completion race and progress idempotency verified.
 - [ ] Immutable result facts, progress event facts and rebuild/reconciliation command.
 - [ ] Explicit pass/retry/manual-review policy beyond the initial percentage policy.
 
@@ -41,7 +42,9 @@ Status labels: implemented in source, SQL-smoke-tested, Local D1 verified, CI ve
 - [x] Pure scheduler v1 with deterministic unit tests.
 - [x] Due review query indexed by user/state/due_at.
 - [x] Idempotent review submission and optimistic revision.
-- [ ] Execute unit tests and add Local D1 concurrency/time-boundary tests.
+- [x] Local D1 enrollment, same-key replay and changed-payload idempotency rejection.
+- [x] Unit tests passed as part of the 32-test backend suite.
+- [ ] Deterministically force stale review revision conflict and add review time-boundary tests.
 - [ ] Vocabulary authoring/import and curated content pipeline.
 
 ## G5 — Four skills and content production

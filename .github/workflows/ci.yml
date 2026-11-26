@@ -26,19 +26,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Runner and workspace diagnostics
         run: |
           node --version
           npm --version
           test -f package.json
+          test -f package-lock.json
           test -f apps/backend/package.json
           test -f apps/frontend/package.json
 
-      # A committed package-lock.json is not present yet. Until it is added,
-      # npm install is used; G0 requires committing a lockfile and switching to npm ci.
-      - name: Install workspace dependencies
-        run: npm install --no-audit --no-fund
+      - name: Install locked workspace dependencies
+        run: npm ci --no-audit --no-fund
 
       - name: TypeScript typecheck
         run: npm run typecheck
