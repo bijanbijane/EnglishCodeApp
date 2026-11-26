@@ -21,6 +21,6 @@ function LessonCard({ lesson, onSelect }: { lesson: Lesson; onSelect: () => void
 export function LessonCatalog({ lessons, onRetry, onSelect, state, errorMessage }: LessonCatalogProps) {
   if (state === "loading") return <div className="state-panel" role="status" aria-live="polite"><span className="loader" aria-hidden="true" /><span>در حال دریافت مسیرهای آموزشی…</span></div>;
   if (state === "error") return <div className="state-panel state-panel--error" role="alert"><div><strong>بارگذاری درس‌ها انجام نشد.</strong><p>{errorMessage || "اتصال را بررسی و دوباره تلاش کنید."}</p></div><button className="button button--secondary" type="button" onClick={onRetry}>تلاش دوباره</button></div>;
-  if (lessons.length === 0) return <div className="state-panel"><strong>درسی با این مشخصات پیدا نشد.</strong><p>عبارت جست‌وجو را تغییر بده یا بعداً دوباره بررسی کن.</p></div>;
+  if (lessons.length === 0) return <div className="state-panel" role="status" aria-live="polite"><strong>درسی با این مشخصات پیدا نشد.</strong><p>عبارت جست‌وجو را تغییر بده یا بعداً دوباره بررسی کن.</p></div>;
   return <div className="lesson-grid">{lessons.map((lesson) => <LessonCard key={lesson.id} lesson={lesson} onSelect={() => onSelect(lesson)} />)}</div>;
 }
