@@ -1,18 +1,16 @@
 # Backend — Modular Worker foundation
 
-## Current implementation
-
-TypeScript Modular Monolith using Hono and a Cloudflare Worker-compatible entrypoint.
-
-- Versioned API, application-generated request IDs, structured errors, liveness and D1 readiness endpoints.
-- D1-backed lesson and question reads.
-- Telegram Mini App initData HMAC-SHA-256 verification, duplicate-key rejection, auth_date freshness checks, and one-time replay fingerprints.
-- Opaque bearer sessions; only SHA-256 token hashes are stored. Sessions expire and can be revoked.
-- Authenticated profile and progress reads.
-- Lesson attempts, server-side answer grading, completion scoring and progress aggregation.
-- Pure learning-domain grading/scoring functions with unit tests.
-- Migrations for sessions, progress, one-answer-per-question uniqueness and Telegram replay prevention.
-- Unit tests for Telegram signatures, replay rejection and learning-domain rules.
+## Implemented in this branch (source presence, not production readiness)
+- TypeScript Modular Monolith using Hono and a Cloudflare Worker-compatible entrypoint.
+- Versioned API, application-generated request IDs, structured errors, liveness and D1 readiness.
+- Telegram Mini App initData HMAC-SHA-256 verification, duplicate-key rejection, freshness checks and one-time replay fingerprints.
+- Opaque bearer sessions; only SHA-256 token hashes are stored.
+- Provider-neutral identity table and verified Telegram identity mapping (migration 0004).
+- Authenticated profile/progress reads and lesson/attempt/answer/complete endpoints.
+- Conditional answer insert, conflict response for different duplicate answers, conditional completion/progress writes.
+- Vocabulary enrollment/listing, due-review listing and idempotent review submission with optimistic concurrency.
+- Deterministic spaced-repetition scheduler v1 with unit tests.
+- Migration files 0001..0005.
 
 ## API
 
@@ -20,50 +18,45 @@ TypeScript Modular Monolith using Hono and a Cloudflare Worker-compatible entryp
 |---|---|---|---|
 | GET | /api/v1/health | No | Liveness |
 | GET | /api/v1/ready | No | D1 readiness |
-| POST | /api/v1/auth/telegram | No | Verify initData once and issue session |
-| POST | /api/v1/auth/logout | Bearer | Revoke current session |
-| GET | /api/v1/me | Bearer | Current user |
-| GET | /api/v1/me/progress | Bearer | Current user's progress |
+| POST | /api/v1/auth/telegram | No | Verify initData and issue session |
+| POST | /api/v1/auth/logout | Bearer | Revoke session |
+| GET | /api/v1/me | Bearer | Current profile |
+| GET | /api/v1/me/progress | Bearer | Progress |
 | GET | /api/v1/lessons | No | Published lessons |
 | GET | /api/v1/lessons/:lessonId/questions | No | Questions without answer keys |
 | POST | /api/v1/lessons/:lessonId/attempts | Bearer | Start attempt |
 | POST | /api/v1/attempts/:attemptId/answers | Bearer | Submit answer |
-| POST | /api/v1/attempts/:attemptId/complete | Bearer | Finalize score and progress |
+| POST | /api/v1/attempts/:attemptId/complete | Bearer | Complete attempt |
+| GET | /api/v1/me/vocabulary | Bearer | User vocabulary |
+| POST | /api/v1/me/vocabulary/:itemId | Bearer | Enroll vocabulary item |
+| GET | /api/v1/me/reviews/due | Bearer | Due review queue |
+| POST | /api/v1/me/reviews/:itemId | Bearer | Submit review rating |
 
-## Telegram authentication
+## Telegram identity
+The client sends raw Telegram.WebApp.initData; never trust initDataUnsafe. The backend derives the Telegram secret using HMAC-SHA-256 with bot token as key and WebAppData as message, then validates data-check-string. Duplicate keys and stale/future auth_date values are rejected. Replay fingerprint claim and session issuance are batched transactionally. The verified Telegram subject is also mapped to the stable internal users.id in user_identities. Raw initData is not persisted.
 
-The client sends the raw Telegram.WebApp.initData string. Never trust initDataUnsafe. The backend derives the Telegram secret using HMAC-SHA-256 with the bot token as key and `WebAppData` as message, then validates the data-check-string. Duplicate query parameters and stale/future auth_date values are rejected. A SHA-256 fingerprint of the canonical signed payload is claimed transactionally with session issuance; raw initData is not persisted. Replayed payloads return HTTP 409.
-
-The bot token must be configured as a Worker secret and must never be committed. The response returns an opaque bearer token. Only its SHA-256 hash is stored in D1. Keep the bearer token in memory where practical and never log it or place it in a URL.
+The bot token must be configured as a Worker secret and must never be committed. Session token is opaque; only its SHA-256 hash is stored.
 
 ## Database
-
-Apply in order to a local/test D1 database:
+Apply in order to Local D1:
 1. database/migrations/0001_initial.sql
 2. database/migrations/0002_backend_foundation.sql
 3. database/migrations/0003_telegram_auth_replay.sql
+4. database/migrations/0004_provider_neutral_identity.sql
+5. database/migrations/0005_vocabulary_review.sql
 
-**Migration note:** 0002 already creates the replay table and expiry index; 0003 repeats those `IF NOT EXISTS` definitions. The duplicate is documented in database/migrations/README.md. Do not rewrite either migration until migration history in all local/shared environments has been checked; use a forward-only migration if a schema correction is required.
+Migration 0002 already creates replay table/index; 0003 repeats those IF NOT EXISTS definitions. Historical files are retained. 0004 backfills provider-neutral Telegram identity without changing users.id. 0005 adds vocabulary and review history.
 
-Seed only local/test:
-- database/seeds/0001_demo.sql
+Migrations have not been applied to Cloudflare remote or production. Seed data must be synthetic and local/test only.
 
-Migrations have not been applied to a Cloudflare account or production database.
-
-## Local development and deployment boundary
-
-The current Node adapter is a UI preview fixture, not a D1 emulator. It does not provide persistent auth or learning writes. Replay route tests use a mocked D1 interface; a local D1 integration harness is still required for end-to-end verification.
-
-No Wrangler config is added. This new Cloudflare project follows the cf CLI direction. No Cloudflare resources, secrets, deployments, or paid services are created by this branch.
+## Verification boundary
+The Node adapter is a UI preview fixture, not a D1 emulator. Existing replay route tests use mocked D1; scheduler tests are pure unit tests. Local D1 integration, full typecheck, full test suite and frontend build still need verified green evidence. No Cloudflare resources, secrets, deployments or paid services are created by this branch.
 
 ## Security and remaining pre-beta work
-
-- Browser never supplies user ownership or answer correctness.
-- Session tokens are random, opaque, expiring and revocable; only hashes are persisted.
+- Session tokens are opaque, expiring, revocable; only hashes are persisted.
 - Public question responses omit answer keys.
-- Attempts are scoped to the authenticated user.
-- A unique index enforces one answer per question per attempt.
-- Answer retries with the same value are idempotent; conflicting duplicate answers are rejected.
-- Attempt completion and progress aggregation use conditional transactional writes; Local D1 concurrency tests are still required.
-- Before public beta: add and test platform-level rate limiting for login/write endpoints, origin policy, retention/deletion/export policy, abuse monitoring, and end-to-end tests against local D1.
-- Queue, R2, AI, payments, admin console and production deployment are outside this foundation.
+- User-owned operations derive user ID from session.
+- Answer retries with same value are idempotent; conflicting answers are rejected.
+- Review submissions require idempotency key and optimistic revision.
+- Before beta: Local D1 concurrency tests, rate limiting, origin policy, account retention/deletion/export, abuse monitoring, backup/restore, Telegram client matrix and security review.
+- Content versioning, admin/RBAC, media/R2, Queues, AI and payments remain planned, not implemented.
