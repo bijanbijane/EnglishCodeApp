@@ -88,7 +88,7 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 - [x] Add Telegram host adapter and official WebApp script.
 - [x] Add hash-based route contract.
 - [x] Add native Node route-contract tests for home/profile/progress/lesson parsing, encoding and malformed hashes.
-- [x] Add pure contract unit tests for strict API envelopes, question payloads and attempt responses.
+- [x] Add pure contract unit tests for strict API envelopes, question payloads, attempt responses, profile DTOs, progress DTOs and lesson search.
 - [ ] Obtain successful execution evidence for typecheck, all contract tests and production build.
 - [ ] Resolve CI failure evidence and establish reproducible install/typecheck/build.
 
