@@ -1,0 +1,4 @@
+# Copy to .dev.vars locally; never commit real values.
+TELEGRAM_BOT_TOKEN=replace-with-local-test-token
+SESSION_SECRET=replace-with-at-least-32-bytes-of-random-secret
+TELEGRAM_MAX_AUTH_AGE_SECONDS=86400
