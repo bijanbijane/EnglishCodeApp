@@ -35,11 +35,20 @@ export async function cleanupExpiredAuthState(
        WHERE id IN (
          SELECT id
          FROM sessions
-         WHERE (expires_at < ? AND revoked_at IS NULL)
-            OR (revoked_at IS NOT NULL AND revoked_at < ?)
+         WHERE expires_at < ? AND revoked_at IS NULL
          ORDER BY expires_at ASC
          LIMIT ${BATCH_LIMIT}
        )`,
-    ).bind(expiredSessionCutoff, revokedSessionCutoff),
+    ).bind(expiredSessionCutoff),
+    db.prepare(
+      `DELETE FROM sessions
+       WHERE id IN (
+         SELECT id
+         FROM sessions
+         WHERE revoked_at < ?
+         ORDER BY revoked_at ASC
+         LIMIT ${BATCH_LIMIT}
+       )`,
+    ).bind(revokedSessionCutoff),
   ]);
 }
