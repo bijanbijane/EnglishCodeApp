@@ -42,6 +42,7 @@ describe("public lesson content", () => {
     expect(response.status).toBe(200);
     expect(body).toContain('"text":"Hello"');
     expect(body).not.toContain("answer_key");
+    expect(body).not.toContain("Hello is a greeting.");
     expect(body).not.toContain('"answer":"a"');
   });
 });
