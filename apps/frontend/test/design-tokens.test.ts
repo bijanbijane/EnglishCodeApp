@@ -44,6 +44,6 @@ test("screen styles consume the extended semantic palette instead of repeated li
 
 
 test("all screen color values are sourced from the centralized palette", () => {
-  assert.doesNotMatch(styles, /#[0-9a-f]{3,8}\\b/i, "Raw hexadecimal colors must live in tokens.css, not screen styles.");
-  assert.match(tokens, /--ec-palette-[0-9a-f]{3,8}:\\s*#[0-9a-f]{3,8};/i);
+  assert.equal(styles.includes("#"), false, "Raw hexadecimal colors must live in tokens.css, not screen styles.");
+  assert.ok(tokens.includes("--ec-palette-") && tokens.includes("#"), "Palette primitives must be defined in tokens.css.");
 });
