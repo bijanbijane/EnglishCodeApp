@@ -245,3 +245,13 @@ These are source-level changes only; runtime verification remains pending until 
 - GitHub returned `steps=null` and no log URLs for both jobs; attempts to retrieve the job logs returned `BlobNotFound`. The failure cause is therefore unknown. Do not infer that the palette migration caused the failure.
 - The combined commit status endpoint returned no individual status records. No local test/typecheck/build execution has been performed after these commits.
 - Frontend implementation-plan coverage remains 34/50 (68.0%); release readiness is not established.
+
+## Reduced-motion accessibility continuation — 2026-11-26
+
+- Added a global `prefers-reduced-motion: reduce` override in `apps/frontend/src/styles.css`.
+- Under the operating-system reduced-motion preference, smooth scrolling is disabled and non-essential CSS animations/transitions are reduced to a near-zero duration.
+- Added a source-contract test for the media query and its motion overrides.
+- This is a targeted accessibility improvement, not a complete accessibility audit. Keyboard-only operation, screen-reader behavior, contrast, 200% zoom/reflow and Telegram iOS/Android checks remain open.
+- The new test has been committed but has **not** been executed in this environment. Do not count it as passing until local or hosted test output is available.
+- Hosted CI run [#755](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45853964599) still reports both jobs as failed; the GitHub job API exposes no steps or logs. The cause remains unknown and cannot be attributed to this frontend change.
+- Checklist coverage remains 34/50 (68.0%); no acceptance criterion was checked off by this source-only change.
