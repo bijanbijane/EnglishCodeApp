@@ -39,3 +39,7 @@ test("lesson completion exposes a numeric progressbar value", () => {
   assert.match(workspace, /aria-valuemin=\{0\} aria-valuemax=\{100\} aria-valuenow=\{progressPercent\}/);
   assert.match(workspace, /const progressPercent = Math\.round\(completion \? 100 : questions\.length \? answeredIds\.length \/ questions\.length \* 100 : 0\)/);
 });
+
+test("empty progress history is announced as a polite status update", () => {
+  assert.match(progress, /className="state-panel" role="status" aria-live="polite"><div><strong>هنوز پیشرفتی ثبت نشده است\./);
+});
