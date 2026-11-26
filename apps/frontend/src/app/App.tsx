@@ -93,7 +93,6 @@ export default function App() {
   }, [route, navigateTo]);
 
   const lessons = lessonState.status === "ready" ? lessonState.lessons : [];
-  const lessonTitles = useMemo(() => Object.fromEntries(lessons.map((lesson) => [lesson.id, lesson.title])), [lessons]);
   const selectedLesson: Lesson | null = route.name === "lesson" && lessonState.status === "ready"
     ? lessonState.lessons.find((lesson) => lesson.id === route.lessonId) ?? null
     : null;
