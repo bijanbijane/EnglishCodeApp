@@ -2,10 +2,10 @@
 
 ## Environments
 
-- Local development uses Wrangler local mode and an isolated local D1 database.
-- Staging must have its own Worker name, D1 database, secrets, and origin allowlist.
+- Local development uses Wrangler local mode and an isolated D1 database.
+- Staging must have its own Worker name, D1 database, secrets and exact origin allowlist.
 - Production bindings and secrets must never be copied into local or preview environments.
-- The current Wrangler file intentionally contains a local placeholder D1 ID and no deploy target.
+- Current Wrangler config contains a local placeholder D1 ID; no deploy target or production resource is provisioned.
 
 ## Local workflow
 
@@ -15,65 +15,64 @@ From `apps/backend`:
 npm install
 npm run typecheck
 npm test
+python3 ../../scripts/verify_backend_sqlite.py
 npm run db:migrate:local
 npm run db:seed:local
 npm run dev
 ```
 
-Use synthetic records only. Reset local D1 when testing migration-from-empty behavior; preserve a separate fixture when testing upgrades.
+The Python script exercises migrations and core SQLite transaction/trigger invariants. It is compatibility evidence, not a substitute for Local D1 or concurrent Worker tests. Use synthetic records only.
 
 ## Migration policy
 
-1. Review SQL and foreign-key behavior.
-2. Apply all migrations to a fresh local D1.
+1. Review SQL, foreign keys, triggers and indexes.
+2. Apply migrations `0001`–`0010` to fresh Local D1.
 3. Apply migrations to a copy of the previous supported schema.
-4. Verify indexes, constraints, and representative query plans.
-5. Record the exact migration version and evidence.
+4. Verify indexes, constraints and representative query plans.
+5. Record exact migration version and evidence.
 6. Remote migration is a separate, explicitly approved operation with backup and recovery plan.
 
-Never edit a migration that has been applied to a shared database. Prefer forward fixes.
+Never edit a migration applied to a shared database. Prefer forward-only migrations. Old feature branches have incompatible migration histories; do not copy their old numbered migrations onto main.
 
 ## CI requirements
 
-- Node.js 22.
-- Dependency installation.
-- Backend TypeScript typecheck.
-- Backend unit/API tests.
-- Local D1 migration and synthetic seed application.
-- Later gates: Worker integration tests, security tests, frontend contract compatibility, and migration-upgrade tests.
+- Node.js 22 and dependency installation.
+- Backend TypeScript typecheck and Vitest.
+- Python SQLite migration/transaction invariant script.
+- Local D1 migration and synthetic seed.
+- Later: Worker integration tests, security tests, frontend contract compatibility and migration-upgrade tests.
 
-A missing workflow result is not a passing result. Record the exact commit and job output.
+Current GitHub Actions runs fail before runner allocation (`runner_id=0`, no steps). This is not a code-test failure or a passing result. The connected Mac was also offline during the latest work session.
 
 ## Observability
 
-- Generate a server-side request ID for each request.
-- Preserve Cloudflare Ray ID separately when available.
-- Log route, duration, outcome, and error code without credentials or user-private content.
-- Monitor error rate, latency, D1 query duration, quota consumption, and failed background jobs.
-- Define alert thresholds only after a baseline exists; do not claim an SLA before load testing.
+- Server-generated request ID on every request.
+- Keep Cloudflare Ray ID separate when available.
+- Log route, duration, outcome and error code without credentials or private content.
+- Monitor error rate, latency, D1 query duration, quota consumption and scheduled cleanup failures.
+- Do not claim an SLA before load testing.
 
-## Cost and quota controls
+## Scheduled auth cleanup
 
-- Free-first is mandatory until explicitly changed.
-- Do not provision R2, Queues, KV, Durable Objects, Workers AI, or paid providers without a concrete use case and approval.
-- Degrade optional AI/media/background features before compromising durable learning records.
-- Review current Cloudflare limits and pricing before any resource activation.
+- Daily Worker Cron configured for 03:17 UTC; inactive until deployment.
+- At most 500 expired replay fingerprints, 500 rate-limit buckets older than 48 hours and 500 stale sessions are deleted per run.
+- Expired unrevoked sessions are retained at least seven days after expiry; revoked sessions at least 30 days after revocation.
+
+## Admin operations
+
+- First admin and subsequent role grants/revocations are owner-controlled D1 batches; no public grant endpoint exists.
+- Follow `ADMIN-BOOTSTRAP.md`; verify internal user ID from the confirmed Telegram identity.
+- Every role grant/revocation must include an audit event in the same D1 batch.
+- Do not seed production roles or store a production administrator ID in source control.
 
 ## Release gate
 
 Before beta:
 - CI green on exact release commit.
 - Local D1 migration-from-empty and upgrade tests pass.
-- Auth, ownership, answer-key, idempotency, and concurrency tests pass.
-- Backup/restore and deletion/export paths are tested.
+- Auth, role, ownership, answer-key, idempotency and concurrency tests pass.
+- Account export/deletion and backup/restore paths are tested.
 - Threat model and privacy/retention policy are reviewed.
 - Staging smoke test and rollback procedure are documented.
 
 Production deployment and production migration require separate explicit owner approval.
-
-
-## Scheduled authentication-state cleanup
-
-- A daily Worker Cron is configured for 03:17 UTC. Each execution deletes at most 500 expired Telegram replay fingerprints, 500 rate-limit buckets older than 48 hours, and 500 stale sessions.
-- Expired unrevoked sessions are retained for at least seven days after expiry; revoked sessions are retained for at least 30 days after revocation.
-- Cleanup is code/configuration only until a Worker is deployed. No production schedule is active.
