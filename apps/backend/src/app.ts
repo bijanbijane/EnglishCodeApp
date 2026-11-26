@@ -65,7 +65,7 @@ app.route("/api/v1", contentRoutes);
 app.route("/api/v1", authRoutes);
 app.route("/api/v1", userRoutes);
 app.route("/api/v1", learningRoutes);
-app.route("/api/v1", adminRoutes);
+app.route("/api/v1/admin", adminRoutes);
 
 app.notFound((c) =>
   c.json(
