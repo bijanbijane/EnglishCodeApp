@@ -1,45 +1,48 @@
 # Frontend — Telegram Mini App
 
-## مسئولیت
+## Implemented application
 
-این برنامه رابط کاربری اولیهٔ EnglishCodeApp است و با React، Vite و TypeScript طراحی می‌شود. هدف، پشتیبانی از Telegram Mini App در فاز اول و امکان اجرای مستقل در مرورگر در فازهای بعدی است.
+The frontend is a React 19 + TypeScript + Vite application. It currently provides:
 
-## مرزهای معماری
+- A responsive course catalogue backed by `GET /api/v1/courses`.
+- Published lesson lists backed by `GET /api/v1/courses/:courseId/lessons`.
+- Telegram Mini App initialization and server-verified sign-in using raw `Telegram.WebApp.initData`.
+- Bearer-session restoration and authenticated profile loading.
+- Server-owned lesson attempts, answer submission, grading and completion.
+- Loading, empty, error and retry-friendly states.
+- Mobile-first layout, keyboard focus states and reduced-motion support.
 
-- رابط کاربر، navigation، state نمایشی و تعامل با API در این بخش قرار می‌گیرند.
-- قوانین امتیازدهی، احراز هویت، مجوزها، محاسبهٔ پیشرفت و ثبت نهایی پاسخ در بک‌اند باقی می‌مانند.
-- این برنامه مستقیماً به D1، R2 یا سرویس‌های داخلی Cloudflare متصل نمی‌شود.
-- هیچ token، secret یا کلید خصوصی در bundle فرانت‌اند قرار نمی‌گیرد.
+## Local development
 
-## ساختار هدف
+```bash
+cd apps/frontend
+npm install
+cp .env.example .env.local
+npm run dev
+```
 
-~~~text
-src/
-├── app/          # bootstrap، router، providers و تنظیمات
-├── pages/        # صفحه‌های ورود، خانه، مسیر یادگیری، درس و پروفایل
-├── features/     # قابلیت‌های مستقل مثل lessons، exercises، vocabulary، progress
-├── components/   # اجزای عمومی UI
-├── services/     # API client و اتصال Telegram WebApp
-├── hooks/
-├── styles/
-└── assets/
-~~~
+Set `VITE_API_BASE_URL` to the backend origin (for example, `http://localhost:8787`). Leave it empty only when the frontend and API are served from the same origin.
 
-## تلگرام و هویت
+## Validation
 
-- از Telegram.WebApp.initData خام استفاده شود.
-- initDataUnsafe صرفاً دادهٔ کمکی رابط است و نباید مبنای اعتماد یا مجوز قرار گیرد.
-- initData برای اعتبارسنجی سمت سرور به API فرستاده می‌شود.
-- فرانت‌اند نباید خودش هویت Telegram را معتبر اعلام کند.
-- در اجرای خارج از تلگرام، ورود مستقل باید از یک مسیر احراز هویت رسمی و جدا استفاده کند؛ نباید دادهٔ ساختگی تلگرام تولید شود.
+```bash
+npm run typecheck
+npm run build
+npm run preview
+```
 
-## قواعد کیفیت
+## Authentication and trust boundaries
 
-- mobile-first و سازگار با صفحه‌نمایش‌های کوچک.
-- حالت‌های loading، empty، error، retry و offline به‌صورت روشن طراحی شوند.
-- پاسخ‌ها و پیشرفت کاربر فقط پس از تأیید سرور نهایی شوند.
-- دسترس‌پذیری، مدیریت خطا و پشتیبانی از راست‌به‌چپ در UI لحاظ شوند.
+- The client sends raw `Telegram.WebApp.initData` to the backend. It never trusts `initDataUnsafe` for identity or authorization.
+- The backend remains authoritative for authentication, answer correctness, scoring and progress.
+- The bearer token is held in session-scoped browser storage and sent only in the Authorization header.
+- No database credentials, bot token or server secrets are included in the frontend bundle.
+- Outside Telegram, the catalogue remains browsable, but authenticated learning actions require a supported sign-in flow.
 
-## وضعیت
+## Configuration
 
-این سند ساختار هدف را تعریف می‌کند. کد اجرایی، وابستگی‌ها، build و تست فرانت‌اند هنوز در این مرحله ایجاد نشده‌اند.
+| Variable | Purpose |
+| --- | --- |
+| `VITE_API_BASE_URL` | Backend origin. Empty means same-origin API requests. |
+
+The `VITE_` prefix means values are public and embedded in the client bundle. Never place secrets in these variables.
