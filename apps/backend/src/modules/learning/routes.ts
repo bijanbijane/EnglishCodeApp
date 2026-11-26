@@ -40,11 +40,15 @@ learningRoutes.post("/lessons/:lessonId/attempts", requireAuth, async (c) => {
 
 learningRoutes.post("/attempts/:attemptId/answers", requireAuth, async (c) => {
   if (!c.env.DB) return c.json(errorBody("DATABASE_UNAVAILABLE", "Learning storage is unavailable.", c.get("requestId")), 503);
-  let body: { questionId?: unknown; answerId?: unknown };
-  try { body = await c.req.json<{ questionId?: unknown; answerId?: unknown }>(); }
+  let parsed: unknown;
+  try { parsed = await c.req.json(); }
   catch { return c.json(errorBody("INVALID_REQUEST", "Request body must be valid JSON.", c.get("requestId")), 400); }
-  if (typeof body.questionId !== "string" || body.questionId.length > 128 ||
-      typeof body.answerId !== "string" || body.answerId.length > 128) {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return c.json(errorBody("INVALID_REQUEST", "Request body must be a JSON object.", c.get("requestId")), 400);
+  }
+  const body = parsed as { questionId?: unknown; answerId?: unknown };
+  if (typeof body.questionId !== "string" || body.questionId.length < 1 || body.questionId.length > 128 ||
+      typeof body.answerId !== "string" || body.answerId.length < 1 || body.answerId.length > 128) {
     return c.json(errorBody("INVALID_REQUEST", "questionId and answerId are required.", c.get("requestId")), 400);
   }
   const attempt = await c.env.DB.prepare("SELECT id,lesson_id FROM lesson_attempts WHERE id=? AND user_id=? AND status='started' LIMIT 1")
