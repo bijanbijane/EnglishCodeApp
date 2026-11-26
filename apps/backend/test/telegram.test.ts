@@ -13,6 +13,16 @@ async function signedInitData(botToken: string, fields: Record<string, string>) 
 describe("Telegram initData verification", () => {
   const botToken = "test-bot-token";
   const now = 1_800_000_000;
+  it("accepts an independent fixed Telegram HMAC test vector", async () => {
+    // Generated independently with Python stdlib hmac/hashlib, not the TS test helper.
+    const raw = "auth_date=1700000000&query_id=AAEAAAE&user=%7B%22id%22%3A42%2C%22first_name%22%3A%22Ada%22%2C%22last_name%22%3A%22Lovelace%22%2C%22username%22%3A%22ada%22%7D&hash=20b862fa44b58d955965fac0b457b23e79d2a4f81eb5468c23a7aaaf98f010db";
+    const result = await verifyTelegramInitData(raw, {
+      botToken: "123456:ABC-DEF",
+      nowSeconds: 1700000000,
+      maxAgeSeconds: 3600
+    });
+    expect(result.user).toMatchObject({ id: "42", firstName: "Ada", lastName: "Lovelace", username: "ada" });
+  });
   it("accepts a valid signature using Telegram's HMAC key/data order", async () => {
     const raw = await signedInitData(botToken, { auth_date: String(now), user: JSON.stringify({ id: 123, first_name: "Test" }) });
     const result = await verifyTelegramInitData(raw, { botToken, nowSeconds: now });
