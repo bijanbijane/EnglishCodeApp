@@ -172,4 +172,4 @@ These are source-level changes only; runtime verification remains pending until 
 - Runtime/release verification: **not yet verified**. Do not count written tests as passing tests until a green CI or local execution report exists.
 
 
-- The latest CI run inspected after the Learn/library changes is [#602](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45813122927) on head `1ffedec6dec9f2bfc1c8b3bd8af0c6727646fa72`; both jobs failed, but job metadata contains no step list or logs URL. The root cause remains unknown and no local execution has been performed.
+- The latest inspected CI run is [#629](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45813871472) on head `1a21944f571d407463dddb19525489a60d538fe4`; both frontend and backend jobs failed. GitHub exposes empty step arrays and no logs URL, so no typecheck/test/build output or failure cause can be determined. No full local install, typecheck, repository test run or production build has been executed.
