@@ -1,13 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getLessons } from "../features/lessons/api/lessons.api";
-import { LearningLibrary } from "../features/lessons/ui/LearningLibrary";
-import { LessonWorkspace } from "../features/lessons/ui/LessonWorkspace";
-import { ProfilePanel } from "../features/identity/ui/ProfilePanel";
-import { ProgressPanel } from "../features/progress/ui/ProgressPanel";
-import type { Lesson, LessonListState } from "../features/lessons/model/lesson.types";
+import { getLessons, LearningLibrary, LessonWorkspace, type Lesson, type LessonListState } from "../features/lessons";
+import { ProfilePanel, bootstrapTelegramSession, retryTelegramSessionBootstrap, signOut, subscribeToSessionInvalidation, type SessionBootstrapResult } from "../features/identity";
+import { ProgressPanel } from "../features/progress";
 import { bindTelegramLayoutMetrics, getPlatformContext, initializeTelegramHost, setTelegramBackAction } from "../services/platform/telegram";
-import { bootstrapTelegramSession, retryTelegramSessionBootstrap, signOut, type SessionBootstrapResult } from "../features/identity/api/auth.api";
-import { subscribeToSessionInvalidation } from "../services/auth/session";
+
 import { hashFromRoute, routeFromHash, type AppRoute } from "./navigation/routes";
 
 export default function App() {
