@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import json
 import shutil
+import secrets
 import subprocess
 import tempfile
 import time
@@ -163,7 +164,28 @@ def main():
             )
             token = login["data"]["accessToken"]
             profile = expect_status(request("GET", "/api/v1/me", token), 200, "profile")
-            assert profile["data"]["id"]
+            user_id = profile["data"]["id"]
+            assert user_id
+
+            expired_token = secrets.token_urlsafe(32)
+            expired_hash = hashlib.sha256(expired_token.encode()).hexdigest()
+            expired_session_sql = PERSIST_DIR / "expired-session.sql"
+            expired_session_sql.write_text(
+                "INSERT INTO sessions (id,user_id,token_hash,expires_at,revoked_at) "
+                f"VALUES ('expired-session','{user_id}','{expired_hash}',"
+                "'2000-01-01T00:00:00.000Z',NULL);",
+                encoding="utf-8",
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                f"--file={expired_session_sql}",
+            ])
+            expect_status(
+                request("GET", "/api/v1/me", expired_token),
+                401,
+                "expired session",
+            )
 
             expect_status(
                 request("POST", "/api/v1/auth/telegram", payload={"initData": init_data}),
