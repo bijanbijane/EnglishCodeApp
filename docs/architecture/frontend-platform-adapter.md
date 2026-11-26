@@ -32,4 +32,4 @@ The same React feature modules must run inside Telegram Mini App and in a normal
 
 ## Verification status
 
-The adapter is source-implemented but not runtime-verified in Telegram or a browser. Host API availability varies by Telegram client and version; every optional capability must remain guarded.
+The adapter and SecureStorage session path are source-implemented but not runtime-verified in Telegram or a browser. Host API availability varies by Telegram client and version; every optional capability must remain guarded.
