@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getLessons } from "../features/lessons/api/lessons.api";
 import { LessonCatalog } from "../features/lessons/ui/LessonCatalog";
 import { LessonWorkspace } from "../features/lessons/ui/LessonWorkspace";
 import type { Lesson, LessonListState } from "../features/lessons/model/lesson.types";
-import { initializeTelegramHost, setTelegramBackAction } from "../services/platform/telegram";
+import { bindTelegramLayoutMetrics, initializeTelegramHost, setTelegramBackAction } from "../services/platform/telegram";
 import { bootstrapTelegramSession, type SessionBootstrapResult } from "../features/identity/api/auth.api";
 
 export default function App() {
@@ -11,6 +11,7 @@ export default function App() {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [search, setSearch] = useState("");
   const [sessionState, setSessionState] = useState<SessionBootstrapResult | { status: "checking" }>({ status: "checking" });
+  const hostInitialized = useRef(false);
 
   const loadLessons = useCallback(async () => {
     setLessonState({ status: "loading" });
@@ -22,7 +23,12 @@ export default function App() {
     }
   }, []);
 
-  useEffect(() => { initializeTelegramHost(); }, []);
+  useEffect(() => {
+    if (hostInitialized.current || lessonState.status === "loading" || sessionState.status === "checking") return;
+    hostInitialized.current = true;
+    initializeTelegramHost();
+    return bindTelegramLayoutMetrics();
+  }, [lessonState.status, sessionState.status]);
   useEffect(() => {
     let active = true;
     void bootstrapTelegramSession().then((result) => { if (active) setSessionState(result); });
