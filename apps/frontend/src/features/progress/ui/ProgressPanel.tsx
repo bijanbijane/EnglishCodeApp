@@ -24,12 +24,10 @@ function ProgressRow({ row, title }: { row: LessonProgress; title: string }) {
 export function ProgressPanel({ isAuthenticated, onBack, onOpenLessons }: ProgressPanelProps) {
   const [state, setState] = useState<ProgressState>({ status: "loading" });
   const [retry, setRetry] = useState(0);
-  const [lessonTitles, setLessonTitles] = useState<Record<string, string>>({});
   const load = useCallback(async () => {
     setState({ status: "loading" });
     try {
       const rows = await getMyProgress();
-      setLessonTitles({});
       setState({ status: "ready", rows });
     } catch (error) {
       setState({ status: "error", message: error instanceof Error ? error.message : "دریافت پیشرفت ناموفق بود." });
