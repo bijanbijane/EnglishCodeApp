@@ -113,10 +113,22 @@ auth.post("/auth/telegram", async (c) => {
          AND provider_user_id = ?
          AND changes() = 1`,
     ).bind(sessionId, tokenHash, expiresAt, validated.userId),
+    c.env.DB.prepare(
+      `SELECT u.id, u.display_name
+       FROM users u
+       JOIN external_identities i ON i.user_id = u.id
+       WHERE i.provider = 'telegram' AND i.provider_user_id = ?
+       LIMIT 1`,
+    ).bind(validated.userId),
   ]);
 
   if (results[3]?.meta.changes !== 1) {
     throw new AppError("CONFLICT", "This Telegram login payload has already been used.", 409);
+  }
+
+  const account = results[4]?.results[0] as { id: string; display_name: string | null } | undefined;
+  if (!account) {
+    throw new AppError("INTERNAL_ERROR", "The authenticated account could not be loaded.", 500);
   }
 
   return c.json({
@@ -125,8 +137,8 @@ auth.post("/auth/telegram", async (c) => {
       tokenType: "Bearer",
       expiresAt,
       user: {
-        id: userId,
-        displayName: displayName(validated.user),
+        id: account.id,
+        displayName: account.display_name,
       },
     },
     meta: { requestId: c.get("requestId") },
