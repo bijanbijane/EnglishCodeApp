@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMyProfile, type LearnerProfile } from "../../progress/api/progress.api";
+import { getMyProfile, type LearnerProfile } from "../api/user.api";
 
 type ProfilePanelProps = {
   isAuthenticated: boolean;
