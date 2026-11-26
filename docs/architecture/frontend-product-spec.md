@@ -574,7 +574,7 @@ The existing branch contains the modular app composition, shared API client, fir
 
 As of this specification:
 - typecheck/build/test results are not verified in this environment;
-- Telegram session integration and lesson player are not complete;
+- Telegram SecureStorage session bootstrap and the authenticated lesson vertical slice are source-implemented but not runtime-verified;
 - the frontend branch is stacked on backend foundation work;
 - PR #4 remains Draft;
 - no merge, deployment, production migration or paid-resource activation is authorized.
