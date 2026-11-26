@@ -27,8 +27,7 @@ export function bootstrapTelegramSession(): Promise<SessionBootstrapResult> {
 }
 
 export function retryTelegramSessionBootstrap(): Promise<SessionBootstrapResult> {
-  // Retry only after the previous bootstrap has settled; callers expose this on recoverable errors.
-  bootstrapPromise = null;
+  // Reuse an in-flight request so rapid repeat clicks cannot issue duplicate auth requests.
   return bootstrapTelegramSession();
 }
 
