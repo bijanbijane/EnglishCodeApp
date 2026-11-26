@@ -66,7 +66,9 @@ The API must not return stack traces, SQL text, secrets, session tokens, or priv
 - Opaque bearer token generation, SHA-256 token hashing, active-session lookup, expiry, revocation, and middleware are implemented.
 - The login route returns the canonical internal account ID, not a newly generated candidate ID.
 - Raw Telegram initData and raw session tokens must never be persisted or logged.
-- Telegram login is limited to 30 attempts per client IP per minute using an HMAC-derived pseudonymous bucket key; raw IP addresses are not persisted by this limiter.\n- CORS reflects only exact origins configured in `ALLOWED_ORIGINS`; wildcard origins and credentialed requests are not supported.\n- The D1 batch and SQLite `changes()` behavior must be verified against Local D1, including concurrent identical login requests, before production use.
+- Telegram login is limited to 30 attempts per client IP per minute using an HMAC-derived pseudonymous bucket key; raw IP addresses are not persisted by this limiter.
+- CORS reflects only exact origins configured in `ALLOWED_ORIGINS`; wildcard origins and credentialed requests are not supported.
+- The D1 batch and SQLite `changes()` behavior must be verified against Local D1, including concurrent identical login requests, before production use.
 
 ## Compatibility policy
 
