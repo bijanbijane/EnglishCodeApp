@@ -1,8 +1,39 @@
 # Backend API Contract — v1
 
-Base path: `/api/v1`
+Base path: `/api/v1`. Timestamps are UTC ISO-8601. Success and error responses include a request ID.
 
-All timestamps are UTC ISO-8601 strings. All endpoints return JSON.
+## Public and authenticated endpoints
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/health` | Public | Liveness |
+| GET | `/ready` | Public | D1 readiness |
+| GET | `/courses` | Public | Published course catalog |
+| GET | `/courses/:courseId/lessons` | Public | Published lesson versions |
+| GET | `/lessons/:lessonId` | Public | Published lesson and pre-answer question DTO |
+| POST | `/auth/telegram` | Signed Telegram initData | Validate launch data, prevent replay, issue bearer session |
+| POST | `/auth/logout` | Bearer session | Revoke current session |
+| GET | `/me` | Bearer session | Current profile |
+| POST | `/lessons/:lessonId/attempts` | Bearer session | Start attempt and pin published versions |
+| GET | `/attempts/:attemptId` | Bearer session | Read own immutable attempt snapshot |
+| POST | `/attempts/:attemptId/answers` | Bearer session | Validate and grade answer server-side |
+| POST | `/attempts/:attemptId/complete` | Bearer session | Complete attempt and update progress |
+| GET | `/me/progress` | Bearer session | Current user's progress |
+
+## Role-protected administration
+
+| Method | Path | Role | Purpose |
+|---|---|---|---|
+| POST | `/admin/content/lessons/:lessonId/versions` | content_author | Create draft lesson version |
+| GET | `/admin/content/lessons/:lessonId/versions` | content_author | List own versions |
+| POST | `/admin/content/lessons/:lessonId/versions/:versionId/submit-review` | content_author | Submit own draft |
+| GET | `/admin/content/reviews` | content_reviewer | Bounded review queue |
+| GET | `/admin/content/reviews/:requestId` | content_reviewer | Review details including private answer key |
+| POST | `/admin/content/reviews/:requestId/decision` | content_reviewer | Approve or reject; self-review forbidden |
+| POST | `/admin/content/reviews/:requestId/publish` | admin | Publish approved version |
+| GET | `/admin/audit` | admin | Filtered keyset-paginated audit feed |
+
+There is no public role-grant endpoint. First-admin bootstrap is owner-controlled and documented in `ADMIN-BOOTSTRAP.md`.
 
 ## Response envelopes
 
@@ -27,56 +58,29 @@ Error:
 }
 ```
 
-The API must not return stack traces, SQL text, secrets, session tokens, or private answer keys in error or public content responses. The only endpoint that returns a raw session credential is the successful login response, once.
+The API never returns stack traces, SQL text, secrets, raw session tokens except once in the successful login response, or private answer keys in public content DTOs.
 
-## Implemented endpoints
+## Content and assessment invariants
 
-| Method | Path | Auth | Purpose | State |
-|---|---|---|---|---|
-| GET | `/health` | Public | Liveness | Implemented |
-| GET | `/ready` | Public | D1 readiness | Implemented |
-| GET | `/courses` | Public | Published course catalog | Implemented |
-| GET | `/courses/:courseId/lessons` | Public | Published lessons in a course | Implemented |
-| GET | `/lessons/:lessonId` | Public | Published lesson version and pre-answer question DTOs | Implemented |
-| POST | `/auth/telegram` | Public, signed initData required | Validate Telegram launch data, prevent replay, issue session | Implemented; D1 concurrency verification pending |
-| POST | `/auth/logout` | Bearer session | Revoke current session | Implemented |
-| GET | `/me` | Bearer session | Current profile | Implemented |
-| POST | `/lessons/:lessonId/attempts` | Bearer session | Start attempt and snapshot question content | Implemented; D1 integration unverified |
-| GET | `/attempts/:attemptId` | Bearer session | Read own attempt and immutable question snapshot | Implemented |
-| POST | `/attempts/:attemptId/answers` | Bearer session | Validate and grade answer on server | Implemented; concurrency unverified |
-| POST | `/attempts/:attemptId/complete` | Bearer session | Complete attempt and update progress in one D1 batch | Implemented; atomicity unverified |
-| GET | `/me/progress` | Bearer session | Current user's lesson progress | Implemented; D1 integration unverified |
+- Public reads use the current published lesson version and its question versions.
+- Public pre-answer DTOs omit answer keys and explanations.
+- Reviewers may read answer keys only through the role-protected review detail endpoint.
+- Attempts pin lesson and assessment policy versions; snapshots preserve question IDs, type, prompt, options, answer key, ordering and weight.
+- Attempt ownership is derived from the authenticated principal.
+- Same-answer retry returns the existing result; a different second answer returns 409.
+- Only in-progress attempts accept answers.
+- Weighted percentage scoring treats unanswered questions as incorrect.
+- Completion/progress D1 atomicity requires real Local D1 race tests before production use.
 
-## Role-protected administration endpoints\n\n| POST | `/admin/content/lessons/:lessonId/versions` | content_author | Create a draft lesson version | Implemented |
-| GET | `/admin/content/lessons/:lessonId/versions` | content_author | List own lesson versions | Implemented |
-| POST | `/admin/content/lessons/:lessonId/versions/:versionId/submit-review` | content_author | Submit own draft for review | Implemented |
-| GET | `/admin/content/reviews` | content_reviewer | Bounded review queue | Implemented |
-| GET | `/admin/content/reviews/:requestId` | content_reviewer | Read review detail including private answer key | Implemented |
-| POST | `/admin/content/reviews/:requestId/decision` | content_reviewer | Approve or reject; no self-review | Implemented |
-| POST | `/admin/content/reviews/:requestId/publish` | admin | Publish approved lesson version | Implemented |
-| GET | `/admin/audit` | admin | Filtered keyset-paginated audit feed | Implemented |\n\nThere is no public role-grant endpoint. First-admin bootstrap is owner-controlled; see `ADMIN-BOOTSTRAP.md`.\n\n## Content and assessment invariants
+## Authentication and abuse invariants
 
-- Only records with `status = 'published'` are returned by public catalog routes.
-- Public pre-answer question DTOs never select or return `answer_key` or answer `explanation`.
-- User ownership is derived from the authenticated principal, never from request JSON.
-- Each attempt pins a published lesson version and assessment policy version, then snapshots question IDs, types, prompts, options, answer keys, ordering, and weights at creation.
-- Attempt reads are owner-scoped and omit answer keys. Correctness is withheld until completion in the attempt-read DTO.
-- Answers are unique per attempt/question. Repeating the same answer returns the stored result; a different second answer returns 409.
-- Answer writes require an in-progress attempt and the question must belong to that attempt's snapshot.
-- Completion is a conditional state transition. Progress increment is conditional on the winning update in the same D1 batch; this requires a Local D1 concurrency test before production use.
-- Attempts pin the lesson version and assessment policy at creation. Snapshot rows preserve the exact assessment content and weights even if the source lesson changes later.
+- Telegram HMAC-SHA-256 verification, freshness and duplicate-parameter checks are required.
+- Replay fingerprint insertion and session creation are in one D1 batch; session insert is gated by `changes()=1`.
+- Raw initData and raw session tokens are never persisted.
+- Login limit: 30 requests per client IP per fixed UTC minute. The stored key is HMAC-derived; raw IP is not stored.
+- API body limit is 256 KiB; Telegram login additionally enforces 20 KiB.
+- CORS reflects only exact origins in `ALLOWED_ORIGINS`; wildcard and credentialed CORS are disabled.
 
-## Authentication invariants
+## Compatibility
 
-- Telegram initData is verified using the documented two-stage HMAC-SHA-256 construction, freshness validation, and duplicate-parameter rejection.
-- Replay fingerprint insertion and session insertion occur in one D1 batch. Session insertion is gated by `changes() = 1` from the immediately preceding replay insert.
-- Opaque bearer token generation, SHA-256 token hashing, active-session lookup, expiry, revocation, and middleware are implemented.
-- The login route returns the canonical internal account ID, not a newly generated candidate ID.
-- Raw Telegram initData and raw session tokens must never be persisted or logged.
-- Telegram login is limited to 30 attempts per client IP per minute using an HMAC-derived pseudonymous bucket key; raw IP addresses are not persisted by this limiter.
-- CORS reflects only exact origins configured in `ALLOWED_ORIGINS`; wildcard origins and credentialed requests are not supported.
-- The D1 batch and SQLite `changes()` behavior must be verified against Local D1, including concurrent identical login requests, before production use.
-
-## Compatibility policy
-
-Changes to response shape require an explicit API compatibility decision. Additive optional fields are preferred; breaking changes require a new API version or a documented migration window.
+Prefer additive optional fields. Breaking response changes require a documented migration window or a new API version.
