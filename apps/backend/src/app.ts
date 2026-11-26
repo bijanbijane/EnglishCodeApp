@@ -6,6 +6,7 @@ import contentRoutes from "./modules/content/routes";
 import authRoutes from "./modules/auth/routes";
 import userRoutes from "./modules/users/routes";
 import learningRoutes from "./modules/learning/routes";
+import adminRoutes from "./modules/admin/routes";
 
 const app = new Hono<AppEnv>();
 
@@ -64,6 +65,7 @@ app.route("/api/v1", contentRoutes);
 app.route("/api/v1", authRoutes);
 app.route("/api/v1", userRoutes);
 app.route("/api/v1", learningRoutes);
+app.route("/api/v1", adminRoutes);
 
 app.notFound((c) =>
   c.json(
