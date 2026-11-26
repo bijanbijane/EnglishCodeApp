@@ -27,7 +27,7 @@ Error:
 }
 ```
 
-The API must not return stack traces, SQL text, secrets, session tokens, or private answer keys in error or public content responses.
+The API must not return stack traces, SQL text, secrets, session tokens, or private answer keys in error or public content responses. The only endpoint that returns a raw session credential is the successful login response, once.
 
 ## Implemented endpoints
 
@@ -37,36 +37,36 @@ The API must not return stack traces, SQL text, secrets, session tokens, or priv
 | GET | `/ready` | Public | D1 readiness | Implemented |
 | GET | `/courses` | Public | Published course catalog | Implemented |
 | GET | `/courses/:courseId/lessons` | Public | Published lessons in a course | Implemented |
-| GET | `/lessons/:lessonId` | Public | Published lesson and question DTOs | Implemented |
-| POST | `/auth/logout` | Bearer session | Revoke current session | Implemented; login issuance remains blocked |
-| GET | `/me` | Bearer session | Current profile | Implemented; login issuance remains blocked |
-| POST | `/lessons/:lessonId/attempts` | Bearer session | Start attempt and pin lesson version | Implemented; D1 integration unverified |
-| POST | `/attempts/:attemptId/answers` | Bearer session | Validate and grade answer on server | Implemented; D1 concurrency unverified |
+| GET | `/lessons/:lessonId` | Public | Published lesson and pre-answer question DTOs | Implemented |
+| POST | `/auth/telegram` | Public, signed initData required | Validate Telegram launch data, prevent replay, issue session | Implemented; D1 concurrency verification pending |
+| POST | `/auth/logout` | Bearer session | Revoke current session | Implemented |
+| GET | `/me` | Bearer session | Current profile | Implemented |
+| POST | `/lessons/:lessonId/attempts` | Bearer session | Start attempt and snapshot question content | Implemented; D1 integration unverified |
+| GET | `/attempts/:attemptId` | Bearer session | Read own attempt and immutable question snapshot | Implemented |
+| POST | `/attempts/:attemptId/answers` | Bearer session | Validate and grade answer on server | Implemented; concurrency unverified |
 | POST | `/attempts/:attemptId/complete` | Bearer session | Complete attempt and update progress in one D1 batch | Implemented; atomicity unverified |
 | GET | `/me/progress` | Bearer session | Current user's lesson progress | Implemented; D1 integration unverified |
-
-## Planned endpoints
-
-| Method | Path | Auth | Purpose |
-|---|---|---|---|
-| POST | `/auth/telegram` | Public, signed initData required | Validate Telegram launch data, prevent replay, and issue application session |
 
 ## Content and assessment invariants
 
 - Only records with `status = 'published'` are returned by public catalog routes.
-- Public question DTOs select an explicit allowlist of columns and never select `answer_key` or pre-answer `explanation`.
+- Public pre-answer question DTOs never select or return `answer_key` or answer `explanation`.
 - User ownership is derived from the authenticated principal, never from request JSON.
+- Each attempt snapshots question IDs, types, prompts, options, answer keys, and ordering at creation.
+- Attempt reads are owner-scoped and omit answer keys. Correctness is withheld until completion in the attempt-read DTO.
 - Answers are unique per attempt/question. Repeating the same answer returns the stored result; a different second answer returns 409.
-- Answer writes require an in-progress attempt and the question must belong to that attempt's lesson.
+- Answer writes require an in-progress attempt and the question must belong to that attempt's snapshot.
 - Completion is a conditional state transition. Progress increment is conditional on the winning update in the same D1 batch; this requires a Local D1 concurrency test before production use.
-- Attempts pin the lesson version at creation. Published lesson content must remain immutable for that version.
+- Attempts pin the lesson version at creation. Snapshot rows preserve the exact assessment content even if the source lesson changes later.
 
-- `GET /attempts/:attemptId` returns only the authenticated owner's attempt and its immutable question snapshot; answer keys are never included.\n\n## Authentication invariants
+## Authentication invariants
 
-- The Telegram HMAC verifier is implemented and covered by a static test vector, but is not yet exposed as a login endpoint.
-- Opaque bearer token generation, SHA-256 token hashing, active-session lookup, revocation, middleware, `/auth/logout`, and `/me` are implemented.
-- Session issuance must be atomic with replay protection before the login route is enabled.
+- Telegram initData is verified using the documented two-stage HMAC-SHA-256 construction, freshness validation, and duplicate-parameter rejection.
+- Replay fingerprint insertion and session insertion occur in one D1 batch. Session insertion is gated by `changes() = 1` from the immediately preceding replay insert.
+- Opaque bearer token generation, SHA-256 token hashing, active-session lookup, expiry, revocation, and middleware are implemented.
+- The login route returns the canonical internal account ID, not a newly generated candidate ID.
 - Raw Telegram initData and raw session tokens must never be persisted or logged.
+- The D1 batch and SQLite `changes()` behavior must be verified against Local D1, including concurrent identical login requests, before production use.
 
 ## Compatibility policy
 
