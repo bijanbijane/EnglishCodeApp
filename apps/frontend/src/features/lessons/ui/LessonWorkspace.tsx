@@ -25,6 +25,7 @@ function QuestionCard({ question, index, attemptId, onSubmitted }: {
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [result, setResult] = useState<AnswerSubmissionResult | null>(null);
+  const [previouslyRecorded, setPreviouslyRecorded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const options = Array.isArray(question.options) ? question.options : [];
@@ -35,6 +36,9 @@ function QuestionCard({ question, index, attemptId, onSubmitted }: {
     setError(null);
     try {
       const response = await submitLessonAnswer(attemptId, question.id, selected);
+      const answerWasAlreadyRecorded = response.answerId !== selected;
+      setPreviouslyRecorded(answerWasAlreadyRecorded);
+      if (answerWasAlreadyRecorded) setSelected(response.answerId);
       setResult(response);
       onSubmitted(question.id);
     } catch (submitError) {
@@ -78,6 +82,7 @@ function QuestionCard({ question, index, attemptId, onSubmitted }: {
       {result && (
         <div className={result.isCorrect ? "answer-feedback answer-feedback--correct" : "answer-feedback answer-feedback--incorrect"} role="status">
           <strong>{result.isCorrect ? "پاسخ درست است." : "این پاسخ درست نیست."}</strong>
+          {previouslyRecorded && <p>پاسخ قبلی این پرسش در سرور ثبت شده بود؛ همان پاسخ مبنای نتیجه است.</p>}
           <p>{result.explanation}</p>
         </div>
       )}
