@@ -26,6 +26,14 @@ describe("EnglishCodeApp API", () => {
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ error: { code: "DATABASE_UNAVAILABLE" } });
   });
+  it("generates an application request ID independently of Cloudflare Ray ID", async () => {
+    const response = await app.request("/api/v1/health", {
+      headers: { "cf-ray": "edge-ray-example" }
+    });
+    const requestId = response.headers.get("X-Request-Id");
+    expect(requestId).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(requestId).not.toBe("edge-ray-example");
+  });
   it("returns a structured 404 for unknown routes", async () => {
     const response = await app.request("/missing");
     expect(response.status).toBe(404);
