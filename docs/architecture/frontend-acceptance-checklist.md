@@ -54,10 +54,15 @@ This checklist operationalizes `frontend-product-spec.md`. Check an item only wh
 - [ ] Shared modules do not import features.
 - [ ] Feature internals are not imported by other features.
 - [ ] Telegram SDK is isolated in platform adapter.
-- [ ] Raw initData is validated by backend; initDataUnsafe is not authentication.
+- [ ] Official WebApp script and bootstrap/ready lifecycle are implemented.
+- [ ] Authenticated entry is limited to supported launch paths; missing initData is handled safely.
+- [ ] Raw initData freshness, signature and replay validation are enforced by backend; initDataUnsafe is not authentication.
+- [ ] Viewport, safe areas, theme, BackButton and MainButton are feature-detected and cleaned up correctly.
+- [ ] Telegram SecureStorage is capability-detected and used according to the backend session contract.
+- [ ] Browser fallback uses the backend-approved secure session mechanism.
 - [ ] No bot token, secret or answer key in client bundle/payload.
 - [ ] No direct D1/R2 access from frontend.
-- [ ] No long-lived bearer token in localStorage.
+- [ ] No long-lived bearer token in localStorage or undocumented sessionStorage fallback.
 - [ ] Session policy matches documented backend contract.
 - [ ] Backend remains authoritative for grading and progress.
 
