@@ -136,10 +136,10 @@ export default function App() {
       </header>
 
       {route.name === "lesson" ? (
-        lessonState.status === "loading" ? <div className="state-panel" role="status"><span className="loader" /> در حال بارگذاری درس…</div>
+        lessonState.status === "loading" ? <div className="state-panel" role="status" aria-live="polite"><span className="loader" aria-hidden="true" /> در حال بارگذاری درس…</div>
           : lessonState.status === "error" ? <div className="state-panel state-panel--error" role="alert"><div><strong>اطلاعات درس دریافت نشد.</strong><p>{lessonState.message}</p></div><button className="button button--secondary" type="button" onClick={() => void loadLessons()}>تلاش دوباره</button></div>
             : selectedLesson ? <LessonWorkspace key={selectedLesson.id} lesson={selectedLesson} onBack={() => navigateTo({ name: "learn" })} canStartAttempt={canStartAttempt} sessionMessage={sessionMessage} onAttemptActiveChange={setActiveAttempt} />
-              : <div className="state-panel"><strong>این درس در فهرست فعلی وجود ندارد.</strong><button className="button button--secondary" type="button" onClick={() => navigateTo({ name: "learn" })}>بازگشت به درس‌ها</button></div>
+              : <div className="state-panel" role="status" aria-live="polite"><strong>این درس در فهرست فعلی وجود ندارد.</strong><button className="button button--secondary" type="button" onClick={() => navigateTo({ name: "learn" })}>بازگشت به درس‌ها</button></div>
       ) : route.name === "learn" ? (
         <LearningLibrary
           state={lessonState}
