@@ -1,4 +1,5 @@
 export { ProfilePanel } from "./ui/ProfilePanel";
+export type { LearnerProfile } from "./api/user.api";
 export {
   bootstrapTelegramSession,
   retryTelegramSessionBootstrap,
