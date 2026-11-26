@@ -327,3 +327,13 @@ These are source-level changes only; runtime verification remains pending until 
 - Implementation commit: [728905a](https://github.com/bijanbijane/EnglishCodeApp/commit/728905aef293e6b4cab2885788f59946edd83151). Test commit: [98776d5](https://github.com/bijanbijane/EnglishCodeApp/commit/98776d5ebc6d1c7a61b1a06a25097ca578defe76).
 - Hosted CI runs [#794](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45861235781) and [#795](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45861243608) both failed in both jobs before any step executed. The raw jobs API reports `steps: []`, `runner_id: 0`, and an empty runner name. This is evidence of failure before runner assignment/step execution, not evidence that the source test or application build failed. No test, typecheck, or build result is claimed for these commits.
 - This narrow accessibility correction does not close any broader keyboard, screen-reader, RTL/reflow, device, or release acceptance gate. Checklist totals are unchanged.
+
+
+## Lesson-route accessibility continuation — 2026-11-26
+
+- The app-level lesson route now announces its loading state with `role="status"` and `aria-live="polite"`; the decorative loader is hidden from assistive technology with `aria-hidden="true"`.
+- The route fallback for a lesson ID that is absent from the currently loaded catalogue is now also a polite status region. This makes the route-resolution result explicit to screen-reader users rather than leaving it as an unannounced visual panel.
+- Added source-contract assertions for both app-level states in `apps/frontend/test/accessibility-ui-contracts.test.ts`.
+- Implementation commit: [6d9dae3](https://github.com/bijanbijane/EnglishCodeApp/commit/6d9dae3280eac8d26b622ac67c78ae20a14d0220). Test commit: [14d542c](https://github.com/bijanbijane/EnglishCodeApp/commit/14d542c7b2ad1994591305d34d24e3a9e32ae270).
+- CI run [#804](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45862345361) on the implementation commit failed both jobs; the subsequent test commit triggered run [#805](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45862349805), which was queued at the latest inspection. The earlier failures have repeatedly shown empty job steps and no assigned runner. The #805 outcome must be checked before claiming validation.
+- These are source changes and source-contract assertions only. No test/typecheck/build pass is claimed for this update. Checklist coverage remains unchanged at 34/50 (68.0%).
