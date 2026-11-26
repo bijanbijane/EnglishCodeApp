@@ -42,3 +42,10 @@ test("normalizes Persian and Arabic keyboard variants", () => {
   ];
   assert.deepEqual(filterLessons(persianLessons, "كلاس").map((lesson) => lesson.id), ["fa-1"]);
 });
+
+test("does not mutate the source list or its lesson objects", () => {
+  const before = lessons.map((lesson) => ({ ...lesson }));
+  const result = filterLessons(lessons, "");
+  assert.notStrictEqual(result, lessons);
+  assert.deepEqual(lessons, before);
+});
