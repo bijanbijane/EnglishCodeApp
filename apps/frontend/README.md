@@ -32,7 +32,7 @@ Feature modules must not import implementation details from another feature. Sha
 
 The source-inspected route and payload snapshot is documented in [docs/architecture/frontend-backend-contract.md](../../docs/architecture/frontend-backend-contract.md).
 
-The public lesson catalog can be integrated independently. Protected attempt routes require a bearer session. The backend currently returns a bearer token from Telegram sign-in, while the frontend transport does not yet attach an Authorization header and no HttpOnly cookie contract was found in the inspected route. Authenticated learning flows therefore remain blocked pending an explicit secure session design.
+The public lesson catalog and question list are available without authentication. Inside Telegram, the app detects Bot API 9.0 SecureStorage, reads or stores the backend-issued bearer session there, and attaches the token to protected attempt/answer/complete/logout calls. The backend remains authoritative for correctness and score. Browser sign-in is intentionally not enabled because the backend does not yet issue an HttpOnly session cookie; outside Telegram, the app remains in public-preview mode.
 
 ## Boundaries
 
@@ -40,7 +40,9 @@ The public lesson catalog can be integrated independently. Protected attempt rou
 - The backend owns identity, authorization, answer correctness, scoring, attempts and progress.
 - The frontend sends raw `Telegram.WebApp.initData` to the backend for validation. It must never trust `initDataUnsafe` for authentication.
 - No direct D1/R2 access and no secrets in the browser bundle.
-- Do not persist bearer tokens in localStorage. A session strategy must be selected and documented before authenticated browser flows are enabled.
+- Telegram bearer tokens are stored only in Telegram SecureStorage when Bot API 9.0+ is available.
+- Do not persist bearer tokens in localStorage or sessionStorage.
+- Browser authentication remains disabled until a backend-supported secure cookie/session contract exists.
 
 ## Quality gates
 
@@ -51,8 +53,10 @@ Every feature should include typed API contracts, loading/empty/error states, ac
 
 - Selectable lesson catalog with client-side search.
 - Lesson preview screen loading the public question list from `GET /api/v1/lessons/:lessonId/questions`.
-- Question option selection is presentation-only; answer submission is deliberately not enabled until the secure session contract is resolved.
+- Lesson player creates a server attempt, submits selected answers and displays server-confirmed feedback when a valid Telegram SecureStorage session exists.
+- Completion and final score are requested from the backend; the client does not calculate correctness or score.
+- Browser mode and Telegram clients without SecureStorage remain public-preview-only.
 - Telegram host adapter isolates raw initData, host detection, viewport/safe-area metadata and BackButton/viewport subscription cleanup.
 - Implementation sequence and platform boundary are documented in [frontend-implementation-plan.md](../../docs/architecture/frontend-implementation-plan.md) and [frontend-platform-adapter.md](../../docs/architecture/frontend-platform-adapter.md).
 
-The current branch has not been runtime-verified. Typecheck, production build, browser testing and Telegram-client testing remain outstanding. Do not interpret the preview UI as a completed authenticated lesson player.
+The current branch has not been runtime-verified. Typecheck, production build, browser testing and Telegram-client testing remain outstanding. The authenticated lesson flow is source-implemented but has not yet been runtime-verified in Telegram.
