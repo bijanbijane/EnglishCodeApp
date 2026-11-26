@@ -223,7 +223,8 @@ function App() {
             <span className="course-link">Explore course <b>↗</b></span>
           </button>
         ) : <div className="empty-state">{error ? "The course catalogue could not be loaded." : "No published courses yet. Check back soon."}</div>}</div>}
-    </section>}
+      </section>
+    </>}
 
     {screen === "lesson" && attempt && currentQuestion && <section className="exercise">
       <div className="exercise-top"><button className="text-button" onClick={goHome}>← Exit lesson</button><span>{selectedLesson?.title}</span></div>
