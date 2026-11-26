@@ -16,7 +16,14 @@ export type SessionBootstrapResult =
   | { status: "secure-storage-unavailable"; message: string }
   | { status: "error"; message: string };
 
-export async function bootstrapTelegramSession(): Promise<SessionBootstrapResult> {
+let bootstrapPromise: Promise<SessionBootstrapResult> | null = null;
+
+export function bootstrapTelegramSession(): Promise<SessionBootstrapResult> {
+  if (!bootstrapPromise) bootstrapPromise = performBootstrap();
+  return bootstrapPromise;
+}
+
+async function performBootstrap(): Promise<SessionBootstrapResult> {
   const platform = getPlatformContext();
   if (platform.host !== "telegram") return { status: "browser-preview" };
   if (!platform.initData) return { status: "missing-init-data" };
