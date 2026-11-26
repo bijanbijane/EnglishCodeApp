@@ -151,3 +151,51 @@ export function removeTelegramSecureItem(key: string): Promise<void> {
     });
   });
 }
+
+export function bindTelegramLayoutMetrics(): () => void {
+  if (typeof window === "undefined" || typeof document === "undefined") return () => undefined;
+  const root = document.documentElement;
+
+  const apply = () => {
+    const context = getPlatformContext();
+    const safe = context.contentSafeArea ?? context.safeArea ?? emptyInsets;
+    root.style.setProperty("--telegram-safe-top", safe.top + "px");
+    root.style.setProperty("--telegram-safe-right", safe.right + "px");
+    root.style.setProperty("--telegram-safe-bottom", safe.bottom + "px");
+    root.style.setProperty("--telegram-safe-left", safe.left + "px");
+    if (context.stableViewportHeight) root.style.setProperty("--telegram-stable-viewport-height", context.stableViewportHeight + "px");
+    else root.style.removeProperty("--telegram-stable-viewport-height");
+    if (context.colorScheme) root.dataset.telegramTheme = context.colorScheme;
+    else delete root.dataset.telegramTheme;
+
+    const themeKeys: Record<string, string> = {
+      "--telegram-theme-bg": "bg_color",
+      "--telegram-theme-text": "text_color",
+      "--telegram-theme-hint": "hint_color",
+      "--telegram-theme-link": "link_color",
+      "--telegram-theme-button": "button_color",
+      "--telegram-theme-button-text": "button_text_color",
+      "--telegram-theme-secondary-bg": "secondary_bg_color",
+    };
+    for (const [cssName, themeKey] of Object.entries(themeKeys)) {
+      const value = context.themeParams[themeKey];
+      if (value && /^#[0-9a-f]{6}$/i.test(value)) root.style.setProperty(cssName, value);
+      else root.style.removeProperty(cssName);
+    }
+  };
+
+  const webApp = window.Telegram?.WebApp;
+  const events = ["viewportChanged", "safeAreaChanged", "contentSafeAreaChanged", "themeChanged"];
+  apply();
+  events.forEach((event) => webApp?.onEvent?.(event, apply));
+  return () => {
+    events.forEach((event) => webApp?.offEvent?.(event, apply));
+    [
+      "--telegram-safe-top", "--telegram-safe-right", "--telegram-safe-bottom", "--telegram-safe-left",
+      "--telegram-stable-viewport-height", "--telegram-theme-bg", "--telegram-theme-text",
+      "--telegram-theme-hint", "--telegram-theme-link", "--telegram-theme-button",
+      "--telegram-theme-button-text", "--telegram-theme-secondary-bg",
+    ].forEach((name) => root.style.removeProperty(name));
+    delete root.dataset.telegramTheme;
+  };
+}
