@@ -5,6 +5,37 @@ export type LessonAttempt = { attemptId: string; status: "started" | "completed"
 export type AnswerSubmissionResult = { questionId: string; answerId: string; isCorrect: boolean; explanation: string };
 export type LessonCompletionResult = { attemptId: string; status: "completed"; score: number };
 
+function record(value: unknown, message: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(message);
+  return value as Record<string, unknown>;
+}
+
+function parseAttempt(value: unknown): LessonAttempt {
+  const row = record(value, "پاسخ شروع تمرین معتبر نیست.");
+  if (typeof row.attemptId !== "string" || !row.attemptId || (row.status !== "started" && row.status !== "completed")) {
+    throw new Error("ساختار پاسخ شروع تمرین معتبر نیست.");
+  }
+  return { attemptId: row.attemptId, status: row.status };
+}
+
+function parseAnswer(value: unknown): AnswerSubmissionResult {
+  const row = record(value, "پاسخ ثبت تمرین معتبر نیست.");
+  if (typeof row.questionId !== "string" || typeof row.answerId !== "string" ||
+      typeof row.isCorrect !== "boolean" || typeof row.explanation !== "string") {
+    throw new Error("ساختار بازخورد پاسخ از سرور معتبر نیست.");
+  }
+  return { questionId: row.questionId, answerId: row.answerId, isCorrect: row.isCorrect, explanation: row.explanation };
+}
+
+function parseCompletion(value: unknown): LessonCompletionResult {
+  const row = record(value, "نتیجهٔ تکمیل درس معتبر نیست.");
+  if (typeof row.attemptId !== "string" || row.status !== "completed" ||
+      typeof row.score !== "number" || !Number.isInteger(row.score) || row.score < 0 || row.score > 100) {
+    throw new Error("ساختار نتیجهٔ نهایی از سرور معتبر نیست.");
+  }
+  return { attemptId: row.attemptId, status: "completed", score: row.score };
+}
+
 async function withSession<T>(action: (accessToken: string) => Promise<T>): Promise<T> {
   const accessToken = await getSessionToken();
   try {
@@ -19,25 +50,19 @@ async function withSession<T>(action: (accessToken: string) => Promise<T>): Prom
 }
 
 export async function startLessonAttempt(lessonId: string): Promise<LessonAttempt> {
-  return withSession((accessToken) => apiPost<LessonAttempt>(
-    "/api/v1/lessons/" + encodeURIComponent(lessonId) + "/attempts",
-    {},
-    { accessToken },
-  ));
+  return withSession(async (accessToken) => parseAttempt(await apiPost<unknown>(
+    "/api/v1/lessons/" + encodeURIComponent(lessonId) + "/attempts", {}, { accessToken },
+  )));
 }
 
 export async function submitLessonAnswer(attemptId: string, questionId: string, answerId: string): Promise<AnswerSubmissionResult> {
-  return withSession((accessToken) => apiPost<AnswerSubmissionResult>(
-    "/api/v1/attempts/" + encodeURIComponent(attemptId) + "/answers",
-    { questionId, answerId },
-    { accessToken },
-  ));
+  return withSession(async (accessToken) => parseAnswer(await apiPost<unknown>(
+    "/api/v1/attempts/" + encodeURIComponent(attemptId) + "/answers", { questionId, answerId }, { accessToken },
+  )));
 }
 
 export async function completeLessonAttempt(attemptId: string): Promise<LessonCompletionResult> {
-  return withSession((accessToken) => apiPost<LessonCompletionResult>(
-    "/api/v1/attempts/" + encodeURIComponent(attemptId) + "/complete",
-    {},
-    { accessToken },
-  ));
+  return withSession(async (accessToken) => parseCompletion(await apiPost<unknown>(
+    "/api/v1/attempts/" + encodeURIComponent(attemptId) + "/complete", {}, { accessToken },
+  )));
 }
