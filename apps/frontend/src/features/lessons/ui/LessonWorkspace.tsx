@@ -164,6 +164,7 @@ export function LessonWorkspace({ lesson, onBack, canStartAttempt, sessionMessag
 
   const questions = state.status === "ready" ? state.questions : [];
   const allAnswered = questions.length > 0 && answeredIds.length === questions.length;
+  const progressPercent = Math.round(completion ? 100 : questions.length ? answeredIds.length / questions.length * 100 : 0);
 
   return (
     <section className="workspace" aria-labelledby="workspace-title">
@@ -178,7 +179,7 @@ export function LessonWorkspace({ lesson, onBack, canStartAttempt, sessionMessag
         <div className="workspace-progress" aria-label="پیشرفت تمرین">
           <span>{completion ? "درس تکمیل شد" : attemptId ? "تمرین در حال انجام" : "آمادهٔ شروع"}</span>
           <strong>{completion ? completion.score + "%" : attemptId ? answeredIds.length + " از " + questions.length : "۰٪"}</strong>
-          <div><i style={{ width: completion ? "100%" : questions.length ? (answeredIds.length / questions.length * 100) + "%" : "0%" }} /></div>
+          <div role="progressbar" aria-label="درصد پیشرفت درس" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPercent}><i style={{ width: progressPercent + "%" }} /></div>
         </div>
       </header>
 
