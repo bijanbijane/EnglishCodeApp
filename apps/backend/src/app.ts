@@ -1,35 +1,44 @@
 import { Hono } from "hono";
-import type { Env } from "./env";
+import type { AppBindings } from "./env";
+import { AppError, errorBody } from "./shared/errors";
+import { authRoutes } from "./modules/auth/routes";
+import { learningRoutes } from "./modules/learning/routes";
+import { userRoutes } from "./modules/users/routes";
 
-export const app = new Hono<{ Bindings: Env }>();
+export const app = new Hono<AppBindings>();
 
-app.get("/api/v1/health", (c) => {
-  return c.json({
-    ok: true,
-    service: "englishcode-backend",
-    version: "v1"
-  });
+app.use("*", async (c, next) => {
+  const requestId = c.req.header("cf-ray") ?? crypto.randomUUID();
+  c.set("requestId", requestId);
+  await next();
+  c.header("X-Request-Id", requestId);
+  c.header("X-Content-Type-Options", "nosniff");
+  c.header("Referrer-Policy", "no-referrer");
+  c.header("Cache-Control", "no-store");
 });
 
-app.get("/api/v1/lessons", async (c) => {
-  if (!c.env.DB) {
-    return c.json({ error: { code: "DATABASE_UNAVAILABLE", message: "Lesson storage is not configured." } }, 503);
-  }
+app.get("/api/v1/health", (c) => c.json({
+  ok: true, service: "englishcode-backend", version: "v1"
+}));
 
+app.get("/api/v1/ready", async (c) => {
+  if (!c.env.DB) return c.json(errorBody("DATABASE_UNAVAILABLE", "Database binding is not configured.", c.get("requestId")), 503);
   try {
-    const result = await c.env.DB.prepare(
-      "SELECT id, title, level, position FROM lessons WHERE status = 'published' ORDER BY position ASC LIMIT 50"
-    ).all<{ id: string; title: string; level: string; position: number }>();
-
-    return c.json({ data: result.results ?? [] });
+    await c.env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>();
+    return c.json({ ok: true, database: "ready" });
   } catch {
-    return c.json({ error: { code: "LESSONS_UNAVAILABLE", message: "Lessons could not be loaded." } }, 503);
+    return c.json(errorBody("DATABASE_UNAVAILABLE", "Database is not ready.", c.get("requestId")), 503);
   }
 });
 
-app.notFound((c) => c.json({ error: { code: "NOT_FOUND", message: "Route not found." } }, 404));
+app.route("/api/v1/auth", authRoutes);
+app.route("/api/v1", learningRoutes);
+app.route("/api/v1", userRoutes);
 
+app.notFound((c) => c.json(errorBody("NOT_FOUND", "Route not found.", c.get("requestId")), 404));
 app.onError((error, c) => {
-  console.error(JSON.stringify({ level: "error", message: error.message }));
-  return c.json({ error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred." } }, 500);
+  const requestId = c.get("requestId");
+  if (error instanceof AppError) return c.json(errorBody(error.code, error.message, requestId), error.status as 400);
+  console.error(JSON.stringify({ level: "error", requestId, message: error.message }));
+  return c.json(errorBody("INTERNAL_ERROR", "An unexpected error occurred.", requestId), 500);
 });
