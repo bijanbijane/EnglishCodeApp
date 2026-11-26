@@ -37,15 +37,6 @@ authRoutes.post("/telegram", async (c) => {
     const initDataHash = new URLSearchParams(body.initData).get("hash");
     if (!initDataHash) throw new AppError("INVALID_TELEGRAM_INIT_DATA", "Telegram authentication data is invalid.", 401);
 
-    const now = Math.floor(Date.now() / 1000);
-    await c.env.DB.prepare("DELETE FROM telegram_auth_replays WHERE expires_at <= ?").bind(now).run();
-    const replay = await c.env.DB.prepare(
-      "INSERT OR IGNORE INTO telegram_auth_replays (init_data_hash,expires_at) VALUES (?,?)"
-    ).bind(initDataHash, verified.authDate + maxAgeSeconds).run();
-    if ((replay.meta?.changes ?? 0) !== 1) {
-      throw new AppError("TELEGRAM_INIT_DATA_REPLAYED", "This Telegram sign-in payload has already been used.", 409);
-    }
-
     const displayName = [verified.user.firstName, verified.user.lastName].filter(Boolean).join(" ").slice(0, 257);
     await c.env.DB.prepare(`INSERT INTO users (id,telegram_user_id,display_name) VALUES (?,?,?)
       ON CONFLICT(telegram_user_id) DO UPDATE SET display_name=excluded.display_name`)
@@ -54,7 +45,25 @@ authRoutes.post("/telegram", async (c) => {
       .bind(verified.user.id).first<{ id: string; display_name: string | null }>();
     if (!user) throw new AppError("USER_CREATE_FAILED", "Could not create the user account.", 503);
 
+    // Create the session before consuming initData. If session persistence fails,
+    // the Telegram payload remains usable for a retry.
     const session = await createSession(c.env.DB, user.id, ttlSeconds);
+    try {
+      const now = Math.floor(Date.now() / 1000);
+      await c.env.DB.prepare("DELETE FROM telegram_auth_replays WHERE expires_at <= ?").bind(now).run();
+      const replay = await c.env.DB.prepare(
+        "INSERT OR IGNORE INTO telegram_auth_replays (init_data_hash,expires_at) VALUES (?,?)"
+      ).bind(initDataHash, verified.authDate + maxAgeSeconds).run();
+      if ((replay.meta?.changes ?? 0) !== 1) {
+        await revokeSession(c.env.DB, session.token);
+        throw new AppError("TELEGRAM_INIT_DATA_REPLAYED", "This Telegram sign-in payload has already been used.", 409);
+      }
+    } catch (error) {
+      if (error instanceof AppError) throw error;
+      await revokeSession(c.env.DB, session.token).catch(() => undefined);
+      throw error;
+    }
+
     return c.json({ data: {
       token: session.token,
       tokenType: "Bearer",
