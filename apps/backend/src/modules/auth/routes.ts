@@ -4,6 +4,7 @@ import { AppError, errorBody } from "../../shared/errors";
 import { requireAuth } from "./middleware";
 import { createTelegramSession, revokeSession } from "./session";
 import { telegramInitDataFingerprint, verifyTelegramInitData } from "./telegram";
+import { ensureTelegramIdentity } from "../identity/service";
 
 export const authRoutes = new Hono<AppBindings>();
 
@@ -43,6 +44,9 @@ authRoutes.post("/telegram", async (c) => {
     const user = await c.env.DB.prepare("SELECT id,display_name FROM users WHERE telegram_user_id=? LIMIT 1")
       .bind(verified.user.id).first<{ id: string; display_name: string | null }>();
     if (!user) throw new AppError("USER_CREATE_FAILED", "Could not create the user account.", 503);
+    // Link the verified provider subject to the stable internal user ID. This
+    // keeps Telegram as an identity provider, not the primary domain identity.
+    await ensureTelegramIdentity(c.env.DB, user.id, verified.user.id);
 
     const session = await createTelegramSession(
       c.env.DB,
