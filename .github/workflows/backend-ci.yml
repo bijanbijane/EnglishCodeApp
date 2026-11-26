@@ -35,6 +35,8 @@ jobs:
       - run: npm install
       - run: npm run typecheck
       - run: npm test
+      - name: Validate Cloudflare dev deployment bundle without publishing
+        run: npm run deploy:dev:dry-run
       - name: Verify migration and transaction SQL invariants with SQLite
         run: python3 ../../scripts/verify_backend_sqlite.py
       - name: Apply migrations to isolated local D1
