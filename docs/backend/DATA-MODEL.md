@@ -1,45 +1,49 @@
 # Backend data model
 
-The SQL migration files are the source of truth. This page explains the initial relational model.
+SQL migration files are the schema source of truth. This page describes what is present in the branch; target entities are in ARCHITECTURE-V3.md.
 
 ## Existing tables (0001)
+- users: internal user row and legacy optional telegram_user_id.
+- courses, lessons, questions: initial course and learning content.
+- lesson_attempts, attempt_answers: attempt and server-graded answers.
 
-- `users`: internal user identity and optional Telegram user ID.
-- `courses`: course metadata and publication state.
-- `lessons`: ordered lesson content and publication state.
-- `questions`: question prompt, options JSON, private answer key, explanation, and order.
-- `lesson_attempts`: one user's attempt at one lesson, state and final score.
-- `attempt_answers`: one submitted answer and server-calculated correctness.
+## Added schema
+### 0002
+- sessions: user-owned expiring/revocable sessions; token hash only.
+- user_progress: per-user/per-lesson best score, completion count, last completion.
+- unique index on (attempt_id, question_id).
+- telegram_auth_replays table/index is also created here.
 
-## Added tables and constraints
+### 0003
+- Repeats CREATE TABLE/INDEX IF NOT EXISTS for telegram_auth_replays from 0002. Retained as historical migration; do not rewrite until all environment migration histories are known.
 
-### Migration 0002
+### 0004
+- user_identities: provider-neutral external identity mapping.
+- Unique provider + provider_subject and user_id + provider.
+- Existing Telegram users are backfilled without changing users.id.
+- Current login route writes verified Telegram identity mapping. Other providers/account linking are not implemented.
 
-- `sessions`: user-owned, expiring, revocable sessions; stores token hash only.
-- `user_progress`: per-user/per-lesson best score, completion count and last completion time.
-- Unique index on `(attempt_id, question_id)` to prevent multiple persisted answers for one question in one attempt.
-
-### Migration 0003
-
-- `telegram_auth_replays`: canonical SHA-256 fingerprint of consumed Telegram initData, with expiry and creation timestamps. Raw initData is never stored.
+### 0005
+- vocabulary_items: canonical published vocabulary content by language pair.
+- user_vocabulary: user state, due date, interval, ease, repetitions, lapses, scheduler version and optimistic revision.
+- vocabulary_review_events: append-only review history with unique per-user idempotency key.
 
 ## Integrity rules
-
-- A session belongs to one user and its token hash is unique.
+- A session belongs to one user; token hash unique.
+- An external provider subject maps to at most one internal user.
 - An attempt belongs to one user and one lesson.
-- Each question can have at most one persisted answer per attempt.
-- Progress is unique for a user/lesson pair.
-- Scores are integers from 0 through 100.
-- Questions are returned to clients without `answer_key`.
-- A Telegram initData fingerprint can be consumed only once while its auth window is valid.
+- One persisted answer per question per attempt.
+- Progress unique per user/lesson.
+- Scores are 0..100.
+- Public question DTOs exclude answer_key.
+- A Telegram initData fingerprint can be consumed once during its valid auth window.
+- Review events are idempotent per user; optimistic revision prevents stale concurrent review updates.
 
-## Query and scale assumptions
-
-The initial schema is designed for the MVP query paths, not proven high-scale workloads. Add indexes only in response to query plans and measured access patterns. D1 capacity and latency must be load-tested before any DAU or SLA claim.
+## Target but not yet implemented
+Versioned course/lesson/question content, versioned assessment policies, immutable result facts, rebuildable progress projections, four-skill evidence, media assets/jobs, outbox, entitlements, RBAC/audit, analytics aggregates and account deletion workflows.
 
 ## Migration discipline
-
-1. Add a new numbered SQL migration; do not edit an already-applied migration.
-2. Test it against a fresh local database and a database created from all prior migrations.
-3. Verify constraints, indexes, seed idempotency, and rollback/recovery plan.
-4. Never apply to production without a separate explicit approval.
+1. Add a new numbered SQL migration; do not edit an applied migration.
+2. Test against fresh Local D1 and a database created from all previous migrations.
+3. Verify constraints, indexes, foreign keys and idempotency.
+4. No production migration without separate explicit approval.
