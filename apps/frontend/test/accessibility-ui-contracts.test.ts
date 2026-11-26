@@ -29,3 +29,9 @@ test("mobile navigation exposes the active route with aria-current", () => {
   assert.match(app, /aria-current=\{route\.name === "progress" \? "page" : undefined\}/);
   assert.match(app, /aria-current=\{route\.name === "profile" \? "page" : undefined\}/);
 });
+
+test("lesson completion exposes a numeric progressbar value", () => {
+  assert.match(workspace, /role="progressbar" aria-label="درصد پیشرفت درس"/);
+  assert.match(workspace, /aria-valuemin=\{0\} aria-valuemax=\{100\} aria-valuenow=\{progressPercent\}/);
+  assert.match(workspace, /const progressPercent = Math\.round\(completion \? 100 : questions\.length \? answeredIds\.length \/ questions\.length \* 100 : 0\)/);
+});
