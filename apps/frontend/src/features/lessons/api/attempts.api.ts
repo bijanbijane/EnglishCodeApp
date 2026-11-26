@@ -10,7 +10,7 @@ function record(value: unknown, message: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function parseAttempt(value: unknown): LessonAttempt {
+export function parseAttemptResponse(value: unknown): LessonAttempt {
   const row = record(value, "پاسخ شروع تمرین معتبر نیست.");
   if (typeof row.attemptId !== "string" || !row.attemptId || (row.status !== "started" && row.status !== "completed")) {
     throw new Error("ساختار پاسخ شروع تمرین معتبر نیست.");
@@ -18,7 +18,7 @@ function parseAttempt(value: unknown): LessonAttempt {
   return { attemptId: row.attemptId, status: row.status };
 }
 
-function parseAnswer(value: unknown): AnswerSubmissionResult {
+export function parseAnswerSubmissionResult(value: unknown): AnswerSubmissionResult {
   const row = record(value, "پاسخ ثبت تمرین معتبر نیست.");
   if (typeof row.questionId !== "string" || !row.questionId || typeof row.answerId !== "string" || !row.answerId ||
       typeof row.isCorrect !== "boolean" || typeof row.explanation !== "string") {
@@ -27,7 +27,7 @@ function parseAnswer(value: unknown): AnswerSubmissionResult {
   return { questionId: row.questionId, answerId: row.answerId, isCorrect: row.isCorrect, explanation: row.explanation };
 }
 
-function parseCompletion(value: unknown): LessonCompletionResult {
+export function parseLessonCompletionResult(value: unknown): LessonCompletionResult {
   const row = record(value, "نتیجهٔ تکمیل درس معتبر نیست.");
   if (typeof row.attemptId !== "string" || row.status !== "completed" ||
       typeof row.score !== "number" || !Number.isSafeInteger(row.score) || row.score < 0 || row.score > 100) {
@@ -50,14 +50,14 @@ async function withSession<T>(action: (accessToken: string) => Promise<T>): Prom
 }
 
 export async function startLessonAttempt(lessonId: string): Promise<LessonAttempt> {
-  return withSession(async (accessToken) => parseAttempt(await apiPost<unknown>(
+  return withSession(async (accessToken) => parseAttemptResponse(await apiPost<unknown>(
     "/api/v1/lessons/" + encodeURIComponent(lessonId) + "/attempts", {}, { accessToken },
   )));
 }
 
 export async function submitLessonAnswer(attemptId: string, questionId: string, answerId: string): Promise<AnswerSubmissionResult> {
   return withSession(async (accessToken) => {
-    const result = parseAnswer(await apiPost<unknown>(
+    const result = parseAnswerSubmissionResult(await apiPost<unknown>(
       "/api/v1/attempts/" + encodeURIComponent(attemptId) + "/answers", { questionId, answerId }, { accessToken },
     ));
     if (result.questionId !== questionId || result.answerId !== answerId) {
@@ -69,7 +69,7 @@ export async function submitLessonAnswer(attemptId: string, questionId: string, 
 
 export async function completeLessonAttempt(attemptId: string): Promise<LessonCompletionResult> {
   return withSession(async (accessToken) => {
-    const result = parseCompletion(await apiPost<unknown>(
+    const result = parseLessonCompletionResult(await apiPost<unknown>(
       "/api/v1/attempts/" + encodeURIComponent(attemptId) + "/complete", {}, { accessToken },
     ));
     if (result.attemptId !== attemptId) throw new Error("نتیجهٔ دریافتی متعلق به تلاش جاری نیست.");
