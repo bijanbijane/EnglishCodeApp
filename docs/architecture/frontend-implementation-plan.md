@@ -1,57 +1,129 @@
 # Frontend Implementation Plan — EnglishCodeApp
 
-**Status:** Active implementation plan  
+**Status:** Active implementation; source-level features are ahead of verified runtime state.  
 **Branch:** `feat/frontend-modular-foundation`  
-**Parent PR:** [#4](https://github.com/bijanbijane/EnglishCodeApp/pull/4)
+**Parent PR:** [#4 — Draft](https://github.com/bijanbijane/EnglishCodeApp/pull/4)  
+**Last reviewed:** 2026-11-26
 
 ## Architectural decisions
 
-- Use a feature-based modular monolith. Keep app composition, feature modules, shared infrastructure and platform adapters separate.
-- Keep React UI independent of Telegram. Only the platform adapter may read Telegram WebApp globals or subscribe to host events.
-- Keep server authority for identity, answer correctness, score, attempt lifecycle and progress.
-- Use the existing versioned API and a single shared transport. Validate response data at feature boundaries before rendering.
-- Do not persist bearer tokens in localStorage or invent a browser storage fallback. Authenticated flows remain gated until the backend exposes a reviewed secure session contract.
-- Do not introduce a router, state library, component library or paid dependency until the app needs it and the value is demonstrated.
+- Feature-based modular monolith using React 19, TypeScript and Vite.
+- Telegram is the first host; feature modules remain host-independent.
+- App composition owns route mapping and cross-feature composition.
+- Feature modules own their UI, API adapters and domain types.
+- Shared infrastructure owns HTTP transport and generic UI primitives.
+- Platform adapters isolate Telegram WebApp globals, lifecycle and storage.
+- Backend remains authoritative for identity, permissions, correctness, score, attempts and progress.
+- No global state library, routing dependency or paid package is introduced without demonstrated need.
 
-## Feature boundaries
+## Current screen and route inventory
 
-| Area | Owns | Current status |
+| Route | Screen | Data source | State |
+| --- | --- | --- | --- |
+| `#/` | Home + lesson catalog | `GET /api/v1/lessons` | Implemented; loading/error/empty/search |
+| `#/lessons/:lessonId` | Lesson player | Public questions + protected attempt APIs | Source-implemented; runtime unverified |
+| `#/progress` | Progress history | `GET /api/v1/me/progress` | Source-implemented; runtime unverified |
+| `#/profile` | Account/session | `GET /api/v1/me`, logout | Source-implemented; runtime unverified |
+| — | Review queue | No review endpoint in inspected backend | Not implemented; do not fake data |
+| — | Vocabulary/grammar/listening/speaking/reading/writing | No corresponding feature contracts yet | Not implemented |
+
+Navigation uses a small hash-route adapter in `app/navigation/routes.ts`. It supports direct lesson links and browser hash changes without coupling feature components to a routing library. Telegram BackButton follows the active non-home route. An active lesson attempt prompts before leaving because the current API has no resume endpoint.
+
+## Module boundaries
+
+| Module | Owns | Current implementation |
 | --- | --- | --- |
-| App shell | Bootstrap, navigation, layout, providers | Hash-based home/profile/lesson routes and Telegram BackButton implemented; providers and route guards remain partial |
-| Home | Next action, learning overview, announcements | Partial; progress data unavailable |
-| Lessons | Published catalog, lesson metadata | Catalog implemented; interaction in progress |
-| Lesson player | Lesson content and exercise rendering | Preview UI in progress; submission gated by auth |
-| Practice | Skill practice and targeted tasks | Not implemented |
-| Review | Due queue and retrieval practice | Not implemented; backend contract needed |
-| Progress | Evidence, scores, skill breakdown | Not implemented; user progress API needs verification |
-| Profile | Account details, preferences, session controls | Not implemented; user API needs verification |
-| Platform | Telegram/browser capability adapter | Not implemented |
-| Shared | HTTP, errors, design tokens, accessible primitives | Partial |
+| `app` | Bootstrap, route parsing, navigation, feature composition | Home, lesson, progress and profile routes |
+| `identity` | Telegram login, session lifecycle, profile, logout | SecureStorage bootstrap, profile endpoint, logout |
+| `lessons` | Catalog, question retrieval, attempt lifecycle UI | Searchable catalog and server-backed lesson player |
+| `progress` | Learner progress views and API DTOs | Server-backed per-lesson history |
+| `shared/api` | HTTP transport, error normalization, auth header option | Implemented; contract tests outstanding |
+| `services/platform` | Telegram/browser detection, SecureStorage, theme, safe-area, BackButton | Source-implemented; device verification outstanding |
+| `practice`, `review`, skill modules | Skill-specific learning experiences | Deferred until backend contracts and curriculum are defined |
 
-## Dependency-aware implementation sequence
+Dependency rule: a feature must not import another feature's private implementation. App composition may combine public feature components and map shared route data into props. Shared modules never import features.
 
-1. Stabilize shell, route/view state, navigation and responsive primitives.
-2. Complete public catalog → lesson preview → public question retrieval.
-3. Store Telegram bearer sessions in Bot API 9.0 SecureStorage and wire protected attempt/answer/complete calls.
-4. Resolve browser session transport with a backend-approved secure cookie; keep browser in public-preview mode until then.
-5. Add contract validation and component/integration tests around each API boundary.
-6. Implement review, progress and profile only against verified backend endpoints and data definitions.
-7. Verify Telegram host lifecycle, viewport, safe-area, theme and BackButton integration.
-8. Complete accessibility, RTL/LTR, mobile and performance audits.
+## Authentication and session lifecycle
 
-## Verification gates
+1. Read the signed raw `Telegram.WebApp.initData`; never use `initDataUnsafe` for authentication.
+2. Detect Bot API 9.0 SecureStorage support using host feature detection and version check.
+3. Read the existing session from Telegram SecureStorage.
+4. If no valid session exists, submit raw initData to `POST /api/v1/auth/telegram`.
+5. Validate the returned bearer type and expiry, then store the token only in Telegram SecureStorage.
+6. Attach Bearer credentials only to protected feature requests.
+7. On 401, invalidate the local session and return the UI to a recoverable signed-out state.
+8. Logout revokes the server session and removes the SecureStorage entry.
 
-- Every async view has loading, empty, error and retry/recovery states.
-- No UI claims a protected action succeeded without a server response.
-- No sample or placeholder metric is represented as learner data.
-- Feature modules do not import another feature's implementation.
-- Typecheck, production build, automated tests and critical E2E must pass in a real execution environment.
-- PR #4 remains Draft until its backend dependency and acceptance evidence are resolved.
-- No merge, deployment, production migration, production data mutation or paid-resource activation is included.
+Browser mode remains public-preview-only. The inspected backend does not issue an HttpOnly cookie, so the frontend does not invent localStorage/sessionStorage persistence. Telegram clients without SecureStorage support also remain preview-only.
 
-## Current blockers
+## Verified backend API surface (source inspection)
 
-- Telegram bearer sessions now use the official SecureStorage API when Bot API 9.0 is supported; device verification is still outstanding.
-- Browser session persistence remains blocked because the backend has no HttpOnly cookie contract.
-- CI job logs remain unavailable; the latest frontend and backend jobs failed and the root cause remains unknown.
-- No npm install/typecheck/build or browser execution was available during this repository-only implementation pass. Source writes are not runtime verification.
+| Method and path | Auth | Frontend use |
+| --- | --- | --- |
+| `GET /api/v1/lessons` | Public | Catalog |
+| `GET /api/v1/lessons/:lessonId/questions` | Public | Question list (no answer key returned) |
+| `POST /api/v1/auth/telegram` | Signed initData validation | Session bootstrap |
+| `POST /api/v1/lessons/:lessonId/attempts` | Bearer | Start attempt |
+| `POST /api/v1/attempts/:attemptId/answers` | Bearer | Submit answer and receive server feedback |
+| `POST /api/v1/attempts/:attemptId/complete` | Bearer | Complete and receive server score |
+| `GET /api/v1/me` | Bearer | Profile display name |
+| `GET /api/v1/me/progress` | Bearer | Per-lesson progress |
+| `POST /api/v1/auth/logout` | Bearer | Revoke session |
+
+All successful endpoints use a `{ data: ... }` envelope. Feature API adapters validate response shape before handing data to UI. Correctness and score are never computed in the browser.
+
+## Delivery sequence
+
+### Phase A — Foundation and contract
+- [x] Split app composition from the root entry point.
+- [x] Introduce shared API transport and feature-owned API adapters.
+- [x] Add product specification, architecture, backend contract and acceptance checklist.
+- [x] Add Telegram host adapter and official WebApp script.
+- [x] Add hash-based route contract.
+- [ ] Add automated tests for route parsing, API envelopes and DTO validation.
+- [ ] Resolve CI failure evidence and establish reproducible install/typecheck/build.
+
+### Phase B — Core learning journey
+- [x] Public lesson catalog with search, loading, error/retry and empty states.
+- [x] Public question retrieval and structured option rendering.
+- [x] Telegram SecureStorage session bootstrap.
+- [x] Protected attempt creation, answer submission and completion.
+- [x] Server-confirmed correctness, explanation and score.
+- [x] Warn before abandoning an active attempt.
+- [ ] Verify duplicate submission and completion behavior against integration tests.
+- [ ] Add server-backed attempt resume/recovery before presenting lesson continuation as complete.
+
+### Phase C — Account and progress
+- [x] Profile screen using `GET /api/v1/me`.
+- [x] Server-backed logout and local session invalidation handling.
+- [x] Progress screen using `GET /api/v1/me/progress`.
+- [x] Display best score, completion count and last completion date.
+- [ ] Verify data rendering with seeded and empty accounts.
+- [ ] Add skill-level progress only after the backend exposes validated skill metrics.
+
+### Phase D — Review and additional skills
+- [ ] Define spaced-repetition/review API contract and learning model.
+- [ ] Implement review queue and response capture against server-owned scheduling.
+- [ ] Define vocabulary and grammar content schemas.
+- [ ] Add reading/listening/writing/speaking experiences in separate feature modules.
+- [ ] Treat AI feedback as advisory until assessment rubrics are validated.
+
+### Phase E — Platform and release hardening
+- [ ] Verify Telegram SecureStorage on supported iOS and Android clients.
+- [ ] Verify safe-area, viewport, orientation, theme and BackButton lifecycle.
+- [ ] Add browser authentication only after an approved backend HttpOnly cookie/session contract.
+- [ ] Add accessibility, RTL/LTR mixed-content and mobile viewport audits.
+- [ ] Add Playwright E2E for the critical learning journey.
+- [ ] Verify performance on representative low-end devices and constrained networks.
+
+## Current verification status
+
+- Source changes are committed to the working branch.
+- The latest inspected CI run is [#327](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45807701831), run ID `45807701831`; both `validate-backend` and `validate-frontend` failed.
+- GitHub job metadata returned no steps or logs URL; direct job-log retrieval returned 404 `BlobNotFound`. Root cause is unknown.
+- No local `npm install`, typecheck, build, automated test, browser test or Telegram-device test has been executed in this work session.
+- Therefore implementation status is **source-implemented, not runtime-verified**.
+
+## Release controls
+
+PR #4 remains open and Draft. Do not merge, deploy, run production migrations, mutate production data or enable paid resources until the backend dependency is resolved and all acceptance evidence is reviewed.
