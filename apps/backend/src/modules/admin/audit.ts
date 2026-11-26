@@ -1,5 +1,3 @@
-import type { D1Database, D1PreparedStatement } from "../../env";
-
 const SAFE_METADATA_KEYS = new Set([
   "version",
   "reasonCode",
