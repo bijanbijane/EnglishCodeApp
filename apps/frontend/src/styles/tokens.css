@@ -25,6 +25,23 @@
   --ec-color-focus: #8ba4ff;
   --ec-color-on-primary: #ffffff;
 
+  /* Extended semantic palette used by the current screen system */
+  --ec-color-text-strong: #26324b;
+  --ec-color-text-secondary: #65718a;
+  --ec-color-text-tertiary: #7d89a2;
+  --ec-color-border-subtle: #e5eaf2;
+  --ec-color-brand-accent: #4b6df0;
+  --ec-color-brand-accent-strong: #2846b5;
+  --ec-color-brand-deep: #172a61;
+  --ec-color-brand-mid: #3b55ad;
+  --ec-color-brand-tint: #e9eeff;
+  --ec-color-brand-soft: #edf1ff;
+  --ec-color-brand-hover-border: #d6def8;
+  --ec-color-brand-action: #4564d5;
+  --ec-color-mint-accent: #a8e9d0;
+  --ec-color-success-accent: #3eb78b;
+  --ec-color-surface-white: #ffffff;
+
   /* Typography */
   --ec-font-family-ui: Tahoma, Arial, sans-serif;
   --ec-font-family-latin: Arial, sans-serif;
