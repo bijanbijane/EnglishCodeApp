@@ -8,9 +8,14 @@ test("empty and unknown hashes resolve to home", () => {
   assert.deepEqual(routeFromHash("#/not-a-route"), { name: "home" });
 });
 
-test("profile and progress routes round-trip", () => {
+test("learn, profile and progress routes round-trip", () => {
+  assert.deepEqual(routeFromHash(hashFromRoute({ name: "learn" })), { name: "learn" });
   assert.deepEqual(routeFromHash(hashFromRoute({ name: "profile" })), { name: "profile" });
   assert.deepEqual(routeFromHash(hashFromRoute({ name: "progress" })), { name: "progress" });
+});
+
+test("learn route supports a query suffix", () => {
+  assert.deepEqual(routeFromHash("#/learn?level=B1"), { name: "learn" });
 });
 
 test("lesson IDs are safely encoded and decoded", () => {
