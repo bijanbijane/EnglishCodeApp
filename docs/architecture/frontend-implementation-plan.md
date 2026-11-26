@@ -20,7 +20,8 @@
 
 | Route | Screen | Data source | State |
 | --- | --- | --- | --- |
-| `#/` | Home + lesson catalog | `GET /api/v1/lessons` | Implemented; loading/error/empty/search |
+| `#/` | Home dashboard | Public app composition | Implemented; next actions and session states |
+| `#/learn` | Learning library | `GET /api/v1/lessons` | Source-implemented; search, loading/error/empty states |
 | `#/lessons/:lessonId` | Lesson player | Public questions + protected attempt APIs | Source-implemented; runtime unverified |
 | `#/progress` | Progress history | `GET /api/v1/me/progress` | Source-implemented; runtime unverified |
 | `#/profile` | Account/session | `GET /api/v1/me`, logout | Source-implemented; runtime unverified |
