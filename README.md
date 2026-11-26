@@ -7,9 +7,9 @@
 شاخهٔ `feat/backend-domain-foundation` پایهٔ دامنه‌ای بک‌اند را روی vertical slice قبلی اضافه می‌کند:
 - Frontend: React + Vite + TypeScript؛ رابط اولیهٔ واکنش‌گرا.
 - Backend: Hono با Worker-compatible entrypoint و ساختار Modular Monolith.
-- Auth: اعتبارسنجی Telegram Mini App initData و نشست Bearer داخلی.
+- Auth: اعتبارسنجی Telegram Mini App initData، جلوگیری از replay و نشست Bearer داخلیِ قابل ابطال.
 - Learning: خواندن درس/سؤال، شروع تلاش، ثبت پاسخ، نمره‌دهی سمت سرور و ذخیرهٔ پیشرفت.
-- Database: migration اولیه و migration نشست/پیشرفت.
+- Database: migrationهای اولیه، نشست/پیشرفت و جلوگیری از استفادهٔ مجدد initData.
 - Tests: تست API پایه و تست‌های امضای Telegram در مخزن؛ نتیجهٔ اجرا باید از CI تأیید شود.
 
 این شاخه هنوز production-ready نیست. D1 واقعی، bot secret، rate limiting، سیاست نگهداری داده، تست end-to-end با D1 و استقرار عملیاتی تنظیم نشده‌اند.
@@ -43,6 +43,7 @@ npm run build:frontend
 Migrationها به ترتیب:
 1. `database/migrations/0001_initial.sql`
 2. `database/migrations/0002_backend_foundation.sql`
+3. `database/migrations/0003_telegram_auth_replay.sql`
 
 Seed فقط برای محیط local/test است: `database/seeds/0001_demo.sql`. این migrationها در حساب Cloudflare یا production اجرا نشده‌اند.
 
