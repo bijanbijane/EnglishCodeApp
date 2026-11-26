@@ -6,7 +6,7 @@ import { ProfilePanel } from "../features/identity/ui/ProfilePanel";
 import { ProgressPanel } from "../features/progress/ui/ProgressPanel";
 import type { Lesson, LessonListState } from "../features/lessons/model/lesson.types";
 import { bindTelegramLayoutMetrics, getPlatformContext, initializeTelegramHost, setTelegramBackAction } from "../services/platform/telegram";
-import { bootstrapTelegramSession, signOut, type SessionBootstrapResult } from "../features/identity/api/auth.api";
+import { bootstrapTelegramSession, retryTelegramSessionBootstrap, signOut, type SessionBootstrapResult } from "../features/identity/api/auth.api";
 import { subscribeToSessionInvalidation } from "../services/auth/session";
 import { hashFromRoute, routeFromHash, type AppRoute } from "./navigation/routes";
 
@@ -44,6 +44,12 @@ export default function App() {
       setSigningOut(false);
     }
   }, [navigateTo]);
+
+  const retrySession = useCallback(async () => {
+    setSessionState({ status: "checking" });
+    const result = await retryTelegramSessionBootstrap();
+    setSessionState(result);
+  }, []);
 
   const loadLessons = useCallback(async () => {
     setLessonState({ status: "loading" });
@@ -156,7 +162,7 @@ export default function App() {
             </div>
           </section>
 
-          {sessionMessage && <div className="session-banner" role="status"><span className="session-banner__dot" />{sessionMessage}</div>}
+          {sessionMessage && <div className="session-banner" role="status"><span className="session-banner__dot" /><span>{sessionMessage}</span>{sessionState.status === "error" && <button className="button button--secondary session-banner__retry" type="button" onClick={() => void retrySession()}>تلاش دوباره</button>}</div>}
 
           <section className="learning-overview" aria-label="نمای کلی یادگیری">
             <div className="section-heading"><div><p className="eyebrow">LEARNING OVERVIEW</p><h2>فضای یادگیری تو</h2></div><span className="section-caption">جزئیات امتیازها در صفحهٔ پیشرفت</span></div>
