@@ -25,6 +25,29 @@ evidence that all other branch changes have been integrated.
 The ahead counts are from the prior branch comparison and must be refreshed
 before final integration.
 
+## Ported P0 correctness changes
+
+The following files have been ported from `fix/backend-p0-correctness` into this
+integration branch as new commits:
+
+- `apps/backend/src/modules/auth/telegram.ts`: corrected Telegram Mini App
+  HMAC derivation to use the bot token as the HMAC key and `WebAppData` as data;
+  tightened the maximum-age boundary.
+- `apps/backend/src/modules/auth/session.ts` and
+  `apps/backend/src/modules/auth/routes.ts`: moved replay claiming and session
+  issuance into a transactional D1 batch, avoiding the prior two-step session /
+  replay write sequence.
+- `apps/backend/src/modules/learning/routes.ts`: ported the P0 correctness
+  implementation.
+- `apps/backend/test/auth.test.ts`,
+  `apps/backend/test/telegram.test.ts`, and
+  `apps/backend/test/app.test.ts`: ported the corresponding regression tests,
+  including explicit coverage for Telegram's HMAC key/data order.
+
+These are source-level ports only. They have not been executed in this session;
+compatibility and runtime behavior remain unverified until the full workspace
+checks pass.
+
 ## Validation gates
 
 - [ ] Refresh all branch heads and compare each branch with this integration branch.
