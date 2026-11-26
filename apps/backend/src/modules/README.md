@@ -5,12 +5,12 @@
 | auth | Telegram verification, session issue/revoke | provider auth and lifecycle |
 | identity | verified Telegram mapping to internal user | provider-neutral identity linking |
 | users | /me and progress reads | preferences and account lifecycle |
-| learning | lesson reads and attempts | learning orchestration |
+| learning | version-aware lesson reads and attempts | learning orchestration |
+| content | immutable lesson/question v1 snapshots and public DTO | authoring, review and publication |
+| assessment | pinned policy and weighted completion | policy versions, richer item types and results |
+| progress | basic lesson aggregate | rebuildable skill/mastery projections |
 | review | deterministic scheduler v1 | scheduler policies and review state |
 | vocabulary | enrollment, list and review API | lexicon and user vocabulary |
-| content | basic lesson/question reads | immutable versioned content |
-| assessment | basic grading and completion | versioned policies and results |
-| progress | basic lesson aggregate | rebuildable skill/mastery projections |
 | integrations | Telegram Mini App login only | bot webhook and provider adapters |
 | media | not implemented | private R2 assets and retention |
 | jobs | not implemented | outbox and idempotent async jobs |
