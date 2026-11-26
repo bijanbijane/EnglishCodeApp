@@ -22,6 +22,9 @@
 | POST | /api/v1/auth/logout | Bearer | Revoke session |
 | GET | /api/v1/me | Bearer | Current profile |
 | GET | /api/v1/me/progress | Bearer | Progress |
+| GET | /api/v1/me/attempts | Bearer | Cursor-paginated attempt history |
+| GET | /api/v1/attempts/:attemptId | Bearer | Owned attempt details |
+| GET | /api/v1/attempts/:attemptId/result | Bearer | Owned completed result |
 | GET | /api/v1/lessons | No | Published versioned lessons |
 | GET | /api/v1/lessons/:lessonId/questions | No | Version-pinned question array; no answer keys |
 | POST | /api/v1/lessons/:lessonId/attempts | Bearer | Start attempt pinned to content/policy versions |
