@@ -80,7 +80,8 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 - [x] Add product specification, architecture, backend contract and acceptance checklist.
 - [x] Add Telegram host adapter and official WebApp script.
 - [x] Add hash-based route contract.
-- [x] Add native Node route-contract tests for home/profile/progress/lesson parsing, encoding and malformed hashes.\n- [ ] Add automated tests for API envelopes and DTO validation; route test execution remains pending CI/runtime evidence.
+- [x] Add native Node route-contract tests for home/profile/progress/lesson parsing, encoding and malformed hashes.
+- [ ] Add automated tests for API envelopes and DTO validation; route test execution remains pending CI/runtime evidence.
 - [ ] Resolve CI failure evidence and establish reproducible install/typecheck/build.
 
 ### Phase B — Core learning journey
