@@ -2,17 +2,22 @@
 
 پلتفرم آموزش انگلیسی با شروع از Telegram Bot و Telegram Mini App؛ با مسیر توسعهٔ تدریجی به وب‌اپ و موبایل.
 
-## وضعیت فعلی این شاخه
+## وضعیت فعلی
 
-شاخهٔ `feat/backend-domain-foundation` پایهٔ دامنه‌ای بک‌اند را روی vertical slice قبلی اضافه می‌کند:
-- Frontend: React + Vite + TypeScript؛ رابط اولیهٔ واکنش‌گرا.
+این شاخه شامل ممیزی معماری فرانت‌اند و نقشهٔ اجرای اصلاح‌شده در کنار پایهٔ بک‌اند است. فرانت‌اند فعلی فقط فهرست درس‌ها را نمایش می‌دهد؛ صفحهٔ سؤال، ارسال پاسخ، ورود تلگرام، پروفایل و پیشرفت هنوز در شاخهٔ فعلی پیاده‌سازی نشده‌اند.
+
+- Frontend: React + Vite + TypeScript؛ پوستهٔ فارسی RTL و فهرست درس.
 - Backend: Hono با Worker-compatible entrypoint و ساختار Modular Monolith.
-- Auth: اعتبارسنجی Telegram Mini App initData، کنترل تازگی و جلوگیری از replay، سپس صدور نشست داخلی.
-- Learning: دریافت درس/سؤال، شروع تلاش، ثبت پاسخ، نمره‌دهی سمت سرور و ذخیرهٔ پیشرفت.
-- Database: migrationهای نسخه‌بندی‌شده برای نشست، پیشرفت، یکتایی پاسخ و جلوگیری از replay.
-- Tests: تست API پایه و تست‌های منطق دامنه، امضای Telegram و replay در مخزن؛ نتیجهٔ اجرا باید از CI تأیید شود.
+- Auth: اعتبارسنجی Telegram Mini App initData و نشست داخلی در کد بک‌اند؛ کلاینت هنوز متصل نشده است.
+- Learning: endpointهای درس، attempt، پاسخ و تکمیل در بک‌اند؛ رابط کاربری کامل هنوز متصل نشده است.
+- Database: migrationهای SQL نسخه‌بندی‌شده؛ D1 محلی/Cloudflare هنوز اجرا نشده است.
 
-این شاخه هنوز production-ready نیست. D1 واقعی، bot secret، rate limiting، سیاست نگهداری داده، تست end-to-end با D1 و استقرار عملیاتی تنظیم نشده‌اند.
+## اسناد
+
+- [نقشهٔ معماری و اجرای فرانت‌اند](docs/frontend/architecture-and-roadmap.md)
+- [ADR-0003 — معماری فرانت‌اند](docs/decisions/ADR-0003-frontend-architecture.md)
+- [قرارداد API بک‌اند](docs/backend/API.md)
+- [نقشهٔ بک‌اند](apps/backend/README.md)
 
 ## اجرای محلی
 
@@ -24,7 +29,7 @@ npm run dev:backend
 npm run dev:frontend
 ```
 
-فرمان‌ها را در دو ترمینال جدا اجرا کنید. فرانت‌اند روی http://localhost:5173 و API روی http://localhost:8787 است. adapter فعلی backend فقط برای پیش‌نمایش read-only درس‌هاست؛ نشست و نوشتن داده بدون D1 واقعی/محلی فعال نیست.
+فرمان‌ها را در دو ترمینال جدا اجرا کنید. فرانت‌اند روی http://localhost:5173 و API روی http://localhost:8787 است. Vite فقط در توسعه درخواست‌های `/api` را proxy می‌کند؛ مسیر production هنوز تنظیم نشده است.
 
 ## بررسی‌ها
 
@@ -34,22 +39,11 @@ npm test
 npm run build:frontend
 ```
 
-## API
-
-جزئیات قراردادها در [docs/backend/API.md](docs/backend/API.md) است.
-
-## دیتابیس
-
-Migrationها به ترتیب:
-1. `database/migrations/0001_initial.sql`
-2. `database/migrations/0002_backend_foundation.sql`
-3. `database/migrations/0003_telegram_auth_replay.sql`
-
-Seed فقط برای محیط local/test است: `database/seeds/0001_demo.sql`. این migrationها در حساب Cloudflare یا production اجرا نشده‌اند.
+نتیجهٔ این فرمان‌ها باید از محیط اجرا یا CI تأیید شود؛ وجود فایل تست یا workflow به‌تنهایی نشانهٔ موفقیت نیست.
 
 ## سیاست‌های غیرقابل‌تغییر
 
 - Free-first؛ هیچ هزینه یا ارتقای پولی بدون تأیید صریح.
 - منطق دامنه، هویت، ارزیابی و پیشرفت در backend.
-- کلید پاسخ سؤال به کلاینت ارسال نمی‌شود.
+- کلید پاسخ سؤال به فرانت‌اند ارسال نمی‌شود.
 - هیچ deployment یا migration عملیاتی در این شاخه انجام نمی‌شود.
