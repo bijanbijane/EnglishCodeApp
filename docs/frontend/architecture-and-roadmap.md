@@ -254,3 +254,19 @@ Exit: CI green and all MVP acceptance criteria have evidence. No production depl
 - React StrictMode and effect cleanup: https://react.dev/reference/react/StrictMode
 - React rules and hook purity: https://react.dev/reference/rules
 - Telegram Mini Apps initialization, theme, viewport and safe areas: https://core.telegram.org/bots/webapps
+
+
+## 13. Telegram Mini App correction — authoritative addendum
+
+The product is Telegram-first. The generic platform notes above must be interpreted through the dedicated [Telegram Mini App architecture](telegram-mini-app-architecture.md), which is the authoritative specification for launch modes, bootstrap, session persistence, native buttons, theme, viewport and safe areas.
+
+Key corrections:
+- Load the official Telegram WebApp script in the HTML head before the application entrypoint.
+- Prefer Main Mini App and bot menu button as authenticated entry points. Keyboard-button and inline-mode launches provide empty initData and cannot use the current auth contract.
+- Use Telegram SecureStorage (Bot API 9.0+, feature-detected) for the opaque backend session token where available; do not fall back to localStorage or CloudStorage for bearer tokens.
+- Integrate Telegram BackButton/MainButton only when the current route/task requires them.
+- Use Telegram theme variables and safe-area/content-safe-area CSS variables; use viewportStableHeight for stable bottom-anchored UI.
+- Do not request fullscreen by default.
+- Treat start_param as untrusted navigation input, never as identity or authorization.
+
+The previous session-storage discussion is superseded by the SecureStorage-first policy in the Telegram-specific specification. Backend session TTL and refresh behavior still require verification before auth client implementation.
