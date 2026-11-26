@@ -55,9 +55,9 @@ export default function App() {
   }, []);
   useEffect(() => { void loadLessons(); }, [loadLessons]);
   useEffect(() => {
-    if (!selectedLesson) return;
-    return setTelegramBackAction(() => setSelectedLesson(null));
-  }, [selectedLesson]);
+    if (selectedLesson) return setTelegramBackAction(() => setSelectedLesson(null));
+    if (activeScreen === "profile") return setTelegramBackAction(() => setActiveScreen("home"));
+  }, [selectedLesson, activeScreen]);
 
   const lessons = lessonState.status === "ready" ? lessonState.lessons : [];
   const canStartAttempt = sessionState.status === "authenticated";
@@ -80,7 +80,7 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="#home" onClick={() => setSelectedLesson(null)} aria-label="صفحهٔ اصلی انگلیش‌کد">
+        <a className="brand" href="#home" onClick={() => { setSelectedLesson(null); setActiveScreen("home"); }} aria-label="صفحهٔ اصلی انگلیش‌کد">
           <span className="brand-mark">E</span>
           <span className="brand-name">English<span>Code</span></span>
         </a>
@@ -134,7 +134,7 @@ export default function App() {
 
       <nav className="mobile-nav" aria-label="ناوبری اصلی">
         <button className={activeScreen === "home" && !selectedLesson ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => { setSelectedLesson(null); setActiveScreen("home"); }}><span aria-hidden="true">⌂</span><small>خانه</small></button>
-        <button className="mobile-nav__item" type="button" onClick={() => { setSelectedLesson(null); setActiveScreen("home"); document.getElementById("lessons")?.scrollIntoView({ behavior: "smooth" }); }}><span aria-hidden="true">▤</span><small>درس‌ها</small></button>
+        <button className="mobile-nav__item" type="button" onClick={() => { setSelectedLesson(null); setActiveScreen("home"); }}><span aria-hidden="true">▤</span><small>درس‌ها</small></button>
         <span className="mobile-nav__item mobile-nav__item--disabled" aria-disabled="true"><span aria-hidden="true">◷</span><small>مرور</small></span>
         <button className={activeScreen === "profile" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => { setSelectedLesson(null); setActiveScreen("profile"); }}><span aria-hidden="true">○</span><small>پروفایل</small></button>
       </nav>
