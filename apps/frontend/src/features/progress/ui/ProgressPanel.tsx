@@ -60,7 +60,7 @@ export function ProgressPanel({ isAuthenticated, lessonTitles, onBack, onOpenLes
             <article><span>مجموع دفعات تکمیل</span><strong>{totals.completions}</strong></article>
             <article><span>میانگین بهترین امتیازها</span><strong>{totals.average}%</strong></article>
           </div>
-          {state.rows.length ? <div className="progress-list"><div className="progress-list__heading"><h2>سوابق درس‌ها</h2><span>{state.rows.length} مورد</span></div>{state.rows.map((row) => <ProgressRow key={row.lesson_id} row={row} title={lessonTitles[row.lesson_id] ?? "درس " + row.lesson_id} />)}</div> : <div className="state-panel"><div><strong>هنوز پیشرفتی ثبت نشده است.</strong><p>پس از تکمیل اولین درس، سوابق اینجا نمایش داده می‌شود.</p></div><button className="button button--secondary" type="button" onClick={onOpenLessons}>رفتن به درس‌ها</button></div>}
+          {state.rows.length ? <div className="progress-list"><div className="progress-list__heading"><h2>سوابق درس‌ها</h2><span>{state.rows.length} مورد</span></div>{state.rows.map((row) => <ProgressRow key={row.lesson_id} row={row} title={lessonTitles[row.lesson_id] ?? "درس " + row.lesson_id} />)}</div> : <div className="state-panel" role="status" aria-live="polite"><div><strong>هنوز پیشرفتی ثبت نشده است.</strong><p>پس از تکمیل اولین درس، سوابق اینجا نمایش داده می‌شود.</p></div><button className="button button--secondary" type="button" onClick={onOpenLessons}>رفتن به درس‌ها</button></div>}
         </>
       )}
     </section>
