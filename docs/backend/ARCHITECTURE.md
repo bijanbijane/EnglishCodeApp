@@ -1,113 +1,98 @@
 # EnglishCodeApp Backend Architecture
 
-**Status:** modular Worker backend implemented on `main`; runtime and D1 integration verification remain open. Not production-ready.
+**Implementation status:** substantial backend modules are committed on `main`; no production deployment. Runtime validation is blocked because GitHub Actions has no allocated runner and the connected Mac is offline.
 
-## 1. Runtime and system boundary
+## Runtime
 
-- Cloudflare Workers + TypeScript + Hono.
-- D1/SQLite is the sole authoritative store for identity, sessions, content, attempts and progress.
-- One modular monolith; do not split services without measured scaling or team-boundary evidence.
-- API prefix: `/api/v1`.
-- Telegram Mini App is an authentication provider/client shell, not the owner of learning state.
-- No in-memory persistence or client-authoritative identity, ownership, correctness, scoring or progress.
+- Cloudflare Workers, TypeScript and Hono.
+- Cloudflare D1/SQLite is the authoritative store.
+- Modular monolith under `apps/backend/src/modules`.
+- Versioned HTTP API under `/api/v1`.
+- Telegram Mini App is an authentication adapter; it does not own learning state.
+- No R2, Queues, KV, Durable Objects, Workers AI or paid providers are activated.
 
-Request path:
-
-`Client → Worker/Hono → request context/security middleware → module route → repository/D1 → explicit DTO`
-
-## 2. Implemented modules
+## Implemented modules
 
 | Module | Responsibility |
 |---|---|
-| `auth` | Telegram initData verification, replay protection, opaque sessions, login rate limiting, logout |
+| `auth` | Telegram HMAC verification, replay gate, opaque sessions, per-IP rate limiting, logout |
 | `users` | Authenticated current-user profile |
-| `content` | Published courses, lessons and versioned question read models |
-| `learning` | Attempt creation, immutable question snapshots, answer grading, completion and progress |
-| `maintenance` | Bounded scheduled cleanup of expired replay/session/rate-limit records |\n| `admin` | D1-backed RBAC, content draft/review/publish workflow, append-only audit feed |
+| `content` | Public published course/lesson reads from immutable versions |
+| `learning` | Attempt creation, question snapshots, server grading, completion, progress |
+| `admin` | D1-backed roles, draft authoring, content review/publish, append-only audit writing and audit reads |
+| `maintenance` | Bounded scheduled cleanup of replay, rate-limit and stale session rows |
 | `shared` | Stable errors and shared request/runtime contracts |
 
-The current route files still contain some orchestration. As the codebase grows, move multi-step use cases into application services and keep SQL in repositories. Do not introduce a generic repository framework prematurely.
+Route handlers currently contain some orchestration. As complexity grows, extract use cases into application services; keep SQL and row mapping behind repository functions. Do not introduce a generic repository framework prematurely.
 
-## 3. Data and transaction model
+## Request pipeline
 
-D1 is authoritative. Use foreign keys, unique constraints, CHECK constraints, conditional writes and bounded indexes.
+`Client → request ID/security headers → API body limit → exact-origin CORS → route auth/role checks → use-case logic → D1 batch/repository → explicit DTO`
 
-Current entities:
-- Identity: `users`, `external_identities`, `sessions`, `telegram_auth_replays`, `auth_rate_limits`.
-- Catalog: `courses`, `lessons`, `lesson_versions`, `questions`, `question_versions`, `assessment_policy_versions`.
-- Assessment: `lesson_attempts`, `attempt_questions`, `attempt_answers`.
-- Progress: `user_progress`.
+- Request bodies are capped at 256 KiB globally; Telegram login additionally enforces a 20 KiB limit.
+- CORS reflects only exact origins in `ALLOWED_ORIGINS`; wildcard and credentialed CORS are not supported.
+- Telegram login is limited to 30 attempts per client IP per fixed UTC minute using an HMAC-derived bucket key; raw IP is not persisted.
+- Request IDs and security headers are added by the Worker.
 
-Attempt creation pins the published lesson version and assessment policy, then snapshots question versions and weights in one D1 batch. Answer grading reads only the attempt snapshot. Completion is a conditional state transition; progress increments only when the transition wins.
+## Identity and sessions
 
-Published lesson/question versions are immutable. A future content editor must create a new draft version and publish it through an authorized workflow; it must never mutate a version referenced by an attempt.
+- Telegram initData uses server-side two-stage HMAC-SHA-256 verification, freshness checks and duplicate-parameter rejection.
+- A fingerprint of validated initData is unique in D1. Session creation is gated by `changes()=1` from the replay insert in the same D1 batch.
+- Session tokens are cryptographically random 256-bit opaque bearer credentials; only SHA-256 hashes are stored.
+- Sessions expire after 30 days and support revocation.
+- Role checks read active grants from D1. No client-supplied role or profile flag is trusted.
 
-## 4. Identity and authentication
+## Content governance
 
-- Verify Telegram's two-stage HMAC-SHA-256 signature and `auth_date`; reject duplicate parameters.
-- Hash the complete validated initData into a replay fingerprint; never persist raw initData.
-- Claim replay and create the session in one D1 batch. Session insert is gated by the replay insert's affected-row count.
-- Generate a cryptographically random 256-bit opaque bearer token; persist only SHA-256 hash.
-- Session TTL is 30 days; revoked and expired sessions are rejected by middleware.
-- Login is limited to 30 attempts per IP per fixed UTC minute. IP is transformed with HMAC before persistence; raw IP is not stored in this limiter.
-- The exact-origin CORS allowlist is read from `ALLOWED_ORIGINS`. Wildcards and credentialed requests are not supported. Leave the variable unset until the real client origins are approved.
+- Stable `lessons` and `questions` are source identities.
+- `lesson_versions` and `question_versions` are immutable after publication.
+- A lesson's current published pointer must reference a published version belonging to that lesson.
+- Authors create drafts and submit only their own drafts.
+- Reviewers cannot approve their own submissions.
+- Only admins can publish approved versions.
+- Every privileged content mutation writes an allowlisted audit event in the same D1 batch.
+- Admin audit reads are role-protected and keyset-paginated.
+- There is no public role-grant endpoint. Initial admin bootstrap is owner-controlled; see `ADMIN-BOOTSTRAP.md`.
 
-## 5. Assessment and progress invariants
+## Learning and progress
 
-- Public DTOs select explicit fields; no answer key or pre-answer explanation.
-- Each attempt is owner-bound and pinned to one published lesson version and one assessment policy version.
-- Question text, options, answer key, order and weight are snapshotted per attempt.
-- Only `in_progress` attempts accept answers.
-- A unique attempt/question constraint prevents duplicate writes. Identical retry returns the prior result; a different second answer returns 409.
-- Score is a weighted percentage; unanswered questions contribute zero earned weight.
-- Completion and progress update share one D1 batch. Local D1 race tests are still required before relying on the transaction behavior in production.
+- An attempt pins a published lesson version and assessment policy version.
+- The attempt snapshots question IDs, type, prompt, options, answer key, ordering and weight.
+- Answer submission checks ownership and in-progress state, validates option IDs and grades on the server.
+- Identical answer retries return the stored result; conflicting second answers return 409.
+- Completion is a conditional state transition; the progress upsert is gated by the preceding update's affected-row count.
+- The initial policy is weighted percentage with unanswered questions scoring zero.
+- The mutable `user_progress` table is currently a projection; immutable result/event facts and deterministic rebuild are not implemented yet.
 
-## 6. Middleware and platform controls
+## Maintenance
 
-- Server-generated request ID and baseline security headers.
-- Exact-origin CORS configuration.
-- Content-Type and request-body bounds on Telegram login.
-- HMAC-keyed per-IP login rate limiting.
-- Daily Worker Cron at 03:17 UTC; bounded cleanup removes at most 500 expired replay fingerprints, 500 rate-limit buckets older than 48 hours and 500 stale sessions per run.
-- No R2, Queues, KV, Durable Objects, Workers AI, payments or paid providers are required or activated.
+A daily Worker Cron is configured for 03:17 UTC. Each run deletes at most 500 expired replay fingerprints, 500 rate-limit buckets older than 48 hours and 500 stale sessions. Expired unrevoked sessions are retained at least seven days after expiry; revoked sessions at least 30 days after revocation. The schedule is configuration only until deployment.
 
-## 7. Target module boundaries
+## Module dependency rules
 
-Additional target modules, only when their product workflows are specified:
-- `progress`: immutable result/event facts and rebuildable progress projections.
-- `vocabulary` and `review`: canonical vocabulary and versioned spaced-repetition scheduler.
-- `profiles`: preferences, locale and account lifecycle.
-- `skills`: listening, speaking, reading and writing records.
-- `media` and `jobs`: private R2 objects, durable D1 outbox, Queue consumers.
-- `entitlements`: server-side feature permissions.
-- `analytics`: purpose-limited aggregate product events.
-
-Dependency rules:
-1. Routes validate transport input and call application/domain services.
-2. Domain logic stays deterministic and independent of Hono/D1.
+1. Routes validate transport input and call use cases.
+2. Domain logic must remain deterministic and independent of Hono/D1.
 3. Repositories own SQL and row mapping.
-4. Cross-module writes use explicit application services and a documented D1 transaction boundary.
+4. Cross-module writes use explicit use cases and documented D1 batch boundaries.
 5. No circular imports, shared god-service or cross-module SQL.
-6. Async jobs must persist intent in D1 before enqueue; consumers must be idempotent.
+6. Future asynchronous jobs must persist intent in D1 before enqueue; consumers must be idempotent.
 
-## 8. Administration and content governance\n\n- Role checks are read from D1, never client profile flags.\n- Roles: `admin`, `content_author`, `content_reviewer`, `support`.\n- Authors can create draft lesson versions and submit only their own drafts. Reviewers cannot approve their own submissions. Only admins can publish approved versions.\n- Every privileged content mutation writes an allowlisted audit event in the same D1 batch. Audit events are append-only and cursor-paginated.\n- There is no public role-grant endpoint. First-admin bootstrap is owner-controlled and documented in `ADMIN-BOOTSTRAP.md`. No production role has been granted.\n\n## 9. Migration and branch policy
+## Current migration history and branch policy
 
-- Current main migration sequence is `0001` through `0008`.
-- Older backend feature branches contain a different schema history and cannot be merged by copying their migration numbers or applying their migrations on top of current main.
-- Port domain behavior only after schema mapping and migration review. Never run two incompatible `0001` histories against the same database.
-- Migrations are forward-only after any shared database has applied them.
+- Main uses migrations `0001` through `0010`.
+- Older backend feature branches contain a different initial schema and migration sequence. Their numbered migrations are not drop-in compatible with current main.
+- Port domain behavior only after mapping every table/constraint and creating forward-only migrations.
+- Never apply two incompatible `0001` histories to the same D1 database.
+- Never edit a migration after it has been applied to a shared database.
 
-## 10. Release gates and current evidence
+## Remaining release gates
 
-Still required:
-- Typecheck and Vitest on the exact current commit.
-- Apply migrations `0001`–`0008` and seed to a fresh Cloudflare Local D1.
-- Real Local D1 tests for concurrent duplicate login, answer/completion races, replay and exactly-once progress.
+- Run TypeScript typecheck and Vitest on the exact current commit.
+- Apply migrations `0001`–`0010` and seed to fresh Cloudflare Local D1.
+- Run real Local D1 tests for duplicate login races, answer/complete races, progress exactly-once, RBAC and publish transactions.
 - Verify session expiry/revocation and cross-user access.
-- Configure the exact frontend origins.
-- Define account export/deletion/retention and operational metrics.
+- Set exact approved frontend origins.
+- Complete account export/deletion/retention, immutable progress facts, monitoring, backup/restore and load testing.
 - Staging smoke test and rollback plan.
 
-GitHub Actions currently terminates before runner allocation (`runner_id=0`, no steps); the Mac test environment is offline. Tests and a SQLite compatibility script are committed, but no passing execution is claimed.
-
-No production database, secret, deployment, paid resource or remote migration has been provisioned.
+GitHub Actions currently fails before allocating a runner (`runner_id=0`, no steps). The committed tests and SQLite compatibility script have not yet been executed in CI. No production database, secret, deployment, paid resource or remote migration has been provisioned.
