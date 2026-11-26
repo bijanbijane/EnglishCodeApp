@@ -11,7 +11,7 @@ This is the module-level implementation contract for Architecture v3. Planned me
 | Profiles | Minimal /me | Preferences, locale, account lifecycle |
 | Content | Basic lesson/question reads | Immutable versioned content and publishing |
 | Assessment | Basic attempt/answer/complete | Versioned policies, grading and results |
-| Progress | Basic per-lesson aggregate | Rebuildable skill/mastery projections |
+| Progress | Append-only completion facts and atomic per-user projection rebuild | Rebuildable skill/mastery projections |
 | Vocabulary | Missing | Lexicon and user vocabulary |
 | Review | Missing | Versioned spaced-repetition scheduler |
 | Skills | Missing | Listening/speaking/reading/writing evidence |
@@ -19,7 +19,7 @@ This is the module-level implementation contract for Architecture v3. Planned me
 | Jobs | Missing | Outbox, async job state and idempotent consumers |
 | Integrations | Telegram login only | Bot webhook and external adapters |
 | Entitlements | Missing | Central action-level access policy |
-| Administration | Missing | RBAC, content review/publish, audit |
+| Administration | Role authorization middleware, append-only audit writer and schema; no admin routes or role-grant endpoint | RBAC, content review/publish and audit queries |
 | Analytics | Missing | Purpose-limited aggregate product metrics |
 
 ## Route conventions
@@ -49,7 +49,7 @@ Assessment:
 - GET /attempts/:attemptId
 - POST /attempts/:attemptId/answers
 - POST /attempts/:attemptId/complete
-- GET /attempts/:attemptId/result
+- GET /attempts/:attemptId/result — reads immutable attempt_results facts (score, earned/total weight, counts and pinned versions).
 - GET /me/attempts?cursor=...
 All routes enforce ownership and pinned content/policy versions. Result DTO is immutable after completion except explicitly versioned manual review.
 
@@ -57,7 +57,7 @@ Progress:
 - GET /me/progress
 - GET /me/skills
 - GET /me/learning-history?cursor=...
-Progress is a projection from immutable facts and can be rebuilt deterministically.
+Progress is a projection from immutable progress_events and can be rebuilt per user with modules/progress/rebuild.ts.
 
 Vocabulary/review:
 - GET /vocabulary?languagePair=...&cursor=...

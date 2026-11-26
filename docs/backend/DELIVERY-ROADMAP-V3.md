@@ -5,10 +5,10 @@ Status labels: implemented in source, SQL-smoke-tested, Local D1 verified, CI ve
 ## G0 — Reproducible build and P0 correctness
 - [ ] Hosted GitHub Actions exposes logs/steps; current jobs fail before steps are reported.
 - [x] Root lockfile committed locally and `npm ci` passes; push/hosted CI evidence pending.
-- [x] Typecheck, backend tests (32/32) and frontend build pass on the same local checkout.
+- [x] Typecheck, backend tests (40/40) and frontend build pass on the same local checkout.
 - [x] Independent fixed Telegram HMAC vector included and Telegram tests pass locally.
-- [x] Local D1 migrations from empty database (0001..0006).
-- [x] Local D1 upgrade/backfill path from 0001 legacy data through 0006.
+- [x] Local D1 migrations from empty database (0001..0008), including the isolated backfill test for 0008.
+- [x] Local D1 upgrade/backfill path from 0001 legacy data through 0006; 0008 result/event backfill from synthetic completed attempts verified on a separate Local D1 database.
 - [x] Local D1 duplicate-login race: one 200 session and one 409 replay rejection.
 - [x] Local D1 answer/completion race, post-completion answer rejection and duplicate completion/progress idempotency.
 - [x] D1 batch conditional-write behavior verified on Wrangler Local D1; remote D1 remains unverified.
@@ -33,7 +33,12 @@ Status labels: implemented in source, SQL-smoke-tested, Local D1 verified, CI ve
 - [x] Score query uses weights from pinned question version.
 - [x] Conditional completion/progress write implemented in source.
 - [x] Local D1 completion race and progress idempotency verified.
-- [ ] Immutable result facts, progress event facts and rebuild/reconciliation command.
+- [x] Immutable result facts and append-only progress event facts added in migration 0008.
+- [x] Completion writes result, event and progress projection in one D1 batch; repeat completion does not duplicate facts.
+- [x] Backfill from completed attempts and progress projection rebuild verified on isolated Local D1.
+- [x] Projection rebuild service added with atomic per-user D1 batch.
+- [ ] Admin-only invocation, audit trail and scheduled reconciliation runbook.
+- [ ] Cross-user result/attempt authorization matrix.
 - [ ] Explicit pass/retry/manual-review policy beyond the initial percentage policy.
 
 ## G4 — Vocabulary and spaced repetition
@@ -43,7 +48,7 @@ Status labels: implemented in source, SQL-smoke-tested, Local D1 verified, CI ve
 - [x] Due review query indexed by user/state/due_at.
 - [x] Idempotent review submission and optimistic revision.
 - [x] Local D1 enrollment, same-key replay and changed-payload idempotency rejection.
-- [x] Unit tests passed as part of the 32-test backend suite.
+- [x] Unit tests passed as part of the 40-test backend suite.
 - [ ] Deterministically force stale review revision conflict and add review time-boundary tests.
 - [ ] Vocabulary authoring/import and curated content pipeline.
 
@@ -51,6 +56,7 @@ Status labels: implemented in source, SQL-smoke-tested, Local D1 verified, CI ve
 - [ ] Listening and reading content references.
 - [ ] Writing submissions and rubric version.
 - [ ] Speaking flow only after consent and media policy.
+- [x] RBAC role-check middleware and append-only audit writer foundations added; no role-grant or admin route exposed.
 - [ ] Admin content draft/review/publish with RBAC and audit.
 
 ## G6 — Media, audio and AI

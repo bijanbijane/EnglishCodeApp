@@ -7,15 +7,15 @@
 | users | /me and progress reads | preferences and account lifecycle |
 | learning | version-aware lesson reads and attempts | learning orchestration |
 | content | immutable lesson/question v1 snapshots and public DTO | authoring, review and publication |
-| assessment | pinned policy and weighted completion | policy versions, richer item types and results |
-| progress | basic lesson aggregate | rebuildable skill/mastery projections |
+| assessment | pinned policy, weighted completion and immutable attempt_results | richer item types and reviewable assessment policies |
+| progress | append-only progress_events and atomic per-user projection rebuild | rebuildable skill/mastery projections |
 | review | deterministic scheduler v1 | scheduler policies and review state |
 | vocabulary | enrollment, list and review API | lexicon and user vocabulary |
 | integrations | Telegram Mini App login only | bot webhook and provider adapters |
 | media | not implemented | private R2 assets and retention |
 | jobs | not implemented | outbox and idempotent async jobs |
 | entitlements | not implemented | action-level access policy |
-| administration | not implemented | RBAC, publishing and audit |
+| administration | role authorization middleware and append-only audit writer; no admin routes or role-grant endpoint | protected publishing and audit queries |
 | analytics | not implemented | purpose-limited aggregate metrics |
 
 ## Dependency rules

@@ -14,13 +14,13 @@ Verified Telegram login ensures a provider-neutral identity row (provider=telegr
 - GET /lessons — published lesson list from current immutable lesson versions.
 - GET /me/attempts?limit=20&cursor=... — authenticated keyset-paginated history for the current user.
 - GET /attempts/:attemptId — owned attempt metadata; cross-user IDs return 404.
-- GET /attempts/:attemptId/result — owned completed result; returns 409 until completion.
+- GET /attempts/:attemptId/result — reads the immutable result fact for the owner; returns score, earned/total weight, correct/question counts and pinned policy/content version; returns 409 until a result fact exists.
 - GET /lessons/:lessonId/questions — public question array; response retains the existing data array and adds meta.lessonVersion. answer_key is never returned.
 - POST /lessons/:lessonId/attempts — authenticated; creates attempt pinned to current lesson_version_id and assessment_policy_version_id.
 - POST /attempts/:attemptId/answers — body { "questionId": "...", "answerId": "..." }. Server grades against the question version pinned to the attempt. Same answer retry returns stored result; a different second answer returns 409.
-- POST /attempts/:attemptId/complete — computes weighted percentage against the attempt's pinned question version and updates progress conditionally.
+- POST /attempts/:attemptId/complete — computes weighted percentage against the pinned question version, writes one immutable result and one append-only progress event, then updates the rebuildable progress projection in the same D1 batch.
 
-Migration 0006 backfills version 1 from existing lessons/questions and installs immutability triggers for published content. There is not yet a public authoring/review/publish API; new versions must not be inserted into a published version.
+Migration 0006 backfills version 1 from existing lessons/questions and installs immutability triggers for published content. Migration 0008 backfills immutable result facts and progress events for existing completed attempts, rebuilds user_progress from those facts, and blocks UPDATE/DELETE of result/event rows. There is not yet a public authoring/review/publish API; new versions must not be inserted into a published version.
 
 ## Vocabulary and spaced repetition
 - GET /me/vocabulary?limit=50 — current user's vocabulary state; limit 1..100.
@@ -44,4 +44,4 @@ Vocabulary content is currently seeded/managed outside the public API.
 - 503 required storage/auth configuration unavailable
 
 ## Not implemented
-No admin API, account linking/merge, payments, subscriptions, AI tutor, media upload, Queue consumer, content authoring/review/publishing, account deletion workflow or production deployment.
+No admin content API, role-grant API, account linking/merge, payments, subscriptions, AI tutor, media upload, Queue consumer, content authoring/review/publishing, account deletion workflow or production deployment. RBAC/audit foundation exists, but no privileged route is exposed.

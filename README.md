@@ -8,7 +8,8 @@
 - Backend: Hono + TypeScript روی Cloudflare Workers؛ معماری Modular Monolith.
 - Database: Cloudflare D1 با migrationهای نسخه‌بندی‌شده.
 - Auth: Telegram Mini App HMAC، کنترل freshness و replay، نشست bearer opaque و نگاشت هویت مستقل از provider.
-- Learning: محتوای version-pinned، attempt، ثبت پاسخ، ارزیابی سمت سرور، نتیجه و progress.
+- Learning: محتوای version-pinned، attempt، ثبت پاسخ، ارزیابی سمت سرور، نتیجهٔ immutable و progress eventهای قابل بازسازی.
+- Admin foundation: نقش‌های سمت سرور و writer ممیزی؛ هنوز هیچ endpoint مدیریتی یا راه اعطای نقش عمومی فعال نیست.
 - Vocabulary: ثبت واژگان و مرور فاصله‌دار نسخه‌دار با idempotency و revision.
 - CI: lockfile ریشه و `npm ci`؛ typecheck، تست بک‌اند و build فرانت‌اند.
 
@@ -51,6 +52,10 @@ Local D1 state در `.wrangler/` ذخیره می‌شود و در Git ثبت ن�
 4. `0004_provider_neutral_identity.sql`
 5. `0005_vocabulary_review.sql`
 6. `0006_versioned_learning_content.sql`
+7. `0007_admin_rbac_audit.sql`
+8. `0008_immutable_results_progress_events.sql`
+7. `0007_admin_rbac_audit.sql`
+8. `0008_immutable_results_progress_events.sql`
 
 Migration 0003 تکرار idempotent تعریف replay table/index موجود در 0002 است؛ تاریخچه حفظ شده و نباید migration اعمال‌شده بازنویسی شود.
 
@@ -59,9 +64,12 @@ Migration 0003 تکرار idempotent تعریف replay table/index موجود د
 در ۲۶ نوامبر ۲۰۲۶:
 - `npm ci` موفق.
 - TypeScript typecheck موفق برای frontend و backend.
-- ۳۲ تست بک‌اند موفق.
+- ۴۰ تست بک‌اند موفق (۱۱ فایل تست).
 - frontend production build موفق.
-- هر ۶ migration روی Local D1 خالی اجرا شد.
+- هر ۸ migration روی یک Local D1 ایزوله و خالی اجرا شد.
+- Migration 0008 روی Local D1 جداگانه پس از درج دادهٔ قدیمی synthetic اجرا شد؛ نتیجهٔ آزمون، رخداد پیشرفت و بازسازی شمارنده از دادهٔ قدیمی تأیید شد.
+- Worker + Local D1 نتیجهٔ وزنی ۶۷ از ۱۰۰، تکرار completion و ثبت دقیق یک result/event برای هر attempt را تأیید کرد.
+- trigger تغییر نتیجهٔ ثبت‌شده را با `SQLITE_CONSTRAINT_TRIGGER` رد کرد.
 - مسیر upgrade از schema شمارهٔ 0001 با دادهٔ قدیمی synthetic تا 0006 اجرا شد؛ identity، lesson version و attempt policy backfill تأیید شد.
 - ورود هم‌زمان با initData یکسان روی Worker + Local D1: یک پاسخ 200 و یک پاسخ 409.
 - رقابت پاسخ/تکمیل، جلوگیری از پاسخ پس از تکمیل، تکرار completion و شمارش progress روی Local D1 بررسی شد.

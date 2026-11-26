@@ -75,3 +75,40 @@ The review race was serialized in this local runtime; this does not prove the st
 3. Add cross-user ownership tests for every attempt endpoint.
 4. Implement content authoring/review/publish only after admin RBAC and append-only audit.
 5. Add account deletion/export and retention rules before media collection.
+
+## G3 result facts and rebuildable progress — 2026-11-26
+
+### Code and migration
+- Added migration `0008_immutable_results_progress_events.sql` after the existing RBAC/audit migration 0007.
+- `attempt_results` stores immutable score, earned/total weight, correct/question counts, lesson version, policy version and completion timestamp.
+- `progress_events` stores one append-only completion event per attempt.
+- Migration backfills completed attempts, creates corresponding events, then rebuilds `user_progress` from events.
+- Completion now writes the result fact, event and projection in one D1 batch. Repeated completion does not duplicate either fact.
+- Added `rebuildUserProgress` service. Its delete/reinsert projection work is one D1 batch scoped to a single user.
+- Added role-check middleware and a constrained audit writer foundation; no admin endpoint or public role grant exists.
+
+### Local D1 evidence
+A fresh isolated Local D1 database applied migrations 0001..0008 in order. A second isolated database applied 0001..0007, then received a synthetic completed attempt and an intentionally stale progress projection before 0008 was applied. The post-migration query returned:
+- result score 100, earned weight 1, total weight 1;
+- correct count 1, question count 1;
+- exactly one progress event for the attempt;
+- rebuilt completion count 1, replacing the seeded stale count 99.
+
+### Worker integration evidence
+On a separate Local D1 Worker with a weighted two-question lesson:
+- two correct answers with weights 2 and 1 produced score 100, earnedWeight 3, totalWeight 3, correctCount 2, questionCount 2;
+- repeated completion returned 200 and the projection count remained one for that attempt;
+- a second attempt with only the weight-2 question correct produced score 67 and earnedWeight 2 / totalWeight 3;
+- two simultaneous completion requests returned 200; one result row and one event were stored;
+- answer submission after completion returned 409;
+- a direct UPDATE against `attempt_results` was rejected by the immutability trigger with `SQLITE_CONSTRAINT_TRIGGER`.
+
+### Current workspace gate
+- Typecheck: passed (frontend and backend).
+- Backend tests: 11 files / 40 tests passed.
+- Frontend production build: passed.
+- `git diff --check`: passed.
+- Remote D1, GitHub-hosted Actions, production deployment and production migrations were not run.
+
+### Design constraint to resolve before account deletion
+The immutable result/event facts use restrictive user references. Account deletion must be designed as an explicit retention-aware tombstone/pseudonymization process, or an approved erasure strategy that preserves integrity. Do not add a physical user-delete endpoint until legal/product retention rules and the treatment of result facts are decided.

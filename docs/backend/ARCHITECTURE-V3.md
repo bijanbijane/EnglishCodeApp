@@ -104,7 +104,7 @@ Assessment policy must define question types, accepted answer representations, r
 
 ## 6. Learning domains
 
-Progress and mastery: store immutable attempt results as facts; derive per-user progress as a projection. Projection updates must be transactionally idempotent and rebuildable. Distinguish completion, accuracy, streak and mastery.
+Progress and mastery: store immutable attempt results as facts; derive per-user progress as a projection. Projection updates must be transactionally idempotent and rebuildable from append-only progress events. A result fact snapshots earned/total weight, correct/question counts, score, pinned lesson version, assessment policy version and completion timestamp. Account erasure must reconcile immutable fact retention through an explicit tombstone/pseudonymization and retention policy; do not add physical-delete routes that violate fact integrity. Distinguish completion, accuracy, streak and mastery.
 
 Vocabulary and spaced repetition: separate canonical vocabulary items from per-user state. Store language pair, lemma, normalized form, senses, examples, tags and source/version. User state stores familiarity, due_at, interval, ease/difficulty, last_reviewed_at and review count. Scheduler logic is pure and versioned. Review events are append-only; due queues are indexed by user and due_at. Do not claim a scientifically optimal schedule without validation.
 

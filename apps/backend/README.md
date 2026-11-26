@@ -6,11 +6,13 @@
 - Provider-neutral `user_identities` mapping for verified Telegram identities.
 - Basic learning routes with attempts pinned to immutable lesson and assessment policy versions.
 - Conditional answer writes and weighted completion score against the pinned question version.
+- Immutable `attempt_results` snapshots and append-only `progress_events`; rebuildable per-user progress projection.
+- RBAC role-check middleware and append-only minimal audit writer foundations (no public role-grant/admin routes).
 - Public question DTO preserves the question array shape and excludes answer keys.
 - Owned attempt history, attempt metadata and completed result endpoints with keyset cursor.
 - Vocabulary enrollment/list/due queue and idempotent spaced-repetition review API with optimistic concurrency.
 - Deterministic scheduler v1 and unit tests.
-- Migration files 0001..0006.
+- Migration files 0001..0008, including RBAC/audit foundation and immutable result/progress facts.
 - Wrangler local D1 configuration and reproducible root lockfile.
 
 ## API
@@ -55,16 +57,19 @@ Local secrets belong in ignored `.dev.vars`; use a dummy bot token for integrati
 ## Verification evidence (2026-11-26)
 - `npm ci`: passed.
 - `npm run typecheck`: passed (frontend + backend).
-- `npm test`: 8 test files, 32 tests passed.
+- `npm test`: 11 test files, 40 tests passed.
 - `npm run build:frontend`: passed.
-- All six migrations applied to a fresh Wrangler Local D1 database.
+- All eight migrations applied to a fresh isolated Wrangler Local D1 database.
+- Migration 0008 upgrade/backfill verified on a second Local D1 database with a synthetic completed attempt and deliberately stale progress row; result, event and rebuilt count were all correct.
 - Upgrade path tested from 0001 with synthetic legacy user, published lesson/question and completed attempt through 0006; provider identity, v1 content and assessment policy references were backfilled.
 - Actual Worker + Local D1: readiness and health returned 200.
 - Concurrent duplicate Telegram initData: one 200 session and one 409 replay rejection.
 - Answer/completion race: completion wins or answer wins according to execution order; answer after completion returns 409. Concurrent duplicate completion returns 200 to both callers but increments progress once.
+- Weighted immutable result snapshot verified on actual Worker + Local D1: 2/3 weight produced score 67 with earnedWeight=2, totalWeight=3; result facts and progress event counts each matched completed attempts.
+- Result immutability trigger rejected an UPDATE with `SQLITE_CONSTRAINT_TRIGGER`.
 - Vocabulary enrollment, same-key replay and different-payload idempotency-key rejection verified on Local D1. Two distinct concurrent review submissions were serialized and both accepted in this run.
 
 This is local evidence, not remote/production D1 verification or a security certification. Hosted GitHub Actions still has an unexplained runner/job startup failure with no step logs; local CI-equivalent commands are green.
 
 ## Not yet implemented
-Content authoring/review/publishing API, account linking/merge, four skill-specific assessment modules, media/R2, Queues/outbox, AI/STT/TTS, entitlements, RBAC/admin audit, analytics, retention/deletion/export and production deployment.
+Content authoring/review/publishing API, account linking/merge, four skill-specific assessment modules, media/R2, Queues/outbox, AI/STT/TTS, entitlements, admin route/bootstrap and audit invocation, analytics, retention/deletion/export and production deployment.
