@@ -96,3 +96,10 @@ This checklist operationalizes `frontend-product-spec.md`. Check an item only wh
 ## Current source implementation note — 2026-11-26
 
 The branch now contains a searchable lesson catalog, public question retrieval, Telegram Bot API 9.0 SecureStorage session bootstrap, authenticated attempt/answer/complete requests, server-confirmed feedback and score, authenticated profile and progress screens, logout, hash navigation and Telegram BackButton/safe-area/theme integration. These are implementation artifacts only. The relevant checklist items above remain unchecked until typecheck, production build, automated integration tests and Telegram device tests provide evidence. Browser authentication remains unavailable because the backend does not yet expose a secure HttpOnly cookie/session contract.
+
+
+## Learn library implementation update — 2026-11-26
+
+The source now separates the Home dashboard from the dedicated `#/learn` library. The library supports search by lesson title, CEFR level and description, explicit no-results feedback, and reuses the existing loading/empty/error/retry catalog states. Lesson selection opens the lesson player; returning from the player returns to Learn. Pure search and route tests were added to the repository.
+
+Practice and Review remain intentionally absent from active navigation: the current inspected backend does not define a separate Practice Center or server-owned spaced-review queue. The five-destination navigation acceptance item above remains unchecked. All runtime, integration, build, accessibility and Telegram-device acceptance items remain unchecked until evidence is available.
