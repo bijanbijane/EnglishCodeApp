@@ -140,7 +140,7 @@ PR #4 remains open and Draft. Do not merge, deploy, run production migrations, m
 - The frontend `npm test` script now runs all `test/*.test.ts` suites with Node 22 TypeScript stripping.
 - Question payload parsing rejects empty prompts/options, fewer than two choices, unsafe positions, and duplicate question/option identifiers.
 - Answer feedback must match the submitted question and answer IDs; completion must belong to the active attempt and carry a safe integer score from 0 to 100.
-- Telegram session bootstrap can be retried after a recoverable error. Lesson catalog and progress requests ignore stale responses after a newer request or navigation.
+- Telegram session bootstrap can be retried after a recoverable error. Replayed one-time initData is distinguished and requires reopening the Mini App for a fresh payload. Lesson catalog and progress requests ignore stale responses after a newer request or navigation.
 - Logout requires explicit server confirmation before local credentials are cleared (401 is treated as already revoked).
 
 These are source-level changes only; runtime verification remains pending until a successful CI or local test/build run is available.
