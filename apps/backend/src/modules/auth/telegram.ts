@@ -133,7 +133,7 @@ export async function validateTelegramInitData(
   }
 
   const canonicalPayload = Array.from(values.entries())
-    .sort(([left], [right]) => left.localeCompare(right))
+    .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
     .map(([key, value]) => `${key}=${value}`)
     .join("\n");
 
