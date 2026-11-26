@@ -27,7 +27,8 @@
 - D1 schema with versioned lesson/question content and assessment policy, plus synthetic local seed data
 - Per-IP Telegram login rate limiting (30 requests/minute) with HMAC-derived pseudonymous keys
 - Bounded daily cleanup of expired Telegram replay fingerprints, stale sessions, and rate-limit buckets (Worker Cron)
-- Exact-origin CORS allowlist with no wildcard or credential support; CORS route tests\n- D1-backed admin RBAC, content draft/review/publish workflow, append-only audit events and paginated admin audit feed
+- Exact-origin CORS allowlist with no wildcard or credential support; CORS route tests
+- D1-backed admin RBAC, content draft/review/publish workflow, append-only audit events and paginated admin audit feed
 - Backend typecheck/test scripts and a dedicated GitHub Actions workflow
 
 ## Local setup
@@ -78,6 +79,7 @@ These are explicit follow-up gates, not implied by the current scaffold.
 ## Safety
 
 - Do not run remote migrations or deploy this Worker as part of local development.
-- No production database, Worker secret, paid service, or Cloudflare resource has been provisioned.
-- The `deploy` command is intentionally absent until a separately approved staging configuration exists.
+- Development resources `englishcode-backend-dev` and `englishcodeapp-dev` are provisioned. No production database or production Worker is configured.
+- `TELEGRAM_BOT_TOKEN` is not configured; Telegram login will return `503` until the secret is added through a protected Cloudflare workflow.
+- `deploy:dev` targets the development Worker only. No production deployment command or production environment is configured.
 - Never commit bot tokens, session tokens, real user data, or production environment files.
