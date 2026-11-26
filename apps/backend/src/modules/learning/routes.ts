@@ -18,11 +18,11 @@ interface AttemptListRow {
   completed_at: string | null;
 }
 
-function encodeAttemptCursor(startedAt: string, id: string): string {
+export function encodeAttemptCursor(startedAt: string, id: string): string {
   return btoa(`${startedAt}\n${id}`).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
-function decodeAttemptCursor(value: string): { startedAt: string; id: string } | null {
+export function decodeAttemptCursor(value: string): { startedAt: string; id: string } | null {
   if (!/^[A-Za-z0-9_-]{8,256}$/.test(value)) return null;
   try {
     const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
