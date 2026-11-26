@@ -25,7 +25,7 @@
 - `GET /api/v1/courses/:courseId/lessons`
 - `GET /api/v1/lessons/:lessonId` (never selects or returns `answer_key`)
 - Initial D1 schema and synthetic local seed data
-- Bounded daily cleanup of expired Telegram replay fingerprints and stale sessions (Worker Cron)
+- Per-IP Telegram login rate limiting (30 requests/minute) with HMAC-derived pseudonymous keys\n- Bounded daily cleanup of expired Telegram replay fingerprints, stale sessions, and rate-limit buckets (Worker Cron)
 - Backend typecheck/test scripts and a dedicated GitHub Actions workflow
 
 ## Local setup
@@ -55,7 +55,7 @@ See [API contract](../../docs/backend/API.md), [architecture](../../docs/backend
 
 ## Not implemented yet
 
-D1 integration/concurrency verification for Telegram replay/session issuance and learning writes, rate limiting, content authoring, admin RBAC, R2, Queues, AI adapters, retention/export/delete, and operational observability.
+D1 integration/concurrency verification for Telegram replay/session issuance and learning writes, production origin policy, content authoring, admin RBAC, R2, Queues, AI adapters, retention/export/delete, and operational observability.
 
 These are explicit follow-up gates, not implied by the current scaffold.
 
