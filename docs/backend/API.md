@@ -29,7 +29,7 @@ Error:
 
 The API must not return stack traces, SQL text, secrets, session tokens, or private answer keys in error or public content responses.
 
-## Current endpoints
+## Implemented endpoints
 
 | Method | Path | Auth | Purpose | State |
 |---|---|---|---|---|
@@ -38,14 +38,14 @@ The API must not return stack traces, SQL text, secrets, session tokens, or priv
 | GET | `/courses` | Public | Published course catalog | Implemented |
 | GET | `/courses/:courseId/lessons` | Public | Published lessons in a course | Implemented |
 | GET | `/lessons/:lessonId` | Public | Published lesson and question DTOs | Implemented |
+| POST | `/auth/logout` | Bearer session | Revoke current session | Implemented; requires a session issued by the not-yet-built login flow |
+| GET | `/me` | Bearer session | Current profile | Implemented; requires a session issued by the not-yet-built login flow |
 
 ## Planned endpoints
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/auth/telegram` | Public, signed initData required | Validate Telegram launch data and issue application session |
-| POST | `/auth/logout` | Session | Revoke current session |
-| GET | `/me` | Session | Current profile |
+| POST | `/auth/telegram` | Public, signed initData required | Validate Telegram launch data, prevent replay, and issue application session |
 | GET | `/me/progress` | Session | Current user's progress |
 | POST | `/lessons/:lessonId/attempts` | Session | Start attempt |
 | POST | `/attempts/:attemptId/answers` | Session | Submit answer; grade on server |
@@ -57,6 +57,13 @@ The API must not return stack traces, SQL text, secrets, session tokens, or priv
 - Public question DTOs select an explicit allowlist of columns and never select `answer_key`.
 - Future write endpoints must derive user ownership from the authenticated principal.
 - Scoring policy and content version must be pinned to an attempt before assessment expands beyond basic multiple choice.
+
+## Authentication invariants
+
+- The Telegram HMAC verifier is implemented and covered by a static test vector, but is not yet exposed as a login endpoint.
+- Opaque bearer token generation, SHA-256 token hashing, active-session lookup, revocation, middleware, `/auth/logout`, and `/me` are implemented.
+- Session issuance must be atomic with replay protection before the login route is enabled.
+- Raw Telegram initData and raw session tokens must never be persisted or logged.
 
 ## Compatibility policy
 
