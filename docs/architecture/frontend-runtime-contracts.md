@@ -146,7 +146,7 @@ The root app calls Telegram `ready()` once per mounted application lifecycle, in
 | E2E | Telegram-like launch, public catalog, authenticated learning, progress and logout |
 | Release | Typecheck, tests, production build, CI evidence and device verification |
 
-The current frontend has dependency-free Node 22 TypeScript-stripping suites for route serialization, strict API envelope validation, lesson-question payload validation, attempt-response validation and attempt/question identity matching. These are contract unit tests, not a substitute for component, API integration or E2E tests.
+The current frontend has dependency-free Node 22 TypeScript-stripping suites for route serialization, strict API envelope validation, lesson-question payload validation, attempt-response validation, profile/progress DTO validation, lesson search/CEFR filtering and attempt/question identity matching. These are contract unit tests, not a substitute for component, API integration or E2E tests.
 
 ## 11. Explicit non-goals until contracts exist
 
