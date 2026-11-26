@@ -1,74 +1,26 @@
-# Backend — Cloudflare Worker
+# Backend — Minimal API foundation
 
-## مسئولیت
+## Implemented
 
-بک‌اند مرجع نهایی قواعد کسب‌وکار و داده‌های معتبر EnglishCodeApp است. پیاده‌سازی اولیه به‌صورت یک **Modular Monolith** روی Cloudflare Workers طراحی می‌شود. Hono گزینهٔ پایه برای routing است، اما سازگاری نسخهٔ انتخابی آن با runtime و bindings باید در نمونهٔ اجرایی آزموده شود.
+- Hono application with a Cloudflare Worker-compatible fetch entrypoint.
+- Local Node development adapter for quick frontend/backend iteration.
+- `GET /api/v1/health`.
+- `GET /api/v1/lessons`, reading published lessons from the D1 binding.
+- Structured 404/500/503 responses.
+- Unit tests for health, missing D1 binding and unknown routes.
 
-## نقطهٔ ورود و handlerها
+## Run locally
 
-ساختار هدف یک Worker است که در نقطهٔ ورود خود handlerهای لازم را ارائه می‌دهد:
+```bash
+npm run dev:backend
+```
 
-- HTTP: API و webhookهای موردنیاز
-- Queue: مصرف jobهای پس‌زمینه، در صورت فعال بودن Queue
+The local Node adapter does not emulate D1. The health route works locally; lessons return a deliberate 503 until a D1 binding is configured.
 
-این جداسازی در کد و ماژول‌ها انجام می‌شود؛ در شروع برای هر قسمت Worker مستقل ایجاد نمی‌کنیم. جدا کردن deployableها تنها با شواهد بار، نیاز ایزولاسیون یا محدودیت عملیاتی توجیه می‌شود.
+## Cloudflare boundary
 
-## ساختار هدف
+The Worker entrypoint is `src/index.ts`. D1 is an optional binding in the current type contract. No Cloudflare account resource, secret, deployment or Wrangler configuration is created by this scaffold. For this new project, follow the Cloudflare `cf` CLI workflow rather than introducing Wrangler by default.
 
-~~~text
-src/
-├── index.ts
-├── app.ts
-├── routes/
-│   ├── api/
-│   └── webhooks/
-├── modules/
-│   ├── auth/
-│   ├── users/
-│   ├── learning/
-│   ├── content/
-│   ├── assessment/
-│   ├── progress/
-│   ├── vocabulary/
-│   ├── telegram/
-│   ├── ai/
-│   ├── media/
-│   └── administration/
-├── middleware/
-├── platform/
-│   ├── d1/
-│   ├── r2/
-│   ├── queues/
-│   └── ai/
-└── shared/
-~~~
+## Not implemented yet
 
-## الگوی هر ماژول دامنه
-
-در صورت نیاز، هر ماژول می‌تواند این لایه‌ها را داشته باشد:
-
-1. domain: قواعد و مدل‌های مستقل از Cloudflare
-2. application: use caseها و orchestration
-3. ports: قرارداد repositoryها و سرویس‌های بیرونی
-4. infrastructure: پیاده‌سازی portها با D1، R2 یا API خارجی
-5. http: handler و schemaهای ورودی/خروجی
-
-برای ماژول کوچک، ایجاد همهٔ این پوشه‌ها اجباری نیست؛ از abstraction بدون نیاز واقعی جلوگیری می‌شود.
-
-## قواعد
-
-- route فقط درخواست را parse، validate و به use case هدایت می‌کند.
-- منطق دامنه نباید به D1Database، R2Bucket یا ساختار پیام Queue وابسته باشد.
-- دسترسی مستقیم به bindingها فقط از adapterهای زیر platform/ مجاز است.
-- ورودی‌ها در مرز API اعتبارسنجی می‌شوند؛ مجوز دسترسی در سرور بررسی می‌شود.
-- خطاها پاسخ ساختاریافته و بدون افشای secret یا اطلاعات داخلی دارند.
-- webhookها و jobها باید در برابر تحویل تکراری idempotent باشند.
-- عملیات مهم پیش از ارسال پیام Queue در D1 به‌شکل پایدار ثبت می‌شوند؛ Queue منبع حقیقت نیست.
-
-## امنیت تلگرام
-
-بک‌اند باید initData خام را طبق الگوریتم رسمی Telegram با HMAC-SHA-256 اعتبارسنجی کند و auth_date را از نظر تازگی بررسی کند. سپس هویت کاربر داخلی را ایجاد/بازیابی کند. token ربات فقط در Worker Secret نگهداری می‌شود. دادهٔ تأییدنشده نباید وارد session یا مجوز شود.
-
-## وضعیت
-
-این سند طرح مسئولیت‌ها و ساختار را مشخص می‌کند. Worker، routeها، bindings و تست‌های اجرایی هنوز ساخته یا deploy نشده‌اند.
+Telegram initData verification, sessions, authorization, lesson attempts, answer grading, progress writes, rate limiting and production observability. Do not treat this API as production-ready.

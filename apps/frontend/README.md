@@ -1,45 +1,25 @@
-# Frontend — Telegram Mini App
+# Frontend — Minimal learning interface
 
-## مسئولیت
+React 19 + Vite + TypeScript mobile-first starter.
 
-این برنامه رابط کاربری اولیهٔ EnglishCodeApp است و با React، Vite و TypeScript طراحی می‌شود. هدف، پشتیبانی از Telegram Mini App در فاز اول و امکان اجرای مستقل در مرورگر در فازهای بعدی است.
+## Implemented
 
-## مرزهای معماری
+- Persian RTL landing/learning screen.
+- API-backed published lesson list.
+- Loading, error, retry and empty states.
+- Vite development proxy for `/api` to `http://localhost:8787`.
 
-- رابط کاربر، navigation، state نمایشی و تعامل با API در این بخش قرار می‌گیرند.
-- قوانین امتیازدهی، احراز هویت، مجوزها، محاسبهٔ پیشرفت و ثبت نهایی پاسخ در بک‌اند باقی می‌مانند.
-- این برنامه مستقیماً به D1، R2 یا سرویس‌های داخلی Cloudflare متصل نمی‌شود.
-- هیچ token، secret یا کلید خصوصی در bundle فرانت‌اند قرار نمی‌گیرد.
+## Run locally
 
-## ساختار هدف
+Start the backend and frontend in separate terminals:
 
-~~~text
-src/
-├── app/          # bootstrap، router، providers و تنظیمات
-├── pages/        # صفحه‌های ورود، خانه، مسیر یادگیری، درس و پروفایل
-├── features/     # قابلیت‌های مستقل مثل lessons، exercises، vocabulary، progress
-├── components/   # اجزای عمومی UI
-├── services/     # API client و اتصال Telegram WebApp
-├── hooks/
-├── styles/
-└── assets/
-~~~
+```bash
+npm run dev:backend
+npm run dev:frontend
+```
 
-## تلگرام و هویت
+Open http://localhost:5173. Without a D1 binding, the API will report that lessons are temporarily unavailable; the frontend displays an error and retry action.
 
-- از Telegram.WebApp.initData خام استفاده شود.
-- initDataUnsafe صرفاً دادهٔ کمکی رابط است و نباید مبنای اعتماد یا مجوز قرار گیرد.
-- initData برای اعتبارسنجی سمت سرور به API فرستاده می‌شود.
-- فرانت‌اند نباید خودش هویت Telegram را معتبر اعلام کند.
-- در اجرای خارج از تلگرام، ورود مستقل باید از یک مسیر احراز هویت رسمی و جدا استفاده کند؛ نباید دادهٔ ساختگی تلگرام تولید شود.
+## Not implemented yet
 
-## قواعد کیفیت
-
-- mobile-first و سازگار با صفحه‌نمایش‌های کوچک.
-- حالت‌های loading، empty، error، retry و offline به‌صورت روشن طراحی شوند.
-- پاسخ‌ها و پیشرفت کاربر فقط پس از تأیید سرور نهایی شوند.
-- دسترس‌پذیری، مدیریت خطا و پشتیبانی از راست‌به‌چپ در UI لحاظ شوند.
-
-## وضعیت
-
-این سند ساختار هدف را تعریف می‌کند. کد اجرایی، وابستگی‌ها، build و تست فرانت‌اند هنوز در این مرحله ایجاد نشده‌اند.
+Telegram WebApp SDK integration, sign-in, lesson player, answer submission, profile and progress views.
