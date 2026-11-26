@@ -54,7 +54,8 @@ async function performBootstrap(): Promise<SessionBootstrapResult> {
 export async function signOut(): Promise<void> {
   const token = await getSessionToken();
   try {
-    await apiPost<{ signedOut: boolean }>("/api/v1/auth/logout", {}, { accessToken: token });
+    const response = await apiPost<{ signedOut: boolean }>("/api/v1/auth/logout", {}, { accessToken: token });
+    if (!response || response.signedOut !== true) throw new Error("سرور خروج از حساب را تأیید نکرد.");
   } catch (error) {
     if (!(error instanceof ApiError) || error.status !== 401) throw error;
   }
