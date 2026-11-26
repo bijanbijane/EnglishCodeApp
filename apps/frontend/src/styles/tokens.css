@@ -103,6 +103,6 @@
   /* Accessibility and controls */
   --ec-focus-width: 3px;
   --ec-focus-offset: 3px;
-  --ec-focus-shadow: 0 0 0 3px #8ba4ff20;
+  --ec-focus-shadow: 0 0 0 3px var(--ec-color-focus-soft);
   --ec-touch-target-min: 44px;
 }
