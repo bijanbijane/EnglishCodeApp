@@ -23,7 +23,7 @@ Request path:
 | `users` | Authenticated current-user profile |
 | `content` | Published courses, lessons and versioned question read models |
 | `learning` | Attempt creation, immutable question snapshots, answer grading, completion and progress |
-| `maintenance` | Bounded scheduled cleanup of expired replay/session/rate-limit records |
+| `maintenance` | Bounded scheduled cleanup of expired replay/session/rate-limit records |\n| `admin` | D1-backed RBAC, content draft/review/publish workflow, append-only audit feed |
 | `shared` | Stable errors and shared request/runtime contracts |
 
 The current route files still contain some orchestration. As the codebase grows, move multi-step use cases into application services and keep SQL in repositories. Do not introduce a generic repository framework prematurely.
@@ -73,8 +73,7 @@ Published lesson/question versions are immutable. A future content editor must c
 
 ## 7. Target module boundaries
 
-Next domain modules, only when their product workflows are specified:
-- `admin`: RBAC, content authoring/review/publishing and append-only audit.
+Additional target modules, only when their product workflows are specified:
 - `progress`: immutable result/event facts and rebuildable progress projections.
 - `vocabulary` and `review`: canonical vocabulary and versioned spaced-repetition scheduler.
 - `profiles`: preferences, locale and account lifecycle.
@@ -91,14 +90,14 @@ Dependency rules:
 5. No circular imports, shared god-service or cross-module SQL.
 6. Async jobs must persist intent in D1 before enqueue; consumers must be idempotent.
 
-## 8. Migration and branch policy
+## 8. Administration and content governance\n\n- Role checks are read from D1, never client profile flags.\n- Roles: `admin`, `content_author`, `content_reviewer`, `support`.\n- Authors can create draft lesson versions and submit only their own drafts. Reviewers cannot approve their own submissions. Only admins can publish approved versions.\n- Every privileged content mutation writes an allowlisted audit event in the same D1 batch. Audit events are append-only and cursor-paginated.\n- There is no public role-grant endpoint. First-admin bootstrap is owner-controlled and documented in `ADMIN-BOOTSTRAP.md`. No production role has been granted.\n\n## 9. Migration and branch policy
 
 - Current main migration sequence is `0001` through `0008`.
 - Older backend feature branches contain a different schema history and cannot be merged by copying their migration numbers or applying their migrations on top of current main.
 - Port domain behavior only after schema mapping and migration review. Never run two incompatible `0001` histories against the same database.
 - Migrations are forward-only after any shared database has applied them.
 
-## 9. Release gates and current evidence
+## 10. Release gates and current evidence
 
 Still required:
 - Typecheck and Vitest on the exact current commit.
