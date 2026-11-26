@@ -1,4 +1,4 @@
-import { apiPost } from "../../../shared/api/client";
+import { apiPost, ApiError } from "../../../shared/api/client";
 import { getPlatformContext, isTelegramSecureStorageAvailable } from "../../../services/platform/telegram";
 import { readSession, saveSession, clearSession, getSessionToken } from "../../../services/auth/session";
 
@@ -45,6 +45,10 @@ async function performBootstrap(): Promise<SessionBootstrapResult> {
 
 export async function signOut(): Promise<void> {
   const token = await getSessionToken();
-  await apiPost<{ signedOut: boolean }>("/api/v1/auth/logout", {}, { accessToken: token });
+  try {
+    await apiPost<{ signedOut: boolean }>("/api/v1/auth/logout", {}, { accessToken: token });
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 401) throw error;
+  }
   await clearSession();
 }
