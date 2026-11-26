@@ -42,12 +42,12 @@
 - [x] Implement current-user progress read endpoint.
 - [ ] Prove answer/completion race behavior and exactly-once progress update against Local D1.
 - [ ] Add cross-user, state-transition, and full D1 integration tests.
-- [ ] Finalize assessment policy edge cases (empty lessons, future question types, pass thresholds).
+- [x] Pin the initial weighted-percentage assessment policy and question weights per attempt.\n- [ ] Finalize policy edge cases (empty lessons, future question types, pass thresholds).
 
 ## B3 — Content lifecycle and administration
 
-- [ ] Add an explicit publishing/versioning workflow for source content; existing attempts already preserve immutable question snapshots.
-- [ ] Add content authoring/publishing only when an operational editor workflow is defined.
+- [x] Add immutable lesson/question version tables, publication pointer and assessment policy version.
+- [ ] Add content authoring/review/publishing API after RBAC and role bootstrap are implemented.
 - [ ] Add staff roles/capabilities, controlled role bootstrap/revocation, and audit trail.
 - [ ] Add cursor pagination and bounded query contracts for growing collections.
 
