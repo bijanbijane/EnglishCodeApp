@@ -28,6 +28,12 @@ Feature modules must not import implementation details from another feature. Sha
 - Persian RTL, responsive layout and mobile navigation shell.
 - API transport isolated from feature components.
 
+## API contract and authentication status
+
+The source-inspected route and payload snapshot is documented in [docs/architecture/frontend-backend-contract.md](../../docs/architecture/frontend-backend-contract.md).
+
+The public lesson catalog can be integrated independently. Protected attempt routes require a bearer session. The backend currently returns a bearer token from Telegram sign-in, while the frontend transport does not yet attach an Authorization header and no HttpOnly cookie contract was found in the inspected route. Authenticated learning flows therefore remain blocked pending an explicit secure session design.
+
 ## Boundaries
 
 - The frontend owns presentation, navigation and transient UI state.
