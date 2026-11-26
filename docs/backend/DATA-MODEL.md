@@ -11,10 +11,17 @@ The SQL migration files are the source of truth. This page explains the initial 
 - `lesson_attempts`: one user's attempt at one lesson, state and final score.
 - `attempt_answers`: one submitted answer and server-calculated correctness.
 
-## Added tables (0002)
+## Added tables and constraints
+
+### Migration 0002
 
 - `sessions`: user-owned, expiring, revocable sessions; stores token hash only.
 - `user_progress`: per-user/per-lesson best score, completion count and last completion time.
+- Unique index on `(attempt_id, question_id)` to prevent multiple persisted answers for one question in one attempt.
+
+### Migration 0003
+
+- `telegram_auth_replays`: canonical SHA-256 fingerprint of consumed Telegram initData, with expiry and creation timestamps. Raw initData is never stored.
 
 ## Integrity rules
 
@@ -24,6 +31,7 @@ The SQL migration files are the source of truth. This page explains the initial 
 - Progress is unique for a user/lesson pair.
 - Scores are integers from 0 through 100.
 - Questions are returned to clients without `answer_key`.
+- A Telegram initData fingerprint can be consumed only once while its auth window is valid.
 
 ## Query and scale assumptions
 
