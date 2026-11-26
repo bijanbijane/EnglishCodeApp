@@ -9,25 +9,26 @@ The same React feature modules must run inside Telegram Mini App and in a normal
 - `getPlatformContext()` detects Telegram versus browser and returns a normalized, typed context.
 - The raw `initData` string is exposed unchanged for the backend verification request. `initDataUnsafe` is intentionally not read.
 - Theme, platform/version, viewport and safe-area values are optional and capability-detected.
-- `initializeTelegramHost()` calls the host `ready()` lifecycle method when available.
-- Viewport subscriptions and BackButton registration return cleanup functions.
+- `initializeTelegramHost()` calls the host `ready()` lifecycle method after initial app data/session bootstrap.
+- Bot API 9.0 SecureStorage is capability-detected and wrapped in Promise-based get/set/remove functions.
+- The session key is stored only in Telegram SecureStorage; unsupported hosts fail closed.
+- Viewport, safe-area and theme changes are synchronized into CSS variables; subscriptions and BackButton registration return cleanup functions.
 - Browser mode returns a stable context with null host-only values and does not throw.
 
 ## Security constraints
 
 - The adapter does not authenticate the user. The backend must validate raw initData signature, age and replay state.
-- It does not store tokens, read bot secrets, authorize requests or grade answers.
+- It never reads bot secrets or grades answers. The identity session service stores the backend-issued bearer token in Telegram SecureStorage only; the API client attaches it only when a feature explicitly requests an authenticated call.
 - Do not add localStorage/sessionStorage bearer-token persistence.
 - Do not enable attempt, answer, complete or logout calls until the session transport is explicitly approved and implemented on both client and server.
 
 ## Remaining integration
 
-1. Load the official Telegram WebApp bridge in the Mini App document and verify initialization in supported Telegram clients.
-2. Connect viewport and safe-area values to CSS variables and layout state.
-3. Bind BackButton to the navigation stack and verify handler cleanup.
-4. Map Telegram theme parameters to design tokens while preserving contrast.
-5. Implement SecureStorage only after verifying supported host versions and agreeing on token lifecycle with the backend.
-6. Add browser session support through a backend-approved secure cookie/session contract.
+1. Verify the official Telegram WebApp bridge and `ready()` lifecycle in supported Telegram clients.
+2. Verify viewport, safe-area and theme CSS variable updates on device rotation and Telegram theme changes.
+3. Verify BackButton behavior and handler cleanup on route changes.
+4. Exercise SecureStorage get/set/remove, unsupported-version and restoration/error paths on iOS and Android.
+5. Add browser session support only after the backend implements and documents a secure HttpOnly cookie/session contract.
 
 ## Verification status
 
