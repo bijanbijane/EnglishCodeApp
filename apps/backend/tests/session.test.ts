@@ -1,0 +1,2 @@
+import {describe,expect,it} from "vitest";import {createSessionToken,verifySessionToken} from "../src/modules/auth/session";
+describe("signed sessions",()=>{it("accepts valid token and rejects tampering or expiry",async()=>{const t=await createSessionToken("user-1","test-secret",60,1000);expect(await verifySessionToken(t,"test-secret",1010)).toBe("user-1");expect(await verifySessionToken(t,"wrong-secret",1010)).toBeNull();expect(await verifySessionToken(t,"test-secret",1060)).toBeNull();});});
