@@ -12,7 +12,7 @@ function parseOption(value: unknown): LessonQuestionOption {
   const label = typeof option.label === "string" ? option.label : undefined;
   const text = typeof option.text === "string" ? option.text : undefined;
   const optionValue = typeof option.value === "string" ? option.value : undefined;
-  if ((!id && !optionValue) || (!label && !text && !optionValue) || (id !== undefined && !id.trim()) || (optionValue !== undefined && !optionValue.trim())) {
+  if ((!id && !optionValue) || (id !== undefined && !id.trim()) || (optionValue !== undefined && !optionValue.trim()) || ![label, text, optionValue].some((part) => part?.trim())) {
     throw new Error("شناسه یا متن یکی از گزینه‌ها ناقص است.");
   }
   return { id, label, text, value: optionValue };
