@@ -20,16 +20,9 @@ function makeReplayAwareDatabase(): D1Database {
   let replayConsumed = false;
   return {
     prepare(sql: string) {
-      const statement: {
-        sql: string;
-        values: unknown[];
-        bind: (...values: unknown[]) => typeof statement;
-        first: <T>() => Promise<T | null>;
-        all: <T>() => Promise<{ results: T[] }>;
-        run: () => Promise<{ success: boolean; meta: { changes: number } }>;
-      } = {
+      const statement: any = {
         sql,
-        values: [],
+        values: [] as unknown[],
         bind(...values: unknown[]) { statement.values = values; return statement; },
         async first<T>() {
           if (sql.includes("SELECT id,display_name FROM users")) {
