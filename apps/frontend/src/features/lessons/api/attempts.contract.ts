@@ -1,4 +1,4 @@
-export type LessonAttempt = { attemptId: string; status: "started" | "completed" };
+export type LessonAttempt = { attemptId: string; status: "started" };
 export type AnswerSubmissionResult = { questionId: string; answerId: string; isCorrect: boolean; explanation: string };
 export type LessonCompletionResult = { attemptId: string; status: "completed"; score: number };
 
@@ -9,7 +9,7 @@ function record(value: unknown, message: string): Record<string, unknown> {
 
 export function parseAttemptResponse(value: unknown): LessonAttempt {
   const row = record(value, "پاسخ شروع تمرین معتبر نیست.");
-  if (typeof row.attemptId !== "string" || !row.attemptId.trim() || (row.status !== "started" && row.status !== "completed")) {
+  if (typeof row.attemptId !== "string" || !row.attemptId.trim() || row.status !== "started") {
     throw new Error("ساختار پاسخ شروع تمرین معتبر نیست.");
   }
   return { attemptId: row.attemptId, status: row.status };
