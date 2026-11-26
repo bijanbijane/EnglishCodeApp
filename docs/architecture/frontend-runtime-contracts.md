@@ -144,7 +144,7 @@ Every event subscription must have a matching cleanup. Platform APIs are optiona
 | E2E | Telegram-like launch, public catalog, authenticated learning, progress and logout |
 | Release | Typecheck, tests, production build, CI evidence and device verification |
 
-The current frontend has a dependency-free route unit test command using Node 22 TypeScript stripping. This is an initial test layer, not a substitute for component, API integration or E2E tests.
+The current frontend has dependency-free Node 22 TypeScript-stripping suites for route serialization, lesson-question payload validation and attempt-response validation. These are contract unit tests, not a substitute for component, API integration or E2E tests.
 
 ## 11. Explicit non-goals until contracts exist
 
