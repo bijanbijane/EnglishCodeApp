@@ -309,3 +309,12 @@ These are source-level changes only; runtime verification remains pending until 
 - This narrows the observed failure to before normal job-step execution (runner dispatch/provisioning or GitHub Actions infrastructure). It is not evidence of a TypeScript, test, build, or application-code failure. The exact platform-side cause remains unavailable.
 - Do not change application code or CI commands based only on these empty jobs. Escalate/inspect GitHub Actions service and runner availability; retain the workflow as-is until a run reaches actual steps.
 - Latest source head remains `596842c39f9a906a40876c816a4dfcf18a3e470f`; the empty-catalog accessibility change remains unverified. Checklist coverage remains 34/50 (68.0%).
+
+
+## Empty progress-history accessibility continuation — 2026-11-26
+
+- The authenticated Progress screen's no-history state now uses `role="status"` and `aria-live="polite"`, so assistive technology is notified when the progress request resolves to an empty history.
+- Added a source-contract assertion in `apps/frontend/test/accessibility-ui-contracts.test.ts` for the empty-history announcement.
+- Implementation commit: [dfd1661](https://github.com/bijanbijane/EnglishCodeApp/commit/dfd16611fde451eddcdf265ca656e78ca6d294c2). Test commit: [3110184](https://github.com/bijanbijane/EnglishCodeApp/commit/3110184241148a351ee0cb02aaa8661006e49479).
+- These are source-level changes only. The latest observed CI attempts fail before any job step starts: GitHub reports empty `steps`, `runner_id: 0` and no runner name for both jobs. No test, typecheck or build result is claimed for this change.
+- Checklist coverage remains 34/50 (68.0%); the broader accessibility audit and release gates remain open.
