@@ -1,0 +1,169 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { api, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
+
+type TelegramWebApp = {
+  initData: string;
+  ready: () => void;
+  expand: () => void;
+  colorScheme?: "light" | "dark";
+};
+declare global { interface Window { Telegram?: { WebApp?: TelegramWebApp } } }
+
+type Screen = "home" | "lesson" | "result";
+const telegram = window.Telegram?.WebApp;
+
+function App() {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [attempt, setAttempt] = useState<Attempt | null>(null);
+  const [screen, setScreen] = useState<Screen>("home");
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [score, setScore] = useState<number | null>(null);
+
+  const loadCourses = useCallback(async () => {
+    setLoading(true); setError("");
+    try { setCourses(await api.courses()); }
+    catch (e) { setError(e instanceof Error ? e.message : "Could not load courses."); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    telegram?.ready();
+    telegram?.expand();
+    void loadCourses();
+    const token = sessionStorage.getItem("englishcode.session");
+    if (token) {
+      setAccessToken(token);
+      api.profile().then(setProfile).catch(() => {
+        sessionStorage.removeItem("englishcode.session"); setAccessToken(null);
+      });
+    } else if (telegram?.initData) {
+      api.login(telegram.initData).then((result) => {
+        sessionStorage.setItem("englishcode.session", result.accessToken);
+        setAccessToken(result.accessToken);
+        return api.profile();
+      }).then(setProfile).catch((e: unknown) => {
+        setNotice(e instanceof Error ? e.message : "Telegram sign-in is unavailable.");
+      });
+    }
+  }, [loadCourses]);
+
+  const openCourse = async (course: Course) => {
+    setSelectedCourse(course); setSelectedLesson(null); setError("");
+    setLoading(true);
+    try { setLessons(await api.lessons(course.id)); }
+    catch (e) { setError(e instanceof Error ? e.message : "Could not load lessons."); }
+    finally { setLoading(false); }
+  };
+
+  const startLesson = async (lesson: Lesson) => {
+    if (!profile) { setError("Open this app inside Telegram to sign in before starting a lesson."); return; }
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const created = await api.startAttempt(lesson.id);
+      const loaded = await api.attempt(created.attemptId);
+      setSelectedLesson(lesson); setAttempt(loaded); setQuestionIndex(0); setAnswer(null); setScreen("lesson");
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not start this lesson."); }
+    finally { setBusy(false); }
+  };
+
+  const currentQuestion = attempt?.questions[questionIndex];
+  const completed = useMemo(() => attempt?.questions.filter((q) => q.submittedAnswer !== null).length ?? 0, [attempt]);
+
+  const submitAnswer = async () => {
+    if (!attempt || !currentQuestion || !answer) return;
+    setBusy(true); setError("");
+    try {
+      const result = await api.answer(attempt.id, currentQuestion.id, answer);
+      const refreshed = await api.attempt(attempt.id);
+      setAttempt(refreshed);
+      setNotice(result.isCorrect ? "Correct answer." : "Not quite. Keep going.");
+      setAnswer(null);
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not submit the answer."); }
+    finally { setBusy(false); }
+  };
+
+  const finishAttempt = async () => {
+    if (!attempt) return;
+    setBusy(true); setError("");
+    try {
+      const result = await api.complete(attempt.id);
+      setScore(result.score); setScreen("result");
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not complete the lesson."); }
+    finally { setBusy(false); }
+  };
+
+  const goHome = () => { setScreen("home"); setSelectedLesson(null); setAttempt(null); setNotice(""); setError(""); };
+
+  return <main className="app-shell">
+    <header className="topbar">
+      <button className="brand" onClick={goHome} aria-label="English Code home"><span className="brand-mark">EC</span><span>english<span className="brand-accent">code</span></span></button>
+      <div className="account">{profile ? <><span className="status-dot" />{profile.display_name || "Learner"}</> : <span className="muted">{telegram ? "Connecting…" : "Preview mode"}</span>}</div>
+    </header>
+
+    <section className="hero">
+      <p className="eyebrow">A CLEARER WAY TO LEARN</p>
+      <h1>Make English<br /><em>part of your day.</em></h1>
+      <p className="hero-copy">Short, focused lessons. Measurable progress. A learning path built around consistency.</p>
+      <div className="hero-meta"><span>01 — LEARN</span><span>02 — PRACTICE</span><span>03 — IMPROVE</span></div>
+    </section>
+
+    {error && <div className="alert" role="alert"><span>{error}</span><button onClick={() => setError("")} aria-label="Dismiss error">×</button></div>}
+    {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss message">×</button></div>}
+
+    {screen === "home" && <section className="content-section">
+      <div className="section-heading"><div><p className="eyebrow">YOUR LEARNING SPACE</p><h2>{selectedCourse ? selectedCourse.title : "Choose your path"}</h2></div>
+        {selectedCourse && <button className="text-button" onClick={() => { setSelectedCourse(null); setLessons([]); }}>All courses ←</button>}
+      </div>
+      {loading ? <div className="loading"><span className="spinner" />Loading your learning space…</div> :
+        selectedCourse ? <div className="lesson-list">{lessons.length ? lessons.map((lesson, index) =>
+          <article className="lesson-card" key={lesson.id}>
+            <div className="lesson-number">{String(index + 1).padStart(2, "0")}</div>
+            <div className="lesson-info"><h3>{lesson.title}</h3><p>{lesson.description || "A focused practice session"}{lesson.level ? ` · ${lesson.level}` : ""}</p></div>
+            <button className="round-button" disabled={busy} onClick={() => void startLesson(lesson)} aria-label={`Start ${lesson.title}`}>↗</button>
+          </article>
+        ) : <div className="empty-state">No published lessons are available in this course yet.</div>}</div>
+        : <div className="course-grid">{courses.length ? courses.map((course, index) =>
+          <button className={`course-card course-${index % 3}`} key={course.id} onClick={() => void openCourse(course)}>
+            <span className="course-index">COURSE {String(index + 1).padStart(2, "0")}</span>
+            <span className="course-title">{course.title}</span>
+            <span className="course-description">{course.description || `Build your ${course.target_language} skills step by step.`}</span>
+            <span className="course-link">Explore course <b>↗</b></span>
+          </button>
+        ) : <div className="empty-state">{error ? "The course catalogue could not be loaded." : "No published courses yet. Check back soon."}</div>}</div>}
+    </section>}
+
+    {screen === "lesson" && attempt && currentQuestion && <section className="exercise">
+      <div className="exercise-top"><button className="text-button" onClick={goHome}>← Exit lesson</button><span>{selectedLesson?.title}</span></div>
+      <div className="progress-track"><span style={{ width: `${Math.min(100, completed / Math.max(1, attempt.questions.length) * 100)}%` }} /></div>
+      <p className="eyebrow">QUESTION {String(questionIndex + 1).padStart(2, "0")} / {String(attempt.questions.length).padStart(2, "0")}</p>
+      <h2>{currentQuestion.prompt}</h2>
+      <div className="answer-list">{currentQuestion.options.map((option) =>
+        <button key={option.id} className={`answer-option ${answer === option.id ? "selected" : ""} ${currentQuestion.submittedAnswer === option.id ? "submitted" : ""}`}
+          disabled={currentQuestion.submittedAnswer !== null || busy} onClick={() => setAnswer(option.id)}>
+          <span className="option-marker">{String.fromCharCode(65 + currentQuestion.options.indexOf(option))}</span>{option.text}
+          {currentQuestion.submittedAnswer === option.id && <span className="answer-check">✓</span>}
+        </button>)}</div>
+      <div className="exercise-actions">
+        {currentQuestion.submittedAnswer === null ? <button className="primary-button" disabled={!answer || busy} onClick={() => void submitAnswer()}>{busy ? "Checking…" : "Check answer"}</button>
+          : questionIndex < attempt.questions.length - 1
+            ? <button className="primary-button" onClick={() => { setQuestionIndex((i) => i + 1); setAnswer(null); setNotice(""); }}>Continue →</button>
+            : <button className="primary-button" disabled={busy} onClick={() => void finishAttempt()}>{busy ? "Finishing…" : "Complete lesson"}</button>}
+      </div>
+    </section>}
+
+    {screen === "result" && <section className="result-panel"><p className="eyebrow">LESSON COMPLETE</p><div className="result-score">{score ?? 0}<span>%</span></div><h2>Progress comes from practice.</h2><p>Your result has been saved to your learning record.</p><button className="primary-button" onClick={goHome}>Back to courses</button></section>}
+
+    <footer className="footer"><span>ENGLISH CODE</span><span>Learn with intention.</span></footer>
+  </main>;
+}
+
+export default App;
