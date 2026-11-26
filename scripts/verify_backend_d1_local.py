@@ -292,6 +292,67 @@ def main():
                 assert field in progress["data"][0], f"progress contract missing {field}"
             assert progress["data"][0]["completed_count"] == 1
 
+            second_attempt = expect_status(
+                request(
+                    "POST", "/api/v1/lessons/lesson-greetings-001/attempts",
+                    token, {},
+                ),
+                201,
+                "start second attempt",
+            )
+            second_attempt_id = second_attempt["data"]["attemptId"]
+            second_attempt_detail = expect_status(
+                request("GET", f"/api/v1/attempts/{second_attempt_id}", token),
+                200,
+                "read second attempt",
+            )
+            for question_row in second_attempt_detail["data"]["questions"]:
+                expect_status(
+                    request(
+                        "POST", f"/api/v1/attempts/{second_attempt_id}/answers",
+                        token,
+                        {"questionId": question_row["id"], "answer": "a"},
+                    ),
+                    201,
+                    "second attempt answer",
+                )
+            second_completion = expect_status(
+                request("POST", f"/api/v1/attempts/{second_attempt_id}/complete", token, {}),
+                200,
+                "complete second attempt",
+            )
+            assert second_completion["data"]["score"] == 100
+
+            progress_after_second = expect_status(
+                request("GET", "/api/v1/me/progress", token),
+                200,
+                "progress after second attempt",
+            )
+            assert progress_after_second["data"][0]["completed_count"] == 2
+
+            history_page_one = expect_status(
+                request("GET", "/api/v1/me/history?limit=1", token),
+                200,
+                "history first page",
+            )
+            assert [row["attemptId"] for row in history_page_one["data"]] == [second_attempt_id]
+            assert history_page_one["data"][0]["questionCount"] == 2
+            assert history_page_one["data"][0]["correctAnswerCount"] == 2
+            assert history_page_one["data"][0]["lessonTitle"] == public_lesson["data"]["title"]
+            history_cursor = history_page_one["meta"]["nextCursor"]
+            assert history_cursor
+            history_page_two = expect_status(
+                request(
+                    "GET",
+                    "/api/v1/me/history?" + urlencode({"limit": "1", "cursor": history_cursor}),
+                    token,
+                ),
+                200,
+                "history second page",
+            )
+            assert [row["attemptId"] for row in history_page_two["data"]] == [attempt_id]
+            assert history_page_two["meta"]["nextCursor"] is None
+
             second_init = make_init_data(900000002, "Second Learner")
 
             def concurrent_login():

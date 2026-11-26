@@ -37,7 +37,7 @@ There is no public role-grant endpoint. First-admin bootstrap is owner-controlle
 
 ## Response envelopes
 
-Success (paginated endpoints include `meta.nextCursor`, which is `null` when the final page is reached):
+Success (paginated endpoints include `meta.nextCursor`, which is `null` when the final page is reached). History is ordered newest-first and exposes attempt/lesson/course scope, score, timestamps, question count and correct-answer count:
 
 ```json
 {

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../../env";
 import { requireSession } from "../auth/middleware";
 import { AppError } from "../../shared/errors";
+import { decodePageCursor, encodePageCursor } from "../../shared/pagination";
 
 type QuestionForAnswer = {
   id: string;
@@ -302,20 +303,83 @@ learning.post("/attempts/:attemptId/complete", requireSession, async (c) => {
   });
 });
 
-learning.get("/me/progress", requireSession, async (c) => {
+learning.get("/me/history", requireSession, async (c) => {
+  const rawLimit = c.req.query("limit");
+  const limit = rawLimit === undefined ? 20 : Number(rawLimit);
+  if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+    throw new AppError("VALIDATION_ERROR", "limit must be an integer between 1 and 50.", 400);
+  }
+
+  const rawCursor = c.req.query("cursor");
+  const cursor = rawCursor === undefined ? null : decodePageCursor(rawCursor);
+  if (rawCursor !== undefined && !cursor) {
+    throw new AppError("VALIDATION_ERROR", "The history cursor is invalid.", 400);
+  }
+
   const result = await c.env.DB.prepare(
-    `SELECT p.lesson_id, p.best_score, p.completed_count, p.last_completed_at,
-            COALESCE(lv.title, l.title) AS lesson_title, l.course_id
-     FROM user_progress p
-     JOIN lessons l ON l.id = p.lesson_id
-     LEFT JOIN lesson_versions lv ON lv.id = l.current_published_version_id
-     WHERE p.user_id = ?
-     ORDER BY p.last_completed_at DESC, p.lesson_id ASC`,
-  ).bind(c.get("userId")).all();
+    `SELECT a.id AS attempt_id, a.lesson_id, a.lesson_version,
+            COALESCE(lv.title, l.title) AS lesson_title,
+            l.course_id, c.title AS course_title,
+            a.score, a.started_at, a.completed_at,
+            (SELECT COUNT(*) FROM attempt_questions aq WHERE aq.attempt_id = a.id) AS question_count,
+            (SELECT COUNT(*) FROM attempt_answers aa
+             WHERE aa.attempt_id = a.id AND aa.is_correct = 1) AS correct_answer_count
+     FROM lesson_attempts a
+     JOIN lessons l ON l.id = a.lesson_id
+     JOIN courses c ON c.id = l.course_id
+     LEFT JOIN lesson_versions lv ON lv.id = a.lesson_version_id
+     WHERE a.user_id = ? AND a.status = 'completed' AND a.completed_at IS NOT NULL
+       AND (? IS NULL OR a.completed_at < ?
+            OR (a.completed_at = ? AND a.id < ?))
+     ORDER BY a.completed_at DESC, a.id DESC
+     LIMIT ?`,
+  ).bind(
+    c.get("userId"),
+    cursor?.timestamp ?? null,
+    cursor?.timestamp ?? null,
+    cursor?.timestamp ?? null,
+    cursor?.id ?? null,
+    limit + 1,
+  ).all<{
+    attempt_id: string;
+    lesson_id: string;
+    lesson_version: number;
+    lesson_title: string;
+    course_id: string;
+    course_title: string;
+    score: number | null;
+    started_at: string;
+    completed_at: string;
+    question_count: number;
+    correct_answer_count: number;
+  }>();
+
+  const rows = result.results ?? [];
+  const hasMore = rows.length > limit;
+  const page = rows.slice(0, limit);
+  const last = page[page.length - 1];
 
   return c.json({
-    data: result.results,
-    meta: { requestId: c.get("requestId") },
+    data: page.map((row) => ({
+      attemptId: row.attempt_id,
+      lessonId: row.lesson_id,
+      lessonVersion: row.lesson_version,
+      lessonTitle: row.lesson_title,
+      courseId: row.course_id,
+      courseTitle: row.course_title,
+      status: "completed" as const,
+      score: row.score,
+      startedAt: row.started_at,
+      completedAt: row.completed_at,
+      questionCount: row.question_count,
+      correctAnswerCount: row.correct_answer_count,
+    })),
+    meta: {
+      requestId: c.get("requestId"),
+      nextCursor: hasMore && last
+        ? encodePageCursor(last.completed_at, last.attempt_id)
+        : null,
+    },
   });
 });
 

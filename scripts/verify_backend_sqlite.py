@@ -358,6 +358,7 @@ def main() -> None:
         required_indexes = {
             "idx_admin_audit_created_id",
             "idx_content_review_status_submitted_id",
+            "idx_lesson_attempts_user_completed",
         }
         missing_indexes = required_indexes - index_names
         assert not missing_indexes, f"missing admin read indexes: {sorted(missing_indexes)}"
