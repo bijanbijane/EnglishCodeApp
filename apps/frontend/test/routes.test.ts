@@ -26,3 +26,8 @@ test("malformed percent encoding fails closed to home", () => {
 test("query suffixes do not alter the lesson route", () => {
   assert.deepEqual(routeFromHash("#/lessons/lesson-1?debug=true"), { name: "lesson", lessonId: "lesson-1" });
 });
+
+test("empty lesson IDs never generate a broken lesson URL", () => {
+  assert.equal(hashFromRoute({ name: "lesson", lessonId: "" }), "#/");
+  assert.equal(hashFromRoute({ name: "lesson", lessonId: "   " }), "#/");
+});
