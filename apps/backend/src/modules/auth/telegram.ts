@@ -1,21 +1,30 @@
 import { AppError } from "../../shared/errors";
-import { bytesToHex, constantTimeHexEqual, hmacSha256 } from "../../shared/crypto";
+import { bytesToHex, constantTimeHexEqual, hmacSha256, sha256Hex } from "../../shared/crypto";
 
 export interface TelegramUser {
   id: string; firstName: string; lastName: string | null; username: string | null; languageCode: string | null;
 }
 export interface VerifiedTelegramInitData { user: TelegramUser; authDate: number; queryId: string | null; }
 
+function sortedEntries(rawInitData: string): [string, string][] {
+  const entries = Array.from(new URLSearchParams(rawInitData).entries());
+  return entries.sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
+}
+
+export async function telegramInitDataFingerprint(rawInitData: string): Promise<string> {
+  return sha256Hex(sortedEntries(rawInitData).map(([key, value]) => `${key}=${value}`).join("\n"));
+}
+
 export async function verifyTelegramInitData(
   rawInitData: string,
   options: { botToken: string; nowSeconds?: number; maxAgeSeconds?: number; futureSkewSeconds?: number }
 ): Promise<VerifiedTelegramInitData> {
   if (!rawInitData || rawInitData.length > 8192) throw new AppError("INVALID_TELEGRAM_INIT_DATA", "Telegram authentication data is invalid.", 401);
-  const params = new URLSearchParams(rawInitData);
-  const entries = Array.from(params.entries());
+  const entries = sortedEntries(rawInitData);
   if (new Set(entries.map(([key]) => key)).size !== entries.length) {
     throw new AppError("INVALID_TELEGRAM_INIT_DATA", "Telegram authentication data is invalid.", 401);
   }
+  const params = new URLSearchParams(rawInitData);
   const receivedHash = params.get("hash");
   if (!receivedHash || !/^[a-f0-9]{64}$/i.test(receivedHash)) {
     throw new AppError("INVALID_TELEGRAM_SIGNATURE", "Telegram signature is invalid.", 401);
@@ -30,9 +39,7 @@ export async function verifyTelegramInitData(
   }
 
   const checkString = entries.filter(([key]) => key !== "hash")
-    .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([key, value]) => `${key}=${value}`).join("\n");
-  // Telegram Web Apps: HMAC_SHA256(key=bot_token, data="WebAppData"), then sign checkString.
   const secret = await hmacSha256(new TextEncoder().encode(options.botToken), "WebAppData");
   const expectedHash = bytesToHex(await hmacSha256(secret, checkString));
   if (!constantTimeHexEqual(expectedHash, receivedHash.toLowerCase())) {
