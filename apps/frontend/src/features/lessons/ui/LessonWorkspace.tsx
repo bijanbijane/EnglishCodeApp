@@ -52,6 +52,7 @@ function QuestionCard({ question, index }: { question: LessonQuestion; index: nu
 
 export function LessonWorkspace({ lesson, onBack }: LessonWorkspaceProps) {
   const [state, setState] = useState<LessonQuestionsState>({ status: "loading" });
+  const [reloadCount, setReloadCount] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -62,7 +63,7 @@ export function LessonWorkspace({ lesson, onBack }: LessonWorkspaceProps) {
         if (active) setState({ status: "error", message: error instanceof Error ? error.message : "دریافت تمرین‌ها ناموفق بود." });
       });
     return () => { active = false; };
-  }, [lesson.id]);
+  }, [lesson.id, reloadCount]);
 
   return (
     <section className="workspace" aria-labelledby="workspace-title">
@@ -80,7 +81,7 @@ export function LessonWorkspace({ lesson, onBack }: LessonWorkspaceProps) {
       </header>
 
       {state.status === "loading" && <div className="state-panel" role="status"><span className="loader" /> در حال دریافت تمرین‌ها…</div>}
-      {state.status === "error" && <div className="state-panel state-panel--error" role="alert"><div><strong>تمرین‌ها بارگذاری نشدند.</strong><p>{state.message}</p></div><button className="button button--secondary" onClick={() => setState({ status: "loading" }) || getLessonQuestions(lesson.id).then((questions) => setState({ status: "ready", questions })).catch((error: unknown) => setState({ status: "error", message: error instanceof Error ? error.message : "خطای دریافت اطلاعات" }))}>تلاش دوباره</button></div>}
+      {state.status === "error" && <div className="state-panel state-panel--error" role="alert"><div><strong>تمرین‌ها بارگذاری نشدند.</strong><p>{state.message}</p></div><button className="button button--secondary" type="button" onClick={() => setReloadCount((count) => count + 1)}>تلاش دوباره</button></div>}
       {state.status === "ready" && state.questions.length === 0 && <div className="state-panel"><strong>برای این درس هنوز تمرینی ثبت نشده است.</strong><p>محتوای تمرین پس از انتشار در این بخش نمایش داده می‌شود.</p></div>}
       {state.status === "ready" && state.questions.length > 0 && (
         <div className="question-list">
