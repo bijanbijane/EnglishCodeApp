@@ -19,11 +19,11 @@ export type SessionBootstrapResult =
 let bootstrapPromise: Promise<SessionBootstrapResult> | null = null;
 
 export function bootstrapTelegramSession(): Promise<SessionBootstrapResult> {
-  if (!bootstrapPromise) bootstrapPromise = performBootstrap();
+  if (!bootstrapPromise) {\n    bootstrapPromise = performBootstrap().finally(() => { bootstrapPromise = null; });\n  }
   return bootstrapPromise;
 }
 
-async function performBootstrap(): Promise<SessionBootstrapResult> {
+export function retryTelegramSessionBootstrap(): Promise<SessionBootstrapResult> {\n  // Retry only after the previous bootstrap has settled; callers expose this on recoverable errors.\n  bootstrapPromise = null;\n  return bootstrapTelegramSession();\n}\n\nasync function performBootstrap(): Promise<SessionBootstrapResult> {
   const platform = getPlatformContext();
   if (platform.host !== "telegram") return { status: "browser-preview" };
   if (!platform.initData) return { status: "missing-init-data" };
