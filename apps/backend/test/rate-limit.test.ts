@@ -16,23 +16,33 @@ describe("Telegram login rate limiting", () => {
     expect(first).not.toContain("203.0.113.8");
   });
 
-  it("increments within a fixed UTC minute window", async () => {
-    const first = { request_count: 1 };
+  it("increments requests within the same fixed UTC minute window", async () => {
+    const resultRows = [{ request_count: 1 }, { request_count: 2 }];
+    const statements: Array<{ sql: string; values: unknown[] }> = [];
     const db = {
-      prepare: vi.fn(() => ({
-        bind: vi.fn(() => ({
-          first: vi.fn().mockResolvedValue(first),
-        })),
+      prepare: vi.fn((sql: string) => ({
+        bind: vi.fn((...values: unknown[]) => {
+          statements.push({ sql, values });
+          return { first: vi.fn().mockResolvedValue(resultRows.shift()) };
+        }),
       })),
     };
 
-    const count = await consumeTelegramLoginLimit(
+    const first = await consumeTelegramLoginLimit(
       db as never,
       "f".repeat(64),
       new Date("2026-11-26T15:00:35.000Z"),
     );
+    const second = await consumeTelegramLoginLimit(
+      db as never,
+      "f".repeat(64),
+      new Date("2026-11-26T15:00:59.000Z"),
+    );
 
-    expect(count).toBe(1);
-    expect(db.prepare.mock.calls[0][0]).toContain("RETURNING request_count");
+    expect(first).toBe(1);
+    expect(second).toBe(2);
+    expect(statements[0].sql).toContain("RETURNING request_count");
+    expect(statements[0].values[1]).toBe("2026-11-26T15:00:00.000Z");
+    expect(statements[1].values[1]).toBe("2026-11-26T15:00:00.000Z");
   });
 });
