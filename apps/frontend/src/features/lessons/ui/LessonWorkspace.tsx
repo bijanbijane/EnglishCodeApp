@@ -5,7 +5,7 @@ import type { Lesson } from "../model/lesson.types";
 import type { LessonQuestion, LessonQuestionsState, LessonQuestionOption } from "../model/question.types";
 import type { AnswerSubmissionResult, LessonCompletionResult } from "../api/attempts.api";
 
-type LessonWorkspaceProps = { lesson: Lesson; onBack: () => void; canStartAttempt: boolean; sessionMessage?: string };
+type LessonWorkspaceProps = { lesson: Lesson; onBack: () => void; canStartAttempt: boolean; sessionMessage?: string; onAttemptActiveChange: (active: boolean) => void };
 
 function optionLabel(option: LessonQuestionOption): string {
   if (typeof option === "string") return option;
@@ -86,7 +86,7 @@ function QuestionCard({ question, index, attemptId, onSubmitted }: {
   );
 }
 
-export function LessonWorkspace({ lesson, onBack, canStartAttempt, sessionMessage }: LessonWorkspaceProps) {
+export function LessonWorkspace({ lesson, onBack, canStartAttempt, sessionMessage, onAttemptActiveChange }: LessonWorkspaceProps) {
   const [state, setState] = useState<LessonQuestionsState>({ status: "loading" });
   const [reloadCount, setReloadCount] = useState(0);
   const [attemptId, setAttemptId] = useState<string | null>(null);
@@ -107,6 +107,16 @@ export function LessonWorkspace({ lesson, onBack, canStartAttempt, sessionMessag
     return () => { active = false; };
   }, [lesson.id, reloadCount]);
 
+  useEffect(() => {
+    if (!attemptId || completion) return;
+    const warnBeforeExit = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeExit);
+    return () => window.removeEventListener("beforeunload", warnBeforeExit);
+  }, [attemptId, completion]);
+
   async function beginAttempt() {
     if (starting || attemptId) return;
     setStarting(true);
@@ -114,6 +124,7 @@ export function LessonWorkspace({ lesson, onBack, canStartAttempt, sessionMessag
     try {
       const attempt = await startLessonAttempt(lesson.id);
       setAttemptId(attempt.attemptId);
+      onAttemptActiveChange(true);
     } catch (error) {
       setStartError(error instanceof Error ? error.message : "شروع تمرین انجام نشد.");
     } finally {
@@ -128,6 +139,7 @@ export function LessonWorkspace({ lesson, onBack, canStartAttempt, sessionMessag
     try {
       const result = await completeLessonAttempt(attemptId);
       setCompletion(result);
+      onAttemptActiveChange(false);
     } catch (error) {
       setStartError(error instanceof Error ? error.message : "تکمیل درس انجام نشد.");
     } finally {
@@ -162,7 +174,7 @@ export function LessonWorkspace({ lesson, onBack, canStartAttempt, sessionMessag
         <>
           {!attemptId && (
             <div className="attempt-intro">
-              <div><strong>آماده‌ای تمرین را شروع کنی؟</strong><p>{state.questions.length} پرسش در این درس وجود دارد. نتیجه فقط پس از ثبت پاسخ‌ها در سرور محاسبه می‌شود.</p></div>
+              <div><strong>آماده‌ای تمرین را شروع کنی؟</strong><p>{state.questions.length} پرسش در این درس وجود دارد. پاسخ‌ها در سرور ثبت می‌شوند. اگر پیش از تکمیل از صفحه خارج شوی، در نسخهٔ فعلی امکان ادامهٔ همین تلاش وجود ندارد.</p></div>
               {canStartAttempt ? <button className="button button--secondary" type="button" disabled={starting} onClick={() => void beginAttempt()}>{starting ? "در حال شروع…" : "شروع تمرین"}</button> : <span className="session-notice">{sessionMessage ?? "برای ثبت پاسخ باید از داخل تلگرام وارد حساب شوی."}</span>}
             </div>
           )}
