@@ -15,6 +15,7 @@ export function ProfilePanel({ isAuthenticated, isTelegramHost, signingOut, erro
   const [profileError, setProfileError] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
+    setProfileError(null);
     if (!isAuthenticated) { setProfile(null); return () => { active = false; }; }
     void getMyProfile().then((value) => { if (active) setProfile(value); }).catch((reason: unknown) => {
       if (active) setProfileError(reason instanceof Error ? reason.message : "دریافت اطلاعات حساب ناموفق بود.");
