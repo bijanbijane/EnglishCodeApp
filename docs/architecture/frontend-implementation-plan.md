@@ -120,7 +120,7 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 ## Current verification status
 
 - Source changes are committed to the working branch.
-- The latest inspected CI run is [#445](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45809360842), run ID `45809360842`, on head `128f2656110e7d846fedfb4ed3bd503b3e2de976`; both `validate-backend` and `validate-frontend` failed within approximately two seconds.
+- The latest inspected CI run is [#451](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45809465749), run ID `45809465749`, on head `be0f1b78c000c4fe7828643e7863e5d7582f8794`; both `validate-backend` and `validate-frontend` failed.
 - GitHub job metadata returned no steps or logs URL; direct job-log retrieval returned 404 `BlobNotFound`. Check-run metadata contains one annotation per job but no readable message. Root cause is unknown. The CI workflow installs monorepo dependencies from the repository root and now includes native Node route-contract tests. The failure persisted before job steps/logs were exposed; root cause remains unknown.
 - No local `npm install`, typecheck, build, automated test, browser test or Telegram-device test has been executed in this work session.
 - Therefore implementation status is **source-implemented, not runtime-verified**.
