@@ -17,6 +17,7 @@ export type Attempt = {
   score: number | null; questions: AttemptQuestion[];
 };
 export type Profile = { id: string; display_name: string | null; created_at: string };
+export type ProgressEntry = { lesson_id: string; course_id: string; best_score: number; completed_count: number; lesson_title: string; last_completed_at: string };
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 let accessToken: string | null = null;
@@ -60,7 +61,7 @@ export const api = {
   complete: (attemptId: string) => request<{ status: string; score: number; completedAt: string }>(
     `/attempts/${encodeURIComponent(attemptId)}/complete`, { method: "POST", body: "{}" },
   ),
-  progress: () => request<Array<{ lesson_id: string; best_score: number; completed_count: number; lesson_title: string; last_completed_at: string }>>("/me/progress"),
+  progress: () => request<ProgressEntry[]>("/me/progress"),
   logout: () => request<{ loggedOut: boolean }>("/auth/logout", { method: "POST", body: "{}" }),
 };
 
