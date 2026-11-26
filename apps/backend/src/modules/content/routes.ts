@@ -47,7 +47,6 @@ content.get("/lessons/:lessonId", async (c) => {
       type: question.type,
       prompt: question.prompt,
       options,
-      explanation: question.explanation,
       position: question.position,
     };
   });
