@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# Local tooling state
+.wrangler/
+.cf/
+.miniflare/
+.DS_Store
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
