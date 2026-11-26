@@ -6,7 +6,7 @@ import contentRoutes from "./modules/content/routes";
 const app = new Hono<AppEnv>();
 
 app.use("*", async (c, next) => {
-  const requestId = c.req.header("cf-ray") ?? crypto.randomUUID();
+  const requestId = crypto.randomUUID();
   c.set("requestId", requestId);
   await next();
   c.header("X-Request-Id", requestId);
