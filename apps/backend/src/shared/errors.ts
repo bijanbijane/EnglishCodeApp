@@ -18,3 +18,9 @@ export class AppError extends Error {
     this.name = "AppError";
   }
 }
+
+export function errorBody(code: string, message: string, requestId: string) {
+  return {
+    error: { code, message, requestId },
+  };
+}
