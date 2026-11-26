@@ -120,3 +120,8 @@ A centralized token layer now defines semantic color roles, typography, spacing,
 ## Keyboard and touch-target baseline — 2026-11-26
 
 The shared focus-visible treatment now covers native form controls as well as buttons and links. Primary buttons, navigation, answer options and search/filter controls consume the 44px minimum touch-target token. The acceptance items for keyboard operation and usable touch targets remain unchecked until a complete keyboard walkthrough and real Telegram-device hit-target verification are performed.
+
+
+## Semantic palette migration continuation — 2026-11-26
+
+The current shared stylesheet now consumes semantic tokens for the most repeated text, brand, surface, border, success and focus colors. Translucent brand/focus treatments have dedicated tokens to preserve their original alpha values. A contract test was added for token presence and stylesheet usage. The migration remains partial: 99 raw color occurrences across 91 distinct values remain in the stylesheet, so the design-token acceptance item is still unchecked pending further migration and visual/contrast review. The latest edits have not yet been locally revalidated; hosted CI run #717 failed without retrievable job steps/logs.
