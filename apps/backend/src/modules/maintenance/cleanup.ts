@@ -34,7 +34,7 @@ export async function cleanupExpiredAuthState(
       `DELETE FROM sessions
        WHERE id IN (
          SELECT id
-         FROM sessions
+         FROM sessions INDEXED BY idx_sessions_expires_at
          WHERE expires_at < ? AND revoked_at IS NULL
          ORDER BY expires_at ASC
          LIMIT ${BATCH_LIMIT}
