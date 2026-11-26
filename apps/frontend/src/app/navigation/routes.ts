@@ -5,7 +5,7 @@ export type AppRoute =
   | { name: "lesson"; lessonId: string };
 
 export function routeFromHash(hash: string): AppRoute {
-  const normalized = hash.replace(/^#\/?/, "");
+  const normalized = hash.replace(/^#\/?/, "").split("?")[0];
   if (normalized === "profile") return { name: "profile" };
   if (normalized === "progress") return { name: "progress" };
   const lessonMatch = normalized.match(/^lessons\/([^/?#]+)$/);
