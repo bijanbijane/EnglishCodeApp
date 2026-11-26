@@ -76,6 +76,7 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 
 ### Phase A — Foundation and contract
 - [x] Split app composition from the root entry point.
+- [x] Add an application-level render error boundary with an accessible reload fallback.
 - [x] Introduce shared API transport and feature-owned API adapters.
 - [x] Add product specification, architecture, backend contract and acceptance checklist.
 - [x] Add Telegram host adapter and official WebApp script.
