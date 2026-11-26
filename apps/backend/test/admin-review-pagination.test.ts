@@ -107,6 +107,33 @@ describe("admin review queue pagination", () => {
     expect(fake.calls.some((call) => call.sql.includes("FROM content_review_requests r INNER JOIN lesson_versions"))).toBe(false);
   });
 
+  it.each([
+    ["zero", "0"],
+    ["over maximum", "51"],
+    ["fractional", "1.5"],
+    ["not a number", "many"]
+  ])("rejects a %s page size before querying review rows", async (_label, limit) => {
+    const fake = makeDatabase();
+    const response = await app.request(
+      `/api/v1/admin/content/reviews?limit=${limit}`,
+      { headers: { authorization: `Bearer ${bearer}` } },
+      { DB: fake.db }
+    );
+    expect(response.status).toBe(400);
+    expect(fake.calls.some((call) => call.sql.includes("FROM content_review_requests r INNER JOIN lesson_versions"))).toBe(false);
+  });
+
+  it("rejects unsupported review statuses before querying review rows", async () => {
+    const fake = makeDatabase();
+    const response = await app.request(
+      "/api/v1/admin/content/reviews?status=all",
+      { headers: { authorization: `Bearer ${bearer}` } },
+      { DB: fake.db }
+    );
+    expect(response.status).toBe(400);
+    expect(fake.calls.some((call) => call.sql.includes("FROM content_review_requests r INNER JOIN lesson_versions"))).toBe(false);
+  });
+
   it("denies queue access without the reviewer role", async () => {
     const fake = makeDatabase(["admin"]);
     const response = await app.request(
