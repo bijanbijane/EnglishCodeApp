@@ -85,7 +85,7 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 - [x] Add Telegram host adapter and official WebApp script.
 - [x] Add hash-based route contract.
 - [x] Add native Node route-contract tests for home/profile/progress/lesson parsing, encoding and malformed hashes.
-- [ ] Add automated tests for API envelopes and DTO validation; route test execution remains pending CI/runtime evidence.
+- [ ] Add API envelope tests; question and attempt DTO validators now have pure contract unit tests, but execution remains pending CI/runtime evidence.
 - [ ] Resolve CI failure evidence and establish reproducible install/typecheck/build.
 
 ### Phase B — Core learning journey
@@ -124,8 +124,8 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 ## Current verification status
 
 - Source changes are committed to the working branch.
-- The latest inspected CI run is [#467](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45809806861), run ID `45809806861`, on head `9b5ed35b796812b6b95534c5fd3bc987e19e6b4f`; both jobs failed.
-- GitHub job metadata for run #467 returned empty step arrays and no logs URL. A rerun of both failed jobs also failed immediately; direct log retrieval returned 404 `BlobNotFound`. No actionable annotation text is exposed. Root cause is unknown and cannot be attributed to source code from available evidence.
+- The latest inspected CI run is [#544](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45811963276), run ID `45811963276`, on head `c41805aa34a0a8c225b34c41587e772fc81f349a`; both frontend and backend jobs failed.
+- GitHub job metadata for run #544 returned empty step arrays and no logs URL. Earlier direct log retrieval returned 404 `BlobNotFound`; the latest run likewise exposes no step details. Root cause is unknown and cannot be attributed to source code from available evidence.
 - No local `npm install`, typecheck, build, automated test, browser test or Telegram-device test has been executed in this work session.
 - Therefore implementation status is **source-implemented, not runtime-verified**.
 
