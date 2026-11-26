@@ -32,7 +32,7 @@ export async function readSession(): Promise<AuthSession | null> {
   if (getPlatformContext().host !== "telegram") return null;
 
   const raw = await getTelegramSecureItem(SESSION_STORAGE_KEY);
-  if (!raw) return null;
+  if (!raw) { notifySessionInvalidated(); return null; }
   try {
     const parsed: unknown = JSON.parse(raw);
     if (isValidSession(parsed)) {
