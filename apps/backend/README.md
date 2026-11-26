@@ -47,7 +47,7 @@ Wrangler uses a local D1 database for these commands. The configured database ID
 - Error: `{ "error": { "code": "...", "message": "...", "requestId": "..." } }`
 - CORS is intentionally not enabled until exact client origins and deployment topology are agreed.
 - Public content queries filter to published records only.
-- The public question DTO omits `answer_key`.
+- The public pre-answer question DTO omits both `answer_key` and answer `explanation`.
 
 See [API contract](../../docs/backend/API.md), [architecture](../../docs/backend/ARCHITECTURE.md), [data model](../../docs/backend/DATA-MODEL.md), [security](../../docs/backend/SECURITY.md), and [operations](../../docs/backend/OPERATIONS.md).
 
