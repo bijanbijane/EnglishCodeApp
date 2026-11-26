@@ -237,3 +237,11 @@ These are source-level changes only; runtime verification remains pending until 
 - Extended the design-token contract test to fail if raw hexadecimal colors reappear in the screen stylesheet.
 - The source-level migration removes the previously measured 99 literal color occurrences (91 distinct values) from `styles.css`. Visual regression, contrast review and responsive/device audits remain open.
 - No checklist acceptance item is marked complete from source edits alone. Checklist coverage remains 34/50 (68.0%) until verification evidence justifies a change.
+
+
+## Hosted CI after palette centralization — 2026-11-26
+
+- CI run [#753](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45853827396) on the updated frontend head completed with failure in both `validate-frontend` and `validate-backend`.
+- GitHub returned `steps=null` and no log URLs for both jobs; attempts to retrieve the job logs returned `BlobNotFound`. The failure cause is therefore unknown. Do not infer that the palette migration caused the failure.
+- The combined commit status endpoint returned no individual status records. No local test/typecheck/build execution has been performed after these commits.
+- Frontend implementation-plan coverage remains 34/50 (68.0%); release readiness is not established.
