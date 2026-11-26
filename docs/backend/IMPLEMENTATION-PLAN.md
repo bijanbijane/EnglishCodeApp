@@ -25,14 +25,16 @@
 - [x] Opaque session token generation and SHA-256 hashing.
 - [x] Active-session middleware, logout, and authenticated profile endpoint.
 - [x] Replay fingerprint table migration and ADR design.
-- [x] Implement Telegram login endpoint with signed initData validation, D1 replay insert, and conditional session issuance in one batch.\n- [ ] Prove replay/session atomicity with real Local D1 concurrent requests.
+- [x] Implement Telegram login endpoint with signed initData validation, D1 replay insert, and conditional session issuance in one batch.
+- [ ] Prove replay/session atomicity with real Local D1 concurrent requests.
 - [ ] Prove exactly one winner under concurrent identical initData.
 - [ ] Test session expiry, revocation, and malformed bearer tokens against Local D1.
 - [ ] Add rate limiting, body-size enforcement, and origin policy.
 
 ## B2 — Learning write path
 
-- [x] Implement authenticated attempt creation with server-derived owner, lesson-version pin, and immutable question snapshot.\n- [x] Implement owner-scoped retrieval of an attempt snapshot without answer-key disclosure.
+- [x] Implement authenticated attempt creation with server-derived owner, lesson-version pin, and immutable question snapshot.
+- [x] Implement owner-scoped retrieval of an attempt snapshot without answer-key disclosure.
 - [x] Implement answer validation, server-side grading, same-answer retry behavior, and conflict for a different second answer.
 - [x] Implement conditional completion and progress upsert in one D1 batch.
 - [x] Implement current-user progress read endpoint.
