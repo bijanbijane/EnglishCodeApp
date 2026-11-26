@@ -23,6 +23,7 @@ function makeAdminDb(options: {
           if (sql.includes("MAX(version)")) return { version: 2 };
           if (sql.includes("FROM lesson_versions WHERE id=? AND lesson_id=?")) return options.version ?? null;
           if (sql.includes("SELECT status,reviewed_by_user_id FROM content_review_requests")) return options.reviewAfterDecision ?? null;
+          if (sql.includes("FROM content_review_requests r INNER JOIN lesson_versions") && sql.includes("WHERE r.id=? LIMIT 1")) return options.review ?? null;
           if (sql.includes("FROM content_review_requests") && sql.includes("WHERE id=? LIMIT 1")) return options.review ?? null;
           return null;
         }),
