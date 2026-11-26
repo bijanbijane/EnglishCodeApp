@@ -17,7 +17,7 @@
 
 | Area | Owns | Current status |
 | --- | --- | --- |
-| App shell | Bootstrap, navigation, layout, providers | Partial |
+| App shell | Bootstrap, navigation, layout, providers | Hash-based home/profile/lesson routes and Telegram BackButton implemented; providers and route guards remain partial |
 | Home | Next action, learning overview, announcements | Partial; progress data unavailable |
 | Lessons | Published catalog, lesson metadata | Catalog implemented; interaction in progress |
 | Lesson player | Lesson content and exercise rendering | Preview UI in progress; submission gated by auth |
