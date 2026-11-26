@@ -104,7 +104,7 @@ learningRoutes.post("/attempts/:attemptId/complete", requireAuth, async (c) => {
     c.env.DB.prepare(
       "UPDATE lesson_attempts SET status='completed', " +
       "score=CAST(ROUND(100.0 * (SELECT COUNT(*) FROM attempt_answers WHERE attempt_id=lesson_attempts.id AND is_correct=1) " +
-      "/ (SELECT COUNT(*) FROM questions WHERE lesson_id=lesson_attempts.lesson_id)), AS INTEGER), " +
+      "/ (SELECT COUNT(*) FROM questions WHERE lesson_id=lesson_attempts.lesson_id)) AS INTEGER), " +
       "completed_at=? WHERE id=? AND user_id=? AND status='started' " +
       "AND EXISTS (SELECT 1 FROM questions WHERE lesson_id=lesson_attempts.lesson_id)"
     ).bind(completedAt, attempt.id, c.get("user").id),
