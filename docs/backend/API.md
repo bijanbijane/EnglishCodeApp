@@ -38,25 +38,28 @@ The API must not return stack traces, SQL text, secrets, session tokens, or priv
 | GET | `/courses` | Public | Published course catalog | Implemented |
 | GET | `/courses/:courseId/lessons` | Public | Published lessons in a course | Implemented |
 | GET | `/lessons/:lessonId` | Public | Published lesson and question DTOs | Implemented |
-| POST | `/auth/logout` | Bearer session | Revoke current session | Implemented; requires a session issued by the not-yet-built login flow |
-| GET | `/me` | Bearer session | Current profile | Implemented; requires a session issued by the not-yet-built login flow |
+| POST | `/auth/logout` | Bearer session | Revoke current session | Implemented; login issuance remains blocked |
+| GET | `/me` | Bearer session | Current profile | Implemented; login issuance remains blocked |
+| POST | `/lessons/:lessonId/attempts` | Bearer session | Start attempt and pin lesson version | Implemented; D1 integration unverified |
+| POST | `/attempts/:attemptId/answers` | Bearer session | Validate and grade answer on server | Implemented; D1 concurrency unverified |
+| POST | `/attempts/:attemptId/complete` | Bearer session | Complete attempt and update progress in one D1 batch | Implemented; atomicity unverified |
+| GET | `/me/progress` | Bearer session | Current user's lesson progress | Implemented; D1 integration unverified |
 
 ## Planned endpoints
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
 | POST | `/auth/telegram` | Public, signed initData required | Validate Telegram launch data, prevent replay, and issue application session |
-| GET | `/me/progress` | Session | Current user's progress |
-| POST | `/lessons/:lessonId/attempts` | Session | Start attempt |
-| POST | `/attempts/:attemptId/answers` | Session | Submit answer; grade on server |
-| POST | `/attempts/:attemptId/complete` | Session | Complete attempt and update progress |
 
-## Content security invariants
+## Content and assessment invariants
 
 - Only records with `status = 'published'` are returned by public catalog routes.
 - Public question DTOs select an explicit allowlist of columns and never select `answer_key`.
-- Future write endpoints must derive user ownership from the authenticated principal.
-- Scoring policy and content version must be pinned to an attempt before assessment expands beyond basic multiple choice.
+- User ownership is derived from the authenticated principal, never from request JSON.
+- Answers are unique per attempt/question. Repeating the same answer returns the stored result; a different second answer returns 409.
+- Answer writes require an in-progress attempt and the question must belong to that attempt's lesson.
+- Completion is a conditional state transition. Progress increment is conditional on the winning update in the same D1 batch; this requires a Local D1 concurrency test before production use.
+- Attempts pin the lesson version at creation. Published lesson content must remain immutable for that version.
 
 ## Authentication invariants
 
