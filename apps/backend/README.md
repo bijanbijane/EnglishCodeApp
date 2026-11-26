@@ -4,7 +4,7 @@
 
 TypeScript Modular Monolith using Hono and a Cloudflare Worker-compatible entrypoint.
 
-- Versioned API, request IDs, structured errors, liveness and D1 readiness endpoints.
+- Versioned API, application-generated request IDs, structured errors, liveness and D1 readiness endpoints.
 - D1-backed lesson and question reads.
 - Telegram Mini App initData HMAC-SHA-256 verification, duplicate-key rejection, auth_date freshness checks, and one-time replay fingerprints.
 - Opaque bearer sessions; only SHA-256 token hashes are stored. Sessions expire and can be revoked.
@@ -32,7 +32,7 @@ TypeScript Modular Monolith using Hono and a Cloudflare Worker-compatible entryp
 
 ## Telegram authentication
 
-The client sends the raw Telegram.WebApp.initData string. Never trust initDataUnsafe. The backend verifies the official signature, rejects duplicate query parameters and stale auth_date values, then stores a SHA-256 fingerprint of the canonical signed payload to reject reuse. The raw initData is not persisted. Replayed payloads return HTTP 409.
+The client sends the raw Telegram.WebApp.initData string. Never trust initDataUnsafe. The backend derives the Telegram secret using HMAC-SHA-256 with the bot token as key and `WebAppData` as message, then validates the data-check-string. Duplicate query parameters and stale/future auth_date values are rejected. A SHA-256 fingerprint of the canonical signed payload is claimed transactionally with session issuance; raw initData is not persisted. Replayed payloads return HTTP 409.
 
 The bot token must be configured as a Worker secret and must never be committed. The response returns an opaque bearer token. Only its SHA-256 hash is stored in D1. Keep the bearer token in memory where practical and never log it or place it in a URL.
 
@@ -43,6 +43,8 @@ Apply in order to a local/test D1 database:
 2. database/migrations/0002_backend_foundation.sql
 3. database/migrations/0003_telegram_auth_replay.sql
 
+**Migration note:** 0002 already creates the replay table and expiry index; 0003 repeats those `IF NOT EXISTS` definitions. The duplicate is documented in database/migrations/README.md. Do not rewrite either migration until migration history in all local/shared environments has been checked; use a forward-only migration if a schema correction is required.
+
 Seed only local/test:
 - database/seeds/0001_demo.sql
 
@@ -50,7 +52,7 @@ Migrations have not been applied to a Cloudflare account or production database.
 
 ## Local development and deployment boundary
 
-The current Node adapter is a UI preview fixture, not a D1 emulator. It does not provide persistent auth or learning writes. The replay route has a mocked-D1 test; a local D1 test harness is still required for end-to-end verification.
+The current Node adapter is a UI preview fixture, not a D1 emulator. It does not provide persistent auth or learning writes. Replay route tests use a mocked D1 interface; a local D1 integration harness is still required for end-to-end verification.
 
 No Wrangler config is added. This new Cloudflare project follows the cf CLI direction. No Cloudflare resources, secrets, deployments, or paid services are created by this branch.
 
@@ -61,5 +63,7 @@ No Wrangler config is added. This new Cloudflare project follows the cf CLI dire
 - Public question responses omit answer keys.
 - Attempts are scoped to the authenticated user.
 - A unique index enforces one answer per question per attempt.
+- Answer retries with the same value are idempotent; conflicting duplicate answers are rejected.
+- Attempt completion and progress aggregation use conditional transactional writes; Local D1 concurrency tests are still required.
 - Before public beta: add and test platform-level rate limiting for login/write endpoints, origin policy, retention/deletion/export policy, abuse monitoring, and end-to-end tests against local D1.
 - Queue, R2, AI, payments, admin console and production deployment are outside this foundation.
