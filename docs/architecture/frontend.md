@@ -100,6 +100,6 @@ PR: [#4](https://github.com/bijanbijane/EnglishCodeApp/pull/4)
 
 Implemented in the branch: app composition split, shared API client, searchable/selectable lesson catalog, server-backed question list, Telegram SecureStorage session bootstrap (Bot API 9.0+), bearer-authenticated attempt/answer/complete flow, server-confirmed answer feedback and final score, responsive RTL dashboard, Telegram BackButton/safe-area/theme adapter, architecture documentation and CI workflow path correction.
 
-Not yet verified: npm install, typecheck, tests, production build, browser behavior and Telegram-client behavior. Browser sign-in remains preview-only until the backend supports an approved secure cookie/session contract. Review and progress screens remain incomplete; profile currently exposes basic session status and logout only.
+Not yet verified: npm install, typecheck, tests, production build, browser behavior and Telegram-client behavior. Browser sign-in remains preview-only until the backend supports an approved secure cookie/session contract. Review remains incomplete; progress has a basic server-backed summary screen; profile exposes account display name, session status and logout.
 
 No merge, deployment, production migration, production data mutation or paid-resource activation is part of this work.
