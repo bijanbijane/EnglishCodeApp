@@ -125,6 +125,7 @@ def main() -> None:
             "UPDATE questions SET prompt = ?, answer_key = ? WHERE id = ?",
             ("Mutated source prompt", "b", "question-greetings-001"),
         )
+        db.commit()
         snapshot = db.execute(
             "SELECT prompt, answer_key FROM attempt_questions WHERE attempt_id = ? AND question_id = ?",
             (attempt_id, "question-greetings-001"),
@@ -147,6 +148,7 @@ def main() -> None:
             "SELECT submitted_answer, is_correct FROM attempt_answers WHERE attempt_id = ? AND question_id = ?",
             (attempt_id, "question-greetings-001"),
         ).fetchone()["is_correct"] == 1
+        db.commit()
 
         # Completion and progress upsert: only the winning state transition counts.
         completed_at = "2026-11-26T15:01:00.000Z"
