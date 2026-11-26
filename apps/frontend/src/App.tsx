@@ -1,10 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
 
+type TelegramSecureStorage = {
+  getItem: (key: string, callback: (error: string | null, value: string | null, canRestore?: boolean) => void) => void;
+  setItem: (key: string, value: string, callback: (error: string | null, stored?: boolean) => void) => void;
+  removeItem: (key: string, callback: (error: string | null, removed?: boolean) => void) => void;
+};
 type TelegramWebApp = {
   initData: string;
   ready: () => void;
   expand: () => void;
+  isVersionAtLeast?: (version: string) => boolean;
+  SecureStorage?: TelegramSecureStorage;
   colorScheme?: "light" | "dark";
 };
 declare global { interface Window { Telegram?: { WebApp?: TelegramWebApp } } }
@@ -27,6 +34,7 @@ function App() {
   const [answer, setAnswer] = useState<string | null>(null);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [score, setScore] = useState<number | null>(null);
+  const authStarted = useRef(false);
 
   const loadCourses = useCallback(async () => {
     setLoading(true); setError("");
@@ -39,21 +47,55 @@ function App() {
     telegram?.ready();
     telegram?.expand();
     void loadCourses();
-    const token = sessionStorage.getItem("englishcode.session");
-    if (token) {
-      setAccessToken(token);
-      api.profile().then(setProfile).catch(() => {
-        sessionStorage.removeItem("englishcode.session"); setAccessToken(null);
-      });
-    } else if (telegram?.initData) {
-      api.login(telegram.initData).then((result) => {
-        sessionStorage.setItem("englishcode.session", result.accessToken);
-        setAccessToken(result.accessToken);
-        return api.profile();
-      }).then(setProfile).catch((e: unknown) => {
-        setNotice(e instanceof Error ? e.message : "Telegram sign-in is unavailable.");
-      });
+    if (!telegram || authStarted.current) return;
+    authStarted.current = true;
+
+    const secureStorage = telegram.SecureStorage;
+    if (!telegram.isVersionAtLeast?.("9.0") || !secureStorage) {
+      setNotice("Secure sign-in requires a recent Telegram app with Secure Storage support.");
+      return;
     }
+
+    const readToken = () => new Promise<string | null>((resolve, reject) => {
+      secureStorage.getItem("englishcode_session", (storageError, value) => {
+        if (storageError) reject(new Error("Could not read the secure session."));
+        else resolve(value);
+      });
+    });
+    const saveToken = (token: string) => new Promise<void>((resolve, reject) => {
+      secureStorage.setItem("englishcode_session", token, (storageError, stored) => {
+        if (storageError || stored === false) reject(new Error("Could not save the secure session."));
+        else resolve();
+      });
+    });
+    const removeToken = () => new Promise<void>((resolve) => {
+      secureStorage.removeItem("englishcode_session", () => resolve());
+    });
+
+    void (async () => {
+      try {
+        const savedToken = await readToken();
+        if (savedToken) {
+          setAccessToken(savedToken);
+          try {
+            setProfile(await api.profile());
+            return;
+          } catch {
+            await removeToken();
+            setAccessToken(null);
+          }
+        }
+
+        if (!telegram.initData) throw new Error("Telegram did not provide authentication data.");
+        const result = await api.login(telegram.initData);
+        await saveToken(result.accessToken);
+        setAccessToken(result.accessToken);
+        setProfile(await api.profile());
+      } catch (e) {
+        setAccessToken(null);
+        setNotice(e instanceof Error ? e.message : "Telegram sign-in is unavailable.");
+      }
+    })();
   }, [loadCourses]);
 
   const openCourse = async (course: Course) => {
