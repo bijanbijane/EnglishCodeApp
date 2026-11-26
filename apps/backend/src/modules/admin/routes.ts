@@ -233,7 +233,7 @@ adminRoutes.post(
     await c.env.DB.batch([
       c.env.DB.prepare(
         "UPDATE content_review_requests SET status=?,reviewed_by_user_id=?,reviewed_at=?,reason_code=? " +
-        "WHERE id=? AND status='pending' AND author_user_id<>?"
+        "WHERE id=? AND status='pending' AND (author_user_id IS NULL OR author_user_id<>?)"
       ).bind(nextStatus, actor, reviewedAt, reasonCode, requestId, actor),
       c.env.DB.prepare(
         "INSERT INTO content_review_events (id,request_id,actor_user_id,event_type,reason_code) " +
