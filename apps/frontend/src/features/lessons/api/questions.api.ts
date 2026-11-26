@@ -34,11 +34,14 @@ function parseQuestion(value: unknown): LessonQuestion {
   return { id: row.id, prompt: row.prompt, position: row.position, options };
 }
 
-export async function getLessonQuestions(lessonId: string): Promise<LessonQuestion[]> {
-  const payload = await apiGet<unknown>("/api/v1/lessons/" + encodeURIComponent(lessonId) + "/questions");
+export function parseLessonQuestions(payload: unknown): LessonQuestion[] {
   if (!Array.isArray(payload)) throw new Error("پاسخ تمرین‌های درس معتبر نیست.");
   const questions = payload.map(parseQuestion);
   const ids = questions.map((question) => question.id);
   if (new Set(ids).size !== ids.length) throw new Error("شناسهٔ تمرین‌های این درس تکراری است.");
   return questions;
+}
+
+export async function getLessonQuestions(lessonId: string): Promise<LessonQuestion[]> {
+  return parseLessonQuestions(await apiGet<unknown>("/api/v1/lessons/" + encodeURIComponent(lessonId) + "/questions"));
 }
