@@ -1,0 +1,5 @@
+INSERT OR IGNORE INTO courses(id,title,description,source_language,target_language,status) VALUES('course-english-foundations','English Foundations','A short starter course for beginner learners.','fa','en','published');
+INSERT OR IGNORE INTO lessons(id,course_id,title,description,level,position,version,status) VALUES('lesson-greetings-a1','course-english-foundations','Greetings','Common greetings and introductions.','A1',1,1,'published');
+INSERT OR IGNORE INTO questions(id,lesson_id,type,prompt,options_json,answer_key,explanation,position,status) VALUES
+('q-greetings-001','lesson-greetings-a1','multiple_choice','Which phrase means «سلام»?','[{"id":"a","text":"Hello"},{"id":"b","text":"Goodbye"},{"id":"c","text":"Thanks"}]','a','Hello is a common greeting.',1,'published'),
+('q-greetings-002','lesson-greetings-a1','multiple_choice','How do you respond to “How are you?”','[{"id":"a","text":"I am fine, thanks."},{"id":"b","text":"Good night."},{"id":"c","text":"See you yesterday."}]','a','“I am fine, thanks” is a natural response.',2,'published');
