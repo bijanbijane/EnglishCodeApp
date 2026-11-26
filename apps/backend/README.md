@@ -50,7 +50,7 @@ See [API contract](../../docs/backend/API.md), [architecture](../../docs/backend
 
 ## Not implemented yet
 
-Telegram initData authentication, session lifecycle, authenticated profile, attempts, answer submission, server-side grading, progress writes, rate limiting, content authoring, admin RBAC, R2, Queues, AI adapters, retention/export/delete, and operational observability.
+Telegram login endpoint, replay persistence and atomic session issuance, session middleware/lifecycle, authenticated profile, attempts, answer submission, server-side grading, progress writes, rate limiting, content authoring, admin RBAC, R2, Queues, AI adapters, retention/export/delete, and operational observability. The Telegram initData HMAC verifier and its test vectors are present, but no login is accepted until the replay/session flow is implemented and verified.
 
 These are explicit follow-up gates, not implied by the current scaffold.
 
