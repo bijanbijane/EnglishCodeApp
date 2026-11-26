@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { bodyLimit } from "hono/body-limit";
 import type { AppEnv } from "./env";
 import { AppError } from "./shared/errors";
 import contentRoutes from "./modules/content/routes";
@@ -20,6 +21,17 @@ app.use("*", async (c, next) => {
   c.header("Referrer-Policy", "no-referrer");
   c.header("X-Frame-Options", "DENY");
 });
+
+app.use("/api/v1/*", bodyLimit({
+  maxSize: 256 * 1024,
+  onError: (context) => context.json({
+    error: {
+      code: "PAYLOAD_TOO_LARGE",
+      message: "Request body exceeds the API size limit.",
+      requestId: context.get("requestId"),
+    },
+  }, 413),
+}));
 
 app.use("/api/v1/*", cors({
   origin: (origin, context) => {
