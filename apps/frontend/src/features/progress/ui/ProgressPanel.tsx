@@ -16,7 +16,7 @@ function ProgressRow({ row, title }: { row: LessonProgress; title: string }) {
     <article className="progress-row">
       <div className="progress-row__main"><strong>{title}</strong><span>{formatDate(row.last_completed_at)}</span></div>
       <div className="progress-row__metrics"><span>بهترین امتیاز <b>{row.best_score}%</b></span><span>تکمیل <b>{row.completed_count} بار</b></span></div>
-      <div className="progress-bar" role="progressbar" aria-label={"بهترین امتیاز " + row.lesson_id} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.max(0, Math.min(100, row.best_score))}><i style={{ width: Math.max(0, Math.min(100, row.best_score)) + "%" }} /></div>
+      <div className="progress-bar" role="progressbar" aria-label={"بهترین امتیاز درس " + title} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.max(0, Math.min(100, row.best_score))}><i style={{ width: Math.max(0, Math.min(100, row.best_score)) + "%" }} /></div>
     </article>
   );
 }
@@ -50,7 +50,7 @@ export function ProgressPanel({ isAuthenticated, lessonTitles, onBack, onOpenLes
       {!isAuthenticated ? (
         <div className="state-panel"><div><strong>برای مشاهدهٔ پیشرفت وارد حساب شو.</strong><p>سوابق یادگیری به حساب تلگرام متصل هستند.</p></div><button className="button button--secondary" type="button" onClick={onBack}>بازگشت</button></div>
       ) : state.status === "loading" ? (
-        <div className="state-panel" role="status"><span className="loader" /> در حال دریافت سوابق…</div>
+        <div className="state-panel" role="status" aria-live="polite"><span className="loader" aria-hidden="true" /> در حال دریافت سوابق…</div>
       ) : state.status === "error" ? (
         <div className="state-panel state-panel--error" role="alert"><div><strong>دریافت سوابق ناموفق بود.</strong><p>{state.message}</p></div><button className="button button--secondary" type="button" onClick={() => setRetry((value) => value + 1)}>تلاش دوباره</button></div>
       ) : (
