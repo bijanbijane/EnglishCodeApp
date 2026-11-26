@@ -1,0 +1,70 @@
+export type ApiEnvelope<T> = { data: T; meta?: { requestId?: string } };
+export type Course = {
+  id: string; slug: string; title: string; description: string | null;
+  source_language: string; target_language: string;
+};
+export type Lesson = {
+  id: string; course_id: string; slug: string; title: string;
+  description: string | null; level: string | null; position: number; version: number;
+};
+export type Option = { id: string; text: string };
+export type AttemptQuestion = {
+  id: string; type: string; prompt: string; options: Option[];
+  position: number; submittedAnswer: string | null; isCorrect: boolean | null;
+};
+export type Attempt = {
+  id: string; lesson_id: string; status: "in_progress" | "completed";
+  score: number | null; questions: AttemptQuestion[];
+};
+export type Profile = { id: string; display_name: string | null; created_at: string };
+
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+let accessToken: string | null = null;
+
+export function setAccessToken(token: string | null) { accessToken = token; }
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers = new Headers(init.headers);
+  headers.set("Accept", "application/json");
+  if (init.body) headers.set("Content-Type", "application/json");
+  if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+  const response = await fetch(`${API_BASE}/api/v1${path}`, {
+    ...init, headers, credentials: "omit",
+  });
+  const payload = await response.json().catch(() => null) as
+    | { data?: T; error?: { message?: string; code?: string; requestId?: string } }
+    | null;
+  if (!response.ok) {
+    const message = payload?.error?.message ?? `Request failed (${response.status})`;
+    throw new Error(payload?.error?.requestId ? `${message} [${payload.error.requestId}]` : message);
+  }
+  if (!payload || !("data" in payload)) throw new Error("The server returned an invalid response.");
+  return payload.data as T;
+}
+
+export const api = {
+  courses: () => request<Course[]>("/courses"),
+  lessons: (courseId: string) => request<Lesson[]>(`/courses/${encodeURIComponent(courseId)}/lessons`),
+  profile: () => request<Profile>("/me"),
+  login: (initData: string) => request<{ accessToken: string; expiresAt: string; user: { id: string; displayName: string | null } }>(
+    "/auth/telegram", { method: "POST", body: JSON.stringify({ initData }) },
+  ),
+  startAttempt: (lessonId: string) => request<{ attemptId: string; status: string }>(
+    `/lessons/${encodeURIComponent(lessonId)}/attempts`, { method: "POST", body: "{}" },
+  ),
+  attempt: (attemptId: string) => request<Attempt>(`/attempts/${encodeURIComponent(attemptId)}`),
+  answer: (attemptId: string, questionId: string, answer: string) => request<{ accepted: boolean; isCorrect: boolean; duplicate: boolean }>(
+    `/attempts/${encodeURIComponent(attemptId)}/answers`,
+    { method: "POST", body: JSON.stringify({ questionId, answer }) },
+  ),
+  complete: (attemptId: string) => request<{ status: string; score: number; completedAt: string }>(
+    `/attempts/${encodeURIComponent(attemptId)}/complete`, { method: "POST", body: "{}" },
+  ),
+  progress: () => request<Array<{ lesson_id: string; best_score: number; completed_count: number; lesson_title: string; last_completed_at: string }>>("/me/progress"),
+  logout: () => request<{ loggedOut: boolean }>("/auth/logout", { method: "POST", body: "{}" }),
+};
+
+declare global {
+  interface ImportMetaEnv { readonly VITE_API_BASE_URL?: string }
+  interface ImportMeta { readonly env: ImportMetaEnv }
+}
