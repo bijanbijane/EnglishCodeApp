@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import type { AppEnv } from "./env";
 import { AppError } from "./shared/errors";
 import contentRoutes from "./modules/content/routes";
@@ -7,6 +8,22 @@ import userRoutes from "./modules/users/routes";
 import learningRoutes from "./modules/learning/routes";
 
 const app = new Hono<AppEnv>();
+
+app.use("/api/v1/*", cors({
+  origin: (origin, context) => {
+    const allowed = new Set(
+      (context.env.ALLOWED_ORIGINS ?? "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0),
+    );
+    return allowed.has(origin) ? origin : undefined;
+  },
+  allowMethods: ["GET", "POST", "OPTIONS"],
+  allowHeaders: ["Content-Type", "Authorization"],
+  exposeHeaders: ["X-Request-Id", "Retry-After"],
+  maxAge: 600,
+}));
 
 app.use("*", async (c, next) => {
   const requestId = crypto.randomUUID();
