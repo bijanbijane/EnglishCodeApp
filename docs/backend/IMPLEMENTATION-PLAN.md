@@ -29,7 +29,9 @@
 - [ ] Prove replay/session atomicity with real Local D1 concurrent requests.
 - [ ] Prove exactly one winner under concurrent identical initData.
 - [ ] Test session expiry, revocation, and malformed bearer tokens against Local D1.
-- [x] Add per-IP Telegram login rate limiting (30/minute), body-size limit, and Retry-After response.\n- [x] Implement exact-origin CORS allowlist, explicit methods/headers, and no credential support.\n- [ ] Set and verify the exact production `ALLOWED_ORIGINS` values after frontend origin is finalized.
+- [x] Add per-IP Telegram login rate limiting (30/minute), body-size limit, and Retry-After response.
+- [x] Implement exact-origin CORS allowlist, explicit methods/headers, and no credential support.
+- [ ] Set and verify the exact production `ALLOWED_ORIGINS` values after frontend origin is finalized.
 
 ## B2 — Learning write path
 
@@ -52,7 +54,8 @@
 ## B4 — Privacy, reliability, and operations
 
 - [ ] Account export, deletion, retention, and backup deletion behavior.
-- [x] Add bounded daily cleanup for expired replay fingerprints, stale sessions, and old rate-limit buckets.\n- [ ] Structured non-sensitive logs, metrics, alerting, and request correlation.
+- [x] Add bounded daily cleanup for expired replay fingerprints, stale sessions, and old rate-limit buckets.
+- [ ] Structured non-sensitive logs, metrics, alerting, and request correlation.
 - [ ] Backup/restore drill and incident runbook.
 - [ ] Security tests for every user-owned resource and every admin action.
 - [ ] Load test D1 query patterns and record latency/error baselines.
@@ -69,7 +72,8 @@
 1. Remote desktop test environment is offline; no local shell execution was available during the current work session.
 2. GitHub returned no visible status checks for the current commits; the workflow is configured but not verified green.
 3. Telegram login code is implemented, but D1 replay/session atomicity is not yet verified against Local D1.
-4. The initial migration history on main must be reconciled before any shared database is attached.\n5. GitHub Actions jobs currently fail before runner allocation (runner_id=0, no steps); account-level Actions/runner availability must be restored before CI evidence exists.
+4. The initial migration history on main must be reconciled before any shared database is attached.
+5. GitHub Actions jobs currently fail before runner allocation (runner_id=0, no steps); account-level Actions/runner availability must be restored before CI evidence exists.
 
 
 ## Newly implemented after the previous checkpoint
