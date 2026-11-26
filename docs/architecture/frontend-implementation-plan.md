@@ -209,3 +209,12 @@ These are source-level changes only; runtime verification remains pending until 
 - Expanded the global `:focus-visible` ring to native buttons, links, inputs, selects, textareas and role=button controls, using the central focus tokens.
 - Applied the central 44px minimum block-size token to primary buttons, back navigation, answer options, mobile navigation, avatar button, search container and CEFR filter; search input, select and avatar button receive explicit dimension rules.
 - Added three static CSS contract tests. These verify token wiring, not actual device hit-testing or WCAG conformance. Full keyboard walkthrough, contrast review, touch interaction on Telegram clients and zoom/reflow audits remain open.
+
+
+## Semantic palette migration continuation — 2026-11-26
+
+- Extended the semantic token layer with reusable text, brand, border, surface, success, focus and translucent-accent roles.
+- Migrated repeated color literals in the shared screen stylesheet to semantic variables; alpha overlays use dedicated tokens so the original visual opacity is preserved.
+- Added a contract test that checks token definitions, actual stylesheet consumption and removal of the migrated repeated literals.
+- This is a staged migration, not completion: the current stylesheet still contains 99 raw color occurrences across 91 distinct values. Remaining one-off values require role-by-role consolidation and visual/contrast review; the design-token acceptance item remains unchecked.
+- Latest source changes have not yet been re-run through local typecheck/tests/build. CI run [#717](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45840537070) failed both jobs; GitHub returned no step summaries or downloadable logs, so the cause remains unknown.
