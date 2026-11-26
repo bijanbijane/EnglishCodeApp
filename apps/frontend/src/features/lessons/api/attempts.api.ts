@@ -4,7 +4,7 @@ import {
   parseAttemptResponse,
   parseAnswerSubmissionResult,
   parseLessonCompletionResult,
-  assertAnswerMatchesRequest,
+  assertAnswerBelongsToQuestion,
   assertCompletionMatchesAttempt,
   type LessonAttempt,
   type AnswerSubmissionResult,
@@ -37,7 +37,7 @@ export async function submitLessonAnswer(attemptId: string, questionId: string, 
     const result = parseAnswerSubmissionResult(await apiPost<unknown>(
       "/api/v1/attempts/" + encodeURIComponent(attemptId) + "/answers", { questionId, answerId }, { accessToken },
     ));
-    assertAnswerMatchesRequest(result, questionId, answerId);
+    assertAnswerBelongsToQuestion(result, questionId);
     return result;
   });
 }
