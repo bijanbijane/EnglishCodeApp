@@ -7,6 +7,7 @@ import authRoutes from "./modules/auth/routes";
 import userRoutes from "./modules/users/routes";
 import learningRoutes from "./modules/learning/routes";
 import adminRoutes from "./modules/admin/routes";
+import adminReadRoutes from "./modules/admin/audit-routes";
 
 const app = new Hono<AppEnv>();
 
@@ -66,6 +67,7 @@ app.route("/api/v1", authRoutes);
 app.route("/api/v1", userRoutes);
 app.route("/api/v1", learningRoutes);
 app.route("/api/v1/admin", adminRoutes);
+app.route("/api/v1/admin", adminReadRoutes);
 
 app.notFound((c) =>
   c.json(
