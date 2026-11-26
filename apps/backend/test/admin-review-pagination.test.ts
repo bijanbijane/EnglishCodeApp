@@ -37,7 +37,8 @@ function makeDatabase(roles: string[] = ["content_reviewer"]) {
         },
         async all<T>() {
           if (sql.includes("FROM content_review_requests r INNER JOIN lesson_versions")) {
-            return { results: reviewRows as T[] };
+            const rows = statement.values[4] === "review-1" ? [reviewRows[1]] : reviewRows;
+            return { results: rows as T[] };
           }
           return { results: [] as T[] };
         },
@@ -70,6 +71,29 @@ describe("admin review queue pagination", () => {
     const query = fake.calls.find((call) => call.sql.includes("FROM content_review_requests r INNER JOIN lesson_versions"));
     expect(query?.sql).toContain("ORDER BY r.submitted_at ASC,r.id ASC");
     expect(query?.values).toEqual(["pending", null, null, null, null, 2]);
+  });
+
+  it("continues after the exact timestamp/id pair without repeating the first row", async () => {
+    const fake = makeDatabase();
+    const cursor = encodeAdminPageCursor("2026-11-26 10:00:00", "review-1");
+    const response = await app.request(
+      `/api/v1/admin/content/reviews?status=pending&limit=1&cursor=${encodeURIComponent(cursor)}`,
+      { headers: { authorization: `Bearer ${bearer}` } },
+      { DB: fake.db }
+    );
+    const body = await response.json() as {
+      data: Array<{ review_request_id: string }>;
+      meta: { nextCursor: string | null };
+    };
+
+    expect(response.status).toBe(200);
+    expect(body.data.map((item) => item.review_request_id)).toEqual(["review-2"]);
+    expect(body.meta.nextCursor).toBeNull();
+    const query = fake.calls.find((call) => call.sql.includes("FROM content_review_requests r INNER JOIN lesson_versions"));
+    expect(query?.values).toEqual([
+      "pending", "2026-11-26 10:00:00", "2026-11-26 10:00:00",
+      "2026-11-26 10:00:00", "review-1", 2
+    ]);
   });
 
   it("rejects malformed cursors before reading the review queue", async () => {
