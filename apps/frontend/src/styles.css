@@ -239,3 +239,9 @@ button:focus-visible, a:focus-visible { outline: 3px solid #8ba4ff; outline-offs
 .overview-card--action:hover { transform:translateY(-2px); border-color:#d6def8; box-shadow:0 8px 22px #23365b0c; }
 .overview-card--action:focus-visible { outline:3px solid #8ba4ff; outline-offset:3px; }
 .overview-card--action > span:last-child { min-width:0; }
+
+.profile-identity { display:flex; align-items:center; gap:13px; margin:0 0 16px; padding:16px 19px; border:1px solid var(--line); border-radius:15px; background:#fff; }
+.profile-identity__avatar { display:grid; place-items:center; flex:0 0 42px; height:42px; border-radius:50%; color:#fff; background:linear-gradient(145deg,#4b6df0,#2846b5); font-size:17px; font-weight:700; }
+.profile-identity > div { display:grid; gap:5px; min-width:0; }
+.profile-identity strong { color:#2b3854; font-size:13px; }
+.profile-identity > div > span { color:#8993a6; font-size:10px; }
