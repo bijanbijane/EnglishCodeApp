@@ -79,7 +79,7 @@ The current branch has not been runtime-verified. Typecheck, production build, b
 Run these from `apps/frontend`:
 
 - `npm run typecheck` — TypeScript project check.
-- `npm test` — dependency-free route, lesson-payload and attempt-response contract tests (Node.js 22 with TypeScript type stripping).
+- `npm test` — dependency-free route, strict API-envelope, lesson-payload and attempt-response contract tests (Node.js 22 with TypeScript type stripping).
 - `npm run build` — production TypeScript and Vite build.
 
 The route tests cover hash serialization, direct links, encoded lesson IDs and invalid-route fallback. Passing source configuration does not mean these commands have been executed; consult CI evidence and the acceptance checklist.
@@ -88,3 +88,5 @@ Architecture detail: [Frontend Runtime Contracts](../../docs/architecture/fronte
 
 
 Recent hardening also rejects malformed/duplicate question payloads, checks that server feedback and completion belong to the submitted entities, offers a retry for recoverable Telegram sign-in failures, and ignores stale catalog/progress responses. These changes still require runtime verification.
+
+Feature boundaries are exposed through `features/lessons`, `features/identity` and `features/progress` public `index.ts` files. App composition should not import their private implementation paths.
