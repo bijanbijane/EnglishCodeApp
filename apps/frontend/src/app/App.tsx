@@ -148,7 +148,7 @@ export default function App() {
           onSelect={(lesson) => navigateTo({ name: "lesson", lessonId: lesson.id })}
         />
       ) : route.name === "progress" ? (
-        <ProgressPanel isAuthenticated={canStartAttempt} lessonTitles={lessonTitles} onBack={() => navigateTo({ name: "home" })} onOpenLessons={() => navigateTo({ name: "home" })} />
+        <ProgressPanel isAuthenticated={canStartAttempt} lessonTitles={lessonTitles} onBack={() => navigateTo({ name: "home" })} onOpenLessons={() => navigateTo({ name: "learn" })} />
       ) : route.name === "profile" ? (
         <ProfilePanel isAuthenticated={canStartAttempt} isTelegramHost={getPlatformContext().host === "telegram"} signingOut={signingOut} error={signOutError ?? undefined} onSignOut={() => void handleSignOut()} onBack={() => navigateTo({ name: "home" })} />
       ) : (
