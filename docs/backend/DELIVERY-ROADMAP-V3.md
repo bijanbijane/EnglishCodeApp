@@ -40,7 +40,7 @@ Status labels: implemented in source, SQL-smoke-tested, Local D1 verified, CI ve
 - [ ] Admin-only invocation, audit trail and scheduled reconciliation runbook.
 - [x] Initial cross-user checks for attempt metadata/result/answer/completion/history and author draft ownership.
 - [ ] Complete ownership matrix across every content, review, vocabulary and admin endpoint.
-- [ ] Run the new admin audit-feed and reviewer-queue pagination tests plus migration 0010 against Local D1; source and route tests are being added on `feat/backend-admin-reads`.
+- [x] Admin audit-feed and reviewer-queue route tests (5/5), fresh Local D1 migrations 0001..0010, and Worker + Local D1 pagination/RBAC smoke checks passed on 2026-11-26.
 - [ ] Explicit pass/retry/manual-review policy beyond the initial percentage policy.
 
 ## G4 — Vocabulary and spaced repetition

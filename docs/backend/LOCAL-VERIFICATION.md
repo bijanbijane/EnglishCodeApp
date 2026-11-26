@@ -156,3 +156,52 @@ Using synthetic Telegram users with distinct author-only, reviewer-only and admi
 
 ### Additional answer retry semantics
 After a completed attempt, an identical retry for an answer already stored returns the original answer result (200); a conflicting answer for that question returns 409; a previously unanswered question returns 409. This was exercised on the actual Worker + Local D1 after the content v2 publication.
+
+
+## Admin audit feed and reviewer queue pagination — 2026-11-26
+
+**Repository head:** `2ce02d369f9b1e172454a93c159e2b057332479f`  
+**Pull request:** [#9 — Draft](https://github.com/bijanbijane/EnglishCodeApp/pull/9)  
+**Runtime:** Local macOS, Node 26.13.0, Wrangler 4.168.0  
+**Database:** Isolated Wrangler Local D1 database; synthetic test records only.
+
+### Reproducible workspace gates
+
+| Command | Result |
+|---|---|
+| `npm ci --no-audit --no-fund` | Passed |
+| `npm run typecheck` | Passed; frontend and backend |
+| `npm test` | Passed; 14 backend test files / 54 tests |
+| `npm run build:frontend` | Passed |
+| `git diff --check` | Passed |
+
+The frontend workspace defines `dev`, `build` and `typecheck`, but no `test` script. Therefore `npm run test --workspace @englishcode/frontend` is not an available test command in this repository; frontend TypeScript typecheck and production build passed.
+
+### Fresh Local D1 install
+
+- `npm run db:migrate:local` was executed with the explicit Wrangler `--local` flag.
+- Migrations 0001 through 0010 were applied in order to the isolated local database.
+- All ten migrations completed successfully; `npm run db:migrations:local` reported **No migrations to apply**.
+- Migration 0010 adds the audit-feed and review-queue read indexes only; previous migration files were not modified.
+
+### Actual Worker + Local D1 request checks
+
+A local Worker was started with `npx wrangler dev --local --ip 127.0.0.1 --port 8791`. Synthetic admin, reviewer and author users were seeded in the isolated Local D1 database with distinct bearer sessions and role grants. Two audit rows and two pending review requests shared the same timestamps to exercise the ID tie-breaker.
+
+| Scenario | Observed result |
+|---|---|
+| Admin reads filtered audit feed, page 1 | 200; returned `audit-2` |
+| Admin reads audit feed with returned cursor, page 2 | 200; returned `audit-1` |
+| Reviewer attempts to read admin audit feed | 403 |
+| Reviewer reads review queue, page 1 | 200; returned `review-1` |
+| Reviewer reads review queue with returned cursor, page 2 | 200; returned `review-2` |
+| Admin without reviewer role attempts to read review queue | 403 |
+
+Both paginated feeds returned distinct records in deterministic order with no duplicates or skipped seeded rows. Role isolation behaved as intended for the exercised combinations.
+
+### Evidence limits
+
+- These are local tests against Wrangler Local D1 and a local Worker, not Cloudflare remote D1 or Production.
+- GitHub returned no workflow run or commit status check for this commit at the time it was queried; hosted CI is not verified by this record.
+- The new route tests and migration were validated locally; a full hostile concurrency/load test and the complete cross-user authorization matrix remain open.
+- No remote/production migration, deployment, secret change, production-data mutation or paid resource activation was performed.
