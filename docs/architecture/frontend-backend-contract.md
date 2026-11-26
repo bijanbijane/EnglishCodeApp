@@ -33,7 +33,7 @@ Backend errors are produced through `errorBody(code, message, requestId)`; the c
 - `apiGet` unwraps a top-level `data` property.
 - The shared transport currently sends `credentials: "same-origin"`.
 - The shared transport now supports an explicit bearer token option; only authenticated feature API calls pass it.
-- The lesson list UI has loading, error/retry and ready states; an empty list is rendered by the catalog component.
+- The lesson catalog UI has loading, error/retry, empty and ready states; the lesson player has loading, error/retry, answer-submission, feedback and completion states.
 
 ## 4. Authentication and session status
 
