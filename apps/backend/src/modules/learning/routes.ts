@@ -6,6 +6,115 @@ import { gradeAnswer } from "./domain";
 
 export const learningRoutes = new Hono<AppBindings>();
 
+
+interface AttemptListRow {
+  id: string;
+  lesson_id: string;
+  lesson_title: string;
+  lesson_version: number;
+  status: string;
+  score: number;
+  started_at: string;
+  completed_at: string | null;
+}
+
+function encodeAttemptCursor(startedAt: string, id: string): string {
+  return btoa(`${startedAt}\n${id}`).replace(/=/g, "").replace(/\\+/g, "-").replace(/\\//g, "_");
+}
+
+function decodeAttemptCursor(value: string): { startedAt: string; id: string } | null {
+  if (!/^[A-Za-z0-9_-]{8,256}$/.test(value)) return null;
+  try {
+    const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = atob(base64 + "=".repeat((4 - base64.length % 4) % 4));
+    const [startedAt, id, extra] = decoded.split("\\n");
+    if (extra !== undefined || !startedAt || !id || !Number.isFinite(Date.parse(startedAt)) || id.length > 128) return null;
+    return { startedAt, id };
+  } catch {
+    return null;
+  }
+}
+
+learningRoutes.get("/me/attempts", requireAuth, async (c) => {
+  if (!c.env.DB) return c.json(errorBody("DATABASE_UNAVAILABLE", "Attempt history is unavailable.", c.get("requestId")), 503);
+  const limit = Number(c.req.query("limit") ?? 20);
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+    return c.json(errorBody("INVALID_LIMIT", "limit must be an integer from 1 to 100.", c.get("requestId")), 400);
+  }
+  const rawCursor = c.req.query("cursor");
+  const cursor = rawCursor ? decodeAttemptCursor(rawCursor) : null;
+  if (rawCursor && !cursor) {
+    return c.json(errorBody("INVALID_CURSOR", "Attempt history cursor is invalid.", c.get("requestId")), 400);
+  }
+
+  const rows = await c.env.DB.prepare(
+    "SELECT a.id,a.lesson_id,lv.title AS lesson_title,lv.version AS lesson_version," +
+    "a.status,a.score,a.started_at,a.completed_at " +
+    "FROM lesson_attempts a INNER JOIN lesson_versions lv ON lv.id=a.lesson_version_id " +
+    "WHERE a.user_id=? AND (? IS NULL OR a.started_at<? OR (a.started_at=? AND a.id<?)) " +
+    "ORDER BY a.started_at DESC,a.id DESC LIMIT ?"
+  ).bind(
+    c.get("user").id,
+    cursor?.startedAt ?? null, cursor?.startedAt ?? null, cursor?.startedAt ?? null,
+    cursor?.id ?? null, limit + 1
+  ).all<AttemptListRow>();
+
+  const items = rows.results ?? [];
+  const hasMore = items.length > limit;
+  const page = hasMore ? items.slice(0, limit) : items;
+  const last = page[page.length - 1];
+  return c.json({
+    data: page.map((row) => ({
+      id: row.id, lessonId: row.lesson_id, lessonTitle: row.lesson_title,
+      lessonVersion: row.lesson_version, status: row.status, score: row.score,
+      startedAt: row.started_at, completedAt: row.completed_at
+    })),
+    meta: { nextCursor: hasMore && last ? encodeAttemptCursor(last.started_at, last.id) : null }
+  });
+});
+
+learningRoutes.get("/attempts/:attemptId", requireAuth, async (c) => {
+  if (!c.env.DB) return c.json(errorBody("DATABASE_UNAVAILABLE", "Attempt storage is unavailable.", c.get("requestId")), 503);
+  const attempt = await c.env.DB.prepare(
+    "SELECT a.id,a.lesson_id,lv.title AS lesson_title,lv.version AS lesson_version," +
+    "a.assessment_policy_version_id,a.status,a.score,a.started_at,a.completed_at " +
+    "FROM lesson_attempts a INNER JOIN lesson_versions lv ON lv.id=a.lesson_version_id " +
+    "WHERE a.id=? AND a.user_id=? LIMIT 1"
+  ).bind(c.req.param("attemptId"), c.get("user").id).first<{
+    id: string; lesson_id: string; lesson_title: string; lesson_version: number;
+    assessment_policy_version_id: string; status: string; score: number;
+    started_at: string; completed_at: string | null;
+  }>();
+  if (!attempt) return c.json(errorBody("ATTEMPT_NOT_FOUND", "Attempt was not found.", c.get("requestId")), 404);
+  return c.json({ data: {
+    id: attempt.id, lessonId: attempt.lesson_id, lessonTitle: attempt.lesson_title,
+    lessonVersion: attempt.lesson_version, assessmentPolicyVersionId: attempt.assessment_policy_version_id,
+    status: attempt.status, score: attempt.score, startedAt: attempt.started_at, completedAt: attempt.completed_at
+  } });
+});
+
+learningRoutes.get("/attempts/:attemptId/result", requireAuth, async (c) => {
+  if (!c.env.DB) return c.json(errorBody("DATABASE_UNAVAILABLE", "Attempt result storage is unavailable.", c.get("requestId")), 503);
+  const result = await c.env.DB.prepare(
+    "SELECT a.id,a.status,a.score,a.completed_at,lv.title AS lesson_title,lv.version AS lesson_version," +
+    "a.assessment_policy_version_id " +
+    "FROM lesson_attempts a INNER JOIN lesson_versions lv ON lv.id=a.lesson_version_id " +
+    "WHERE a.id=? AND a.user_id=? LIMIT 1"
+  ).bind(c.req.param("attemptId"), c.get("user").id).first<{
+    id: string; status: string; score: number; completed_at: string | null;
+    lesson_title: string; lesson_version: number; assessment_policy_version_id: string;
+  }>();
+  if (!result) return c.json(errorBody("ATTEMPT_NOT_FOUND", "Attempt was not found.", c.get("requestId")), 404);
+  if (result.status !== "completed") {
+    return c.json(errorBody("RESULT_NOT_READY", "Attempt has not been completed.", c.get("requestId")), 409);
+  }
+  return c.json({ data: {
+    attemptId: result.id, lessonTitle: result.lesson_title, lessonVersion: result.lesson_version,
+    assessmentPolicyVersionId: result.assessment_policy_version_id, score: result.score,
+    completedAt: result.completed_at
+  } });
+});
+
 learningRoutes.get("/lessons", async (c) => {
   if (!c.env.DB) return c.json(errorBody("DATABASE_UNAVAILABLE", "Lesson storage is unavailable.", c.get("requestId")), 503);
   const result = await c.env.DB.prepare(
