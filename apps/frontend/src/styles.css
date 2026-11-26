@@ -293,3 +293,14 @@ a { color: inherit; }
 .avatar--button { min-inline-size: var(--ec-touch-target-min); }
 .catalog-search input { block-size: var(--ec-touch-target-min); }
 .learning-library__level-filter { block-size: var(--ec-touch-target-min); }
+
+/* Respect operating-system reduced-motion preferences. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
