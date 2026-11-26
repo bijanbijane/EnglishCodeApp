@@ -1,0 +1,103 @@
+import { describe, expect, it, vi } from "vitest";
+import app from "../src/app";
+
+const botToken = "123456:TEST_BOT_TOKEN";
+const initData = new URLSearchParams({
+  auth_date: "1735689600",
+  query_id: "AAEAAE",
+  user: JSON.stringify({ id: 123456789, first_name: "Test", username: "test_user" }),
+  hash: "14281dde18173991a31213ec6e803f3c7b9723946be1c5a59f1a318f049f16b8",
+}).toString();
+
+function makeDatabase(replayInserted = 1) {
+  const batch = vi.fn().mockResolvedValue([
+    { meta: { changes: 1 } },
+    { meta: { changes: 1 } },
+    { meta: { changes: replayInserted } },
+    { meta: { changes: replayInserted } },
+    {
+      results: [{ id: "canonical-user-id", display_name: "Test" }],
+      meta: { changes: 0 },
+    },
+  ]);
+  const prepare = vi.fn((sql: string) => ({
+    bind: vi.fn((...values: unknown[]) => ({ sql, values })),
+  }));
+  return { prepare, batch };
+}
+
+describe("Telegram login endpoint", () => {
+  it("issues an opaque bearer token only when replay and session inserts succeed", async () => {
+    const DB = makeDatabase(1);
+    const response = await app.request(
+      "/api/v1/auth/telegram",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData }),
+      },
+      { DB, TELEGRAM_BOT_TOKEN: botToken } as never,
+    );
+
+    expect(response.status).toBe(201);
+    const body = await response.json() as {
+      data: { accessToken: string; tokenType: string; user: { id: string } };
+    };
+    expect(body.data.accessToken).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(body.data.tokenType).toBe("Bearer");
+    expect(body.data.user.id).toBe("canonical-user-id");
+    expect(DB.batch).toHaveBeenCalledTimes(1);
+    expect(DB.batch.mock.calls[0][0]).toHaveLength(5);
+    expect(JSON.stringify(DB.batch.mock.calls[0][0])).not.toContain(initData);
+  });
+
+  it("rejects a replay when the unique replay insert does not win", async () => {
+    const DB = makeDatabase(0);
+    const response = await app.request(
+      "/api/v1/auth/telegram",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData }),
+      },
+      { DB, TELEGRAM_BOT_TOKEN: botToken } as never,
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: { code: "CONFLICT" },
+    });
+  });
+
+  it("does not accept a login if the bot token is not configured", async () => {
+    const DB = makeDatabase();
+    const response = await app.request(
+      "/api/v1/auth/telegram",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData }),
+      },
+      { DB } as never,
+    );
+
+    expect(response.status).toBe(503);
+    expect(DB.batch).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid initData without touching the database", async () => {
+    const DB = makeDatabase();
+    const response = await app.request(
+      "/api/v1/auth/telegram",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData: `${initData}&auth_date=1735689600` }),
+      },
+      { DB, TELEGRAM_BOT_TOKEN: botToken } as never,
+    );
+
+    expect(response.status).toBe(401);
+    expect(DB.batch).not.toHaveBeenCalled();
+  });
+});
