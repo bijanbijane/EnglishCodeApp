@@ -34,6 +34,26 @@ describe("EnglishCodeApp API", () => {
     expect(requestId).toMatch(/^[0-9a-f-]{36}$/i);
     expect(requestId).not.toBe("edge-ray-example");
   });
+  it("does not expose internal exception messages in API responses or logs", async () => {
+    const original = console.error;
+    let logged = "";
+    console.error = (...args: unknown[]) => { logged = args.map(String).join(" "); };
+    try {
+      const failingApp = app;
+      const response = await failingApp.request("/api/v1/ready", {}, {
+        DB: {
+          prepare: () => ({
+            first: async () => { throw new Error("private SQL fragment and bound value"); }
+          })
+        } as unknown as D1Database
+      });
+      expect(response.status).toBe(503);
+      expect(await response.text()).not.toContain("private SQL fragment");
+      expect(logged).not.toContain("private SQL fragment");
+    } finally {
+      console.error = original;
+    }
+  });
   it("returns a structured 404 for unknown routes", async () => {
     const response = await app.request("/missing");
     expect(response.status).toBe(404);
