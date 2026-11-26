@@ -42,13 +42,14 @@
 - [x] Implement current-user progress read endpoint.
 - [ ] Prove answer/completion race behavior and exactly-once progress update against Local D1.
 - [ ] Add cross-user, state-transition, and full D1 integration tests.
-- [x] Pin the initial weighted-percentage assessment policy and question weights per attempt.\n- [ ] Finalize policy edge cases (empty lessons, future question types, pass thresholds).
+- [x] Pin the initial weighted-percentage assessment policy and question weights per attempt.
+- [ ] Finalize policy edge cases (empty lessons, future question types, pass thresholds).
 
 ## B3 — Content lifecycle and administration
 
 - [x] Add immutable lesson/question version tables, publication pointer and assessment policy version.
 - [ ] Add content authoring/review/publishing API after RBAC and role bootstrap are implemented.
-- [ ] Add staff roles/capabilities, controlled role bootstrap/revocation, and audit trail.
+- [x] Add D1-backed role checks for admin, content author, content reviewer and support roles.\n- [x] Add append-only audit events with allowlisted metadata and admin-only keyset audit feed.\n- [x] Add draft creation, author-owned submission, reviewer decision with self-review prevention, and admin-only publish workflow.\n- [ ] Implement owner-operated role bootstrap/grant/revocation script; no public role grant endpoint.
 - [ ] Add cursor pagination and bounded query contracts for growing collections.
 
 ## B4 — Privacy, reliability, and operations
