@@ -4,7 +4,7 @@ import {
   parseAttemptResponse,
   parseAnswerSubmissionResult,
   parseLessonCompletionResult,
-  assertAnswerMatchesRequest,
+  assertAnswerBelongsToQuestion,
   assertCompletionMatchesAttempt,
 } from "../src/features/lessons/api/attempts.contract.ts";
 
@@ -46,12 +46,12 @@ test("accepts only bounded integer completion scores", () => {
   }
 });
 
-test("rejects feedback for a different submitted answer", () => {
+test("accepts an idempotent replay but rejects feedback for another question", () => {
   const result = parseAnswerSubmissionResult({
     questionId: "q-1", answerId: "a-1", isCorrect: true, explanation: "Correct.",
   });
-  assert.throws(() => assertAnswerMatchesRequest(result, "q-2", "a-1"));
-  assert.throws(() => assertAnswerMatchesRequest(result, "q-1", "a-2"));
+  assert.doesNotThrow(() => assertAnswerBelongsToQuestion(result, "q-1"));
+  assert.throws(() => assertAnswerBelongsToQuestion(result, "q-2"));
 });
 
 test("rejects a completion result for another attempt", () => {
