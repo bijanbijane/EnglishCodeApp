@@ -4,7 +4,7 @@ import {
   parseAttemptResponse,
   parseAnswerSubmissionResult,
   parseLessonCompletionResult,
-} from "../src/features/lessons/api/attempts.api.ts";
+} from "../src/features/lessons/api/attempts.contract.ts";
 
 test("accepts a valid started attempt", () => {
   assert.deepEqual(parseAttemptResponse({ attemptId: "attempt-1", status: "started" }), {
