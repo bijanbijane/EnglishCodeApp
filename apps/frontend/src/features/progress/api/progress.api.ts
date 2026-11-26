@@ -1,12 +1,8 @@
 import { apiGet, ApiError } from "../../../shared/api/client";
 import { clearSession, getSessionToken } from "../../../services/auth/session";
+import { parseLessonProgressList, type LessonProgress } from "./progress.contract";
 
-export type LessonProgress = {
-  lesson_id: string;
-  best_score: number;
-  completed_count: number;
-  last_completed_at: string | null;
-};
+export type { LessonProgress } from "./progress.contract";
 
 async function authenticatedGet<T>(path: string): Promise<T> {
   const accessToken = await getSessionToken();
@@ -21,26 +17,6 @@ async function authenticatedGet<T>(path: string): Promise<T> {
   }
 }
 
-function parseProgress(value: unknown): LessonProgress {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("ساختار یکی از سوابق پیشرفت معتبر نیست.");
-  const row = value as Record<string, unknown>;
-  if (typeof row.lesson_id !== "string" || !row.lesson_id || typeof row.best_score !== "number" ||
-      typeof row.completed_count !== "number" || !Number.isSafeInteger(row.completed_count) || row.completed_count < 0 ||
-      !Number.isSafeInteger(row.best_score) || row.best_score < 0 || row.best_score > 100 ||
-      !(row.last_completed_at === null || (typeof row.last_completed_at === "string" && Number.isFinite(Date.parse(row.last_completed_at))))) {
-    throw new Error("اطلاعات یکی از سوابق پیشرفت ناقص است.");
-  }
-  return {
-    lesson_id: row.lesson_id,
-    best_score: row.best_score,
-    completed_count: row.completed_count,
-    last_completed_at: row.last_completed_at,
-  };
-}
-
 export async function getMyProgress(): Promise<LessonProgress[]> {
-  const payload = await authenticatedGet<unknown>("/api/v1/me/progress");
-  if (!Array.isArray(payload)) throw new Error("پاسخ سوابق پیشرفت معتبر نیست.");
-  return payload.map(parseProgress);
+  return parseLessonProgressList(await authenticatedGet<unknown>("/api/v1/me/progress"));
 }
-
