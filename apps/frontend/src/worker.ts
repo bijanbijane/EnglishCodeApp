@@ -1,5 +1,5 @@
 interface Env {
-  BACKEND: Fetcher;
+  BACKEND: { fetch(request: Request): Promise<Response> };
 }
 
 function requestId(request: Request): string {
