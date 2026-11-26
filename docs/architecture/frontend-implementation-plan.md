@@ -228,3 +228,12 @@ These are source-level changes only; runtime verification remains pending until 
 - Added source-contract tests for these accessible names, loading announcements and retry semantics. These tests are committed but have not yet been executed after the latest edits.
 - This does not close the full accessibility gate: keyboard-only walkthrough, screen-reader behavior, contrast, 200% zoom/reflow and Telegram-device testing remain open.
 - Latest hosted CI run [#739](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45841109336) failed both jobs with no step summaries or downloadable logs.
+
+
+## Palette centralization continuation — 2026-11-26
+
+- Centralized every hexadecimal color used by `apps/frontend/src/styles.css` into palette primitives in `apps/frontend/src/styles/tokens.css`; the stylesheet no longer embeds color literals.
+- Existing semantic role tokens remain the preferred interface for new UI work. Palette primitives preserve one-off legacy values without changing their rendered colors; they are an intermediate compatibility layer, not a claim that every value has already been semantically consolidated.
+- Extended the design-token contract test to fail if raw hexadecimal colors reappear in the screen stylesheet.
+- The source-level migration removes the previously measured 99 literal color occurrences (91 distinct values) from `styles.css`. Visual regression, contrast review and responsive/device audits remain open.
+- No checklist acceptance item is marked complete from source edits alone. Checklist coverage remains 34/50 (68.0%) until verification evidence justifies a change.
