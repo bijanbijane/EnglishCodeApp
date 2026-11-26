@@ -48,6 +48,16 @@ The public lesson catalog and question list are available without authentication
 
 Every feature should include typed API contracts, loading/empty/error states, accessible interactions and tests for meaningful behavior. Build and typecheck must pass before a change is considered verified.
 
+Run frontend checks from the repository root:
+
+```bash
+npm run typecheck --workspace @englishcode/frontend
+npm test --workspace @englishcode/frontend
+npm run build --workspace @englishcode/frontend
+```
+
+The current native Node tests cover hash-route parsing and encoding. Their presence is not evidence that they have passed; CI/runtime results must be checked.
+
 
 ## Current implementation progress
 
