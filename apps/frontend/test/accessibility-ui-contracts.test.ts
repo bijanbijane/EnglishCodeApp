@@ -23,6 +23,10 @@ test("catalog retry action has an explicit non-submit button type", () => {
   assert.match(catalog, /className=\"button button--secondary\" type=\"button\" onClick=\{onRetry\}/);
 });
 
+test("empty lesson catalog is announced as a polite status update", () => {
+  assert.match(catalog, /if \(lessons\.length === 0\) return <div className=\"state-panel\" role=\"status\" aria-live=\"polite\">/);
+});
+
 test("mobile navigation exposes the active route with aria-current", () => {
   assert.match(app, /aria-current=\{route\.name === "home" \? "page" : undefined\}/);
   assert.match(app, /aria-current=\{route\.name === "learn" \|\| route\.name === "lesson" \? "page" : undefined\}/);
