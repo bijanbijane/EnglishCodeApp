@@ -63,7 +63,7 @@ Create a feature directory only when its first real use case is implemented. Emp
 
 ## Routing
 
-Route definitions belong in `app/`. Add a router when the first multi-screen authenticated flow is implemented. Navigation must support Telegram Mini App constraints, browser refresh and safe deep links.
+Route definitions belong in `app/navigation/`. The current app uses a small hash-based route adapter for `#/`, `#/profile` and `#/lessons/:lessonId`, avoiding a routing dependency while supporting refresh, browser back/forward and Telegram BackButton. If nested route complexity grows, replace the adapter behind the same route contract rather than moving routing into feature modules.
 
 ## Platform boundary
 
