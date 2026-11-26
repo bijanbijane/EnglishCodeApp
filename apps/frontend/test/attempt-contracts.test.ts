@@ -4,6 +4,8 @@ import {
   parseAttemptResponse,
   parseAnswerSubmissionResult,
   parseLessonCompletionResult,
+  assertAnswerMatchesRequest,
+  assertCompletionMatchesAttempt,
 } from "../src/features/lessons/api/attempts.contract.ts";
 
 test("accepts a valid started attempt", () => {
@@ -41,4 +43,17 @@ test("accepts only bounded integer completion scores", () => {
       attemptId: "attempt-1", status: "completed", score,
     }));
   }
+});
+
+test("rejects feedback for a different submitted answer", () => {
+  const result = parseAnswerSubmissionResult({
+    questionId: "q-1", answerId: "a-1", isCorrect: true, explanation: "Correct.",
+  });
+  assert.throws(() => assertAnswerMatchesRequest(result, "q-2", "a-1"));
+  assert.throws(() => assertAnswerMatchesRequest(result, "q-1", "a-2"));
+});
+
+test("rejects a completion result for another attempt", () => {
+  const result = parseLessonCompletionResult({ attemptId: "attempt-1", status: "completed", score: 75 });
+  assert.throws(() => assertCompletionMatchesAttempt(result, "attempt-2"));
 });
