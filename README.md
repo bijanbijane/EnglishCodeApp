@@ -2,7 +2,7 @@
 
 پلتفرم آموزش زبان انگلیسی با محوریت Telegram Bot و Telegram Mini App؛ با مسیر توسعهٔ تدریجی به وب‌اپلیکیشن و اپلیکیشن موبایل.
 
-> **وضعیت مخزن:** مرحلهٔ پایه‌گذاری معماری و ساختار پوشه‌ها. در این مرحله مستندات و مرزبندی کد ثبت می‌شوند؛ محصول اجرایی، API عملیاتی، دیتابیس مستقرشده یا انتشار عمومی هنوز پیاده‌سازی نشده‌اند.
+> **وضعیت مخزن (۲۶ نوامبر ۲۰۲۶):** پایهٔ اجرایی بک‌اند روی `main` ثبت شده است: Worker/Hono، health/readiness، API خواندنی محتوای منتشرشده، migration اولیه D1، seed محلی، تست اولیه و workflow CI. احراز هویت تلگرام، نشست، چرخهٔ attempt/answer و ثبت پیشرفت هنوز پیاده‌سازی نشده‌اند. تست‌ها و Local D1 هنوز اجرا و تأیید نشده‌اند؛ هیچ remote migration یا deployment انجام نشده است.
 
 ## هدف محصول
 
@@ -18,7 +18,7 @@
 | زبان اصلی | TypeScript | انتخاب معماری |
 | فرانت‌اند | React + Vite | انتخاب معماری؛ نیازمند نمونه‌سازی و آزمون |
 | API | Hono روی Cloudflare Workers | انتخاب پیشنهادی؛ سازگاری باید در نمونهٔ اجرایی تأیید شود |
-| دیتابیس عملیاتی | Cloudflare D1 (SQLite) | انتخاب آغازین؛ محدودیت‌های ظرفیت و هم‌زمانی باید آزموده شوند |
+| دیتابیس عملیاتی | Cloudflare D1 (SQLite) | migration پایه و seed ثبت شده؛ اجرای Local D1 و ظرفیت هنوز آزموده نشده‌اند |
 | لایهٔ دسترسی داده | SQL و Repository؛ Drizzle فقط پس از آزمون سازگاری مهاجرت‌ها | تصمیم مشروط |
 | فایل و صوت | Cloudflare R2 | برای فایل‌ها؛ نه ذخیرهٔ باینری در D1 |
 | پردازش پس‌زمینه | Cloudflare Queues | فقط برای کارهای واقعاً غیرهم‌زمان |
@@ -80,7 +80,7 @@ EnglishCodeApp/
 └── README.md
 ~~~
 
-فایل‌های README داخل پوشه‌ها نقش ثبت مرز و مسئولیت آن بخش را دارند. این اسکلت به معنی وجود کد اجرایی در آن پوشه‌ها نیست.
+فایل‌های README داخل پوشه‌ها مرز و مسئولیت هر بخش را ثبت می‌کنند. در کنار آن‌ها، بخشی از کد اجرایی بک‌اند نیز اکنون روی `main` وجود دارد؛ وضعیت هر قابلیت در README همان بخش و اسناد backend مشخص شده است.
 
 ## جداسازی مسئولیت‌ها
 
@@ -131,25 +131,28 @@ EnglishCodeApp/
 
 هدف بلندمدت جهانی، معماری را ملزم به جداسازی لایه‌ها و جلوگیری از وابستگی به یک ارائه‌دهندهٔ هویت یا کانال ورود می‌کند؛ اما این اسکلت، ظرفیت یک میلیون کاربر فعال روزانه را اثبات نمی‌کند. D1 در هر دیتابیس پردازش query تک‌ریسمانی دارد و پلن رایگان Workers/D1 سقف‌های مشخصی دارد. رشد واقعی باید با load test، سنجش query latency و طرح partitioning/read scaling بررسی شود.
 
-## ترتیب پیشنهادی اجرا
+## ترتیب اجرای باقی‌مانده
 
-1. تثبیت قراردادهای API، مدل هویت، مدل درس/تمرین و معیارهای پذیرش.
-2. ایجاد نمونهٔ حداقلی Mini App و Worker و آزمون اتصال آن‌ها.
-3. ایجاد D1، migration اولیه، repositoryها و تست تراکنش‌ها.
-4. پیاده‌سازی ورود امن تلگرام و مدیریت session.
-5. پیاده‌سازی چرخهٔ یادگیری، پاسخ و پیشرفت.
-6. افزودن R2 و Queue فقط برای نیازهای واقعی فایل و پردازش پس‌زمینه.
-7. ارزیابی قابلیت‌های AI، هزینه و کیفیت قبل از فعال‌سازی.
-8. اجرای تست امنیت، بازیابی، بار و مصرف سهمیه پیش از انتشار.
+1. اجرای typecheck، تست‌ها و workflow CI روی commit جاری؛ اصلاح خطاها.
+2. اجرای migration و seed روی Local D1 تازه و ثبت شواهد.
+3. تکمیل Telegram HMAC، replay protection اتمیک و session lifecycle.
+4. پیاده‌سازی attempt، ثبت پاسخ idempotent، grading سمت سرور و progress اتمیک.
+5. تکمیل rate limiting، origin policy، امنیت cross-user و retention/export/delete.
+6. افزودن قابلیت‌های content authoring و administration بر اساس نیاز.
+7. ارزیابی R2، Queues و AI فقط پس از اثبات use case و بررسی هزینه.
+8. آزمون بازیابی، بار و سهمیه؛ سپس بررسی جداگانهٔ staging. Production نیازمند تأیید صریح است.
 
 ## وضعیت قابلیت‌ها
 
-- [x] ثبت سیاست Free-first
-- [x] ثبت تصمیم معماری پایه و مرزبندی فرانت‌اند، بک‌اند و دیتابیس
-- [ ] ساخت اپلیکیشن اجرایی
-- [ ] ساخت schema و migration واقعی دیتابیس
-- [ ] آزمون یکپارچگی با Cloudflare
-- [ ] آزمون امنیت و بار
+- [x] ثبت سیاست Free-first و معماری Modular Monolith
+- [x] Worker/Hono پایه و endpointهای health/readiness
+- [x] API خواندنی دوره و درس؛ حذف answer key از DTO عمومی
+- [x] migration اولیه و seed مصنوعی (فایل‌ها ثبت شده‌اند؛ Local D1 هنوز اجرا نشده)
+- [x] تست اولیه و workflow CI (نتیجهٔ اجرا هنوز تأیید نشده)
+- [ ] Telegram authentication و session
+- [ ] attempt، answer، grading و progress write
+- [ ] rate limit، RBAC، retention و export/delete
+- [ ] آزمون یکپارچگی D1/Workers، امنیت و بار
 - [ ] انتشار عملیاتی
 
 ## اسناد
@@ -158,3 +161,8 @@ EnglishCodeApp/
 - [ADR-0001: Cloudflare-native و Free-first](docs/decisions/ADR-0001-cloudflare-free-first.md)
 - [سیاست سهمیه و هزینه](docs/operations/free-tier-policy.md)
 - [گزارش امنیت](SECURITY.md)
+- [Backend architecture](docs/backend/ARCHITECTURE.md)
+- [Backend API contract](docs/backend/API.md)
+- [Backend data model](docs/backend/DATA-MODEL.md)
+- [Backend security baseline](docs/backend/SECURITY.md)
+- [Backend operations](docs/backend/OPERATIONS.md)
