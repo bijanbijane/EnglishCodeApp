@@ -3,7 +3,7 @@ import { bytesToHex, hmacSha256 } from "../src/shared/crypto";
 import { verifyTelegramInitData } from "../src/modules/auth/telegram";
 
 async function signedInitData(botToken: string, fields: Record<string, string>) {
-  const data = Object.entries(fields).sort(([a], [b]) => a.localeCompare(b))
+  const data = Object.entries(fields).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([key, value]) => `${key}=${value}`).join("\n");
   const secret = await hmacSha256(new TextEncoder().encode(botToken), "WebAppData");
   const hash = bytesToHex(await hmacSha256(secret, data));
