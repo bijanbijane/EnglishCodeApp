@@ -7,7 +7,8 @@ const userId = "author-1";
 function makeAdminDb(options: {
   role?: boolean;
   version?: { id: string; status: string; created_by_user_id: string | null } | null;
-  review?: { id: string; author_user_id: string; status: string; lesson_version_id?: string; lesson_id?: string; version?: number } | null;
+  review?: { id: string; author_user_id: string | null; status: string; lesson_version_id?: string; lesson_id?: string; version?: number } | null;
+  reviewAfterDecision?: { status: string; reviewed_by_user_id: string | null } | null;
 } = {}) {
   const sqlCalls: Array<{ sql: string; values: unknown[] }> = [];
   const batch = vi.fn().mockResolvedValue([{ meta: { changes: 1 } }]);
@@ -21,6 +22,7 @@ function makeAdminDb(options: {
           if (sql.includes("FROM lessons l")) return { title: "Published lesson", level: "A1", position: 1 };
           if (sql.includes("MAX(version)")) return { version: 2 };
           if (sql.includes("FROM lesson_versions WHERE id=? AND lesson_id=?")) return options.version ?? null;
+          if (sql.includes("SELECT status,reviewed_by_user_id FROM content_review_requests")) return options.reviewAfterDecision ?? null;
           if (sql.includes("FROM content_review_requests") && sql.includes("WHERE id=? LIMIT 1")) return options.review ?? null;
           return null;
         }),
@@ -119,6 +121,31 @@ describe("admin RBAC and content workflow", () => {
     expect(response.status).toBe(403);
     expect(await response.json()).toMatchObject({ error: { code: "SELF_REVIEW_FORBIDDEN" } });
     expect(fake.batch).not.toHaveBeenCalled();
+  });
+
+  it("allows a reviewer to decide a pending request after its author account is deleted", async () => {
+    const fake = makeAdminDb({
+      review: { id: "review-1", author_user_id: null, status: "pending" },
+      reviewAfterDecision: { status: "approved", reviewed_by_user_id: userId },
+    });
+    const token = await createSessionToken();
+    const response = await app.request(
+      "/api/v1/admin/content/reviews/review-1/decision",
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ decision: "approve", reasonCode: "approved" }),
+      },
+      { DB: fake.DB } as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      data: { reviewRequestId: "review-1", status: "approved" },
+    });
+    expect(fake.sqlCalls.some((entry) =>
+      entry.sql.includes("author_user_id IS NULL OR author_user_id<>?")
+    )).toBe(true);
   });
 
   it("refuses to publish content before reviewer approval", async () => {
