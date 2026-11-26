@@ -19,22 +19,22 @@ interface AttemptListRow {
 }
 
 export function encodeAttemptCursor(startedAt: string, id: string): string {
-  return btoa(`${startedAt}\n${id}`).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  return `${encodeURIComponent(startedAt)}~${encodeURIComponent(id)}`;
 }
 
 export function decodeAttemptCursor(value: string): { startedAt: string; id: string } | null {
-  if (!/^[A-Za-z0-9_-]{8,256}$/.test(value)) return null;
+  if (value.length < 8 || value.length > 256) return null;
+  const parts = value.split("~");
+  if (parts.length !== 2) return null;
   try {
-    const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
-    const decoded = atob(base64 + "=".repeat((4 - base64.length % 4) % 4));
-    const [startedAt, id, extra] = decoded.split("\n");
-    if (extra !== undefined || !startedAt || !id || !Number.isFinite(Date.parse(startedAt)) || id.length > 128) return null;
+    const startedAt = decodeURIComponent(parts[0]);
+    const id = decodeURIComponent(parts[1]);
+    if (!startedAt || !Number.isFinite(Date.parse(startedAt)) || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) return null;
     return { startedAt, id };
   } catch {
     return null;
   }
 }
-
 learningRoutes.get("/me/attempts", requireAuth, async (c) => {
   if (!c.env.DB) return c.json(errorBody("DATABASE_UNAVAILABLE", "Attempt history is unavailable.", c.get("requestId")), 503);
   const limit = Number(c.req.query("limit") ?? 20);
