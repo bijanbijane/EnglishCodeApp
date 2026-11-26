@@ -2,17 +2,9 @@ import { AppError } from "../../shared/errors";
 import { bytesToHex, constantTimeHexEqual, hmacSha256 } from "../../shared/crypto";
 
 export interface TelegramUser {
-  id: string;
-  firstName: string;
-  lastName: string | null;
-  username: string | null;
-  languageCode: string | null;
+  id: string; firstName: string; lastName: string | null; username: string | null; languageCode: string | null;
 }
-export interface VerifiedTelegramInitData {
-  user: TelegramUser;
-  authDate: number;
-  queryId: string | null;
-}
+export interface VerifiedTelegramInitData { user: TelegramUser; authDate: number; queryId: string | null; }
 
 export async function verifyTelegramInitData(
   rawInitData: string,
@@ -38,7 +30,7 @@ export async function verifyTelegramInitData(
   }
 
   const checkString = entries.filter(([key]) => key !== "hash")
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([key, value]) => `${key}=${value}`).join("\n");
   // Telegram Web Apps: HMAC_SHA256(key=bot_token, data="WebAppData"), then sign checkString.
   const secret = await hmacSha256(new TextEncoder().encode(options.botToken), "WebAppData");
@@ -61,13 +53,11 @@ export async function verifyTelegramInitData(
   }
   return {
     user: {
-      id: String(user.id),
-      firstName: user.first_name.slice(0, 128),
+      id: String(user.id), firstName: user.first_name.slice(0, 128),
       lastName: typeof user.last_name === "string" ? user.last_name.slice(0, 128) : null,
       username: typeof user.username === "string" ? user.username.slice(0, 64) : null,
       languageCode: typeof user.language_code === "string" ? user.language_code.slice(0, 16) : null
     },
-    authDate,
-    queryId: params.get("query_id")
+    authDate, queryId: params.get("query_id")
   };
 }
