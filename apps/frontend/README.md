@@ -48,6 +48,16 @@ The public lesson catalog and question list are available without authentication
 
 Every feature should include typed API contracts, loading/empty/error states, accessible interactions and tests for meaningful behavior. Build and typecheck must pass before a change is considered verified.
 
+Run frontend checks from the repository root:
+
+```bash
+npm run typecheck --workspace @englishcode/frontend
+npm test --workspace @englishcode/frontend
+npm run build --workspace @englishcode/frontend
+```
+
+The current native Node tests cover hash-route parsing and encoding. Their presence is not evidence that they have passed; CI/runtime results must be checked.
+
 
 ## Current implementation progress
 
@@ -59,7 +69,24 @@ Every feature should include typed API contracts, loading/empty/error states, ac
 - Telegram host adapter isolates raw initData, host detection, SecureStorage, viewport/safe-area/theme metadata and BackButton lifecycle.
 - Profile screen exposes backend-verified display name, session status and server-backed logout.
 - Progress screen reads per-lesson best score, completion count and last completion date from the authenticated `/api/v1/me/progress` endpoint.
-- Hash navigation supports home, profile and direct lesson links, including browser back/forward and Telegram BackButton.
+- Hash navigation supports home, lesson, progress and profile routes, including direct lesson links, browser back/forward and Telegram BackButton.
 - Implementation sequence and platform boundary are documented in [frontend-implementation-plan.md](../../docs/architecture/frontend-implementation-plan.md) and [frontend-platform-adapter.md](../../docs/architecture/frontend-platform-adapter.md).
 
 The current branch has not been runtime-verified. Typecheck, production build, browser testing and Telegram-client testing remain outstanding. The authenticated lesson flow is source-implemented but has not yet been runtime-verified in Telegram.
+
+## Validation commands
+
+Run these from `apps/frontend`:
+
+- `npm run typecheck` — TypeScript project check.
+- `npm test` — dependency-free route, strict API-envelope, lesson-payload, attempt-response, profile/progress DTO and lesson-search contract tests (Node.js 22 with TypeScript type stripping).
+- `npm run build` — production TypeScript and Vite build.
+
+The route tests cover hash serialization, direct links, encoded lesson IDs and invalid-route fallback. Passing source configuration does not mean these commands have been executed; consult CI evidence and the acceptance checklist.
+
+Architecture detail: [Frontend Runtime Contracts](../../docs/architecture/frontend-runtime-contracts.md).
+
+
+Recent hardening also rejects malformed/duplicate question payloads, checks that server feedback and completion belong to the submitted entities, offers a retry for recoverable Telegram sign-in failures, and ignores stale catalog/progress responses. These changes still require runtime verification.
+
+Feature boundaries are exposed through `features/lessons`, `features/identity` and `features/progress` public `index.ts` files. App composition should not import their private implementation paths.

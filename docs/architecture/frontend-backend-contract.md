@@ -29,6 +29,8 @@ Backend errors are produced through `errorBody(code, message, requestId)`; the c
 | GET | `/api/v1/me` | Bearer session | Returns current user id and display name |
 | GET | `/api/v1/me/progress` | Bearer session | Returns per-lesson best score, completion count and last completion timestamp |
 
+**Answer idempotency observed in backend source:** `POST /api/v1/attempts/:attemptId/answers` uses `INSERT OR IGNORE` and then returns the persisted answer row. The first answer for a question wins. A retry can therefore return an `answerId` different from the most recently submitted value; the frontend must treat the returned answer as authoritative and must not assume the request overwrote the stored choice.
+
 ## 3. Confirmed frontend behavior
 
 - `GET /api/v1/lessons` is called by the lesson feature.

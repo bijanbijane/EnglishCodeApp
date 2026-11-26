@@ -1,13 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { getLessons } from "../features/lessons/api/lessons.api";
-import { LessonCatalog } from "../features/lessons/ui/LessonCatalog";
-import { LessonWorkspace } from "../features/lessons/ui/LessonWorkspace";
-import { ProfilePanel } from "../features/identity/ui/ProfilePanel";
-import { ProgressPanel } from "../features/progress/ui/ProgressPanel";
-import type { Lesson, LessonListState } from "../features/lessons/model/lesson.types";
+import { getLessons, LearningLibrary, LessonWorkspace, type Lesson, type LessonListState } from "../features/lessons";
+import { ProfilePanel, bootstrapTelegramSession, retryTelegramSessionBootstrap, signOut, subscribeToSessionInvalidation, type SessionBootstrapResult } from "../features/identity";
+import { ProgressPanel } from "../features/progress";
 import { bindTelegramLayoutMetrics, getPlatformContext, initializeTelegramHost, setTelegramBackAction } from "../services/platform/telegram";
-import { bootstrapTelegramSession, signOut, type SessionBootstrapResult } from "../features/identity/api/auth.api";
-import { subscribeToSessionInvalidation } from "../services/auth/session";
+
 import { hashFromRoute, routeFromHash, type AppRoute } from "./navigation/routes";
 
 export default function App() {
@@ -16,8 +12,8 @@ export default function App() {
   const [signingOut, setSigningOut] = useState(false);
   const [activeAttempt, setActiveAttempt] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
   const [sessionState, setSessionState] = useState<SessionBootstrapResult | { status: "checking" }>({ status: "checking" });
+  const lessonRequestId = useRef(0);
   const hostInitialized = useRef(false);
 
   const navigateTo = useCallback((next: AppRoute) => {
@@ -45,13 +41,25 @@ export default function App() {
     }
   }, [navigateTo]);
 
+  const retrySession = useCallback(async () => {
+    setSessionState({ status: "checking" });
+    try {
+      setSessionState(await retryTelegramSessionBootstrap());
+    } catch (error) {
+      setSessionState({ status: "error", message: error instanceof Error ? error.message : "ورود به حساب انجام نشد." });
+    }
+  }, []);
+
   const loadLessons = useCallback(async () => {
+    const requestId = ++lessonRequestId.current;
     setLessonState({ status: "loading" });
     try {
       const lessons = await getLessons();
-      setLessonState({ status: "ready", lessons });
+      if (requestId === lessonRequestId.current) setLessonState({ status: "ready", lessons });
     } catch (error) {
-      setLessonState({ status: "error", message: error instanceof Error ? error.message : "خطای پیش‌بینی‌نشده‌ای رخ داد." });
+      if (requestId === lessonRequestId.current) {
+        setLessonState({ status: "error", message: error instanceof Error ? error.message : "خطای پیش‌بینی‌نشده‌ای رخ داد." });
+      }
     }
   }, []);
 
@@ -71,12 +79,12 @@ export default function App() {
   }, [activeAttempt, route]);
 
   useEffect(() => {
-    if (hostInitialized.current || lessonState.status === "loading" || sessionState.status === "checking") return;
-    hostInitialized.current = true;
-    initializeTelegramHost();
-    const cleanup = bindTelegramLayoutMetrics();
-    return () => { cleanup(); hostInitialized.current = false; };
-  }, [lessonState.status, sessionState.status]);
+    if (!hostInitialized.current) {
+      initializeTelegramHost();
+      hostInitialized.current = true;
+    }
+    return bindTelegramLayoutMetrics();
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -84,16 +92,19 @@ export default function App() {
     return () => { active = false; };
   }, []);
 
-  useEffect(() => { void loadLessons(); }, [loadLessons]);
+  useEffect(() => {
+    void loadLessons();
+    return () => { lessonRequestId.current += 1; };
+  }, [loadLessons]);
   useEffect(() => subscribeToSessionInvalidation(() => setSessionState({ status: "missing-init-data" })), []);
 
   useEffect(() => {
     if (route.name === "home") return;
-    return setTelegramBackAction(() => navigateTo({ name: "home" }));
+    const destination: AppRoute = route.name === "lesson" ? { name: "learn" } : { name: "home" };
+    return setTelegramBackAction(() => navigateTo(destination));
   }, [route, navigateTo]);
 
   const lessons = lessonState.status === "ready" ? lessonState.lessons : [];
-  const lessonTitles = useMemo(() => Object.fromEntries(lessons.map((lesson) => [lesson.id, lesson.title])), [lessons]);
   const selectedLesson: Lesson | null = route.name === "lesson" && lessonState.status === "ready"
     ? lessonState.lessons.find((lesson) => lesson.id === route.lessonId) ?? null
     : null;
@@ -106,15 +117,10 @@ export default function App() {
         ? "برای ورود معتبر، Mini App را از دکمهٔ منو یا صفحهٔ اصلی ربات باز کن."
         : sessionState.status === "secure-storage-unavailable"
           ? sessionState.message
+          : sessionState.status === "reopen-required" ? sessionState.message
           : sessionState.status === "error" ? sessionState.message : undefined;
 
   const lessonTitles = useMemo(() => Object.fromEntries(lessons.map((lesson) => [lesson.id, lesson.title])) as Record<string, string>, [lessons]);
-
-  const visibleLessons = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase();
-    if (!term) return lessons;
-    return lessons.filter((lesson) => (lesson.title + " " + lesson.level).toLocaleLowerCase().includes(term));
-  }, [lessons, search]);
 
   return (
     <main className="app-shell">
@@ -132,10 +138,17 @@ export default function App() {
       {route.name === "lesson" ? (
         lessonState.status === "loading" ? <div className="state-panel" role="status"><span className="loader" /> در حال بارگذاری درس…</div>
           : lessonState.status === "error" ? <div className="state-panel state-panel--error" role="alert"><div><strong>اطلاعات درس دریافت نشد.</strong><p>{lessonState.message}</p></div><button className="button button--secondary" type="button" onClick={() => void loadLessons()}>تلاش دوباره</button></div>
-            : selectedLesson ? <LessonWorkspace key={selectedLesson.id} lesson={selectedLesson} onBack={() => navigateTo({ name: "home" })} canStartAttempt={canStartAttempt} sessionMessage={sessionMessage} onAttemptActiveChange={setActiveAttempt} />
-              : <div className="state-panel"><strong>این درس در فهرست فعلی وجود ندارد.</strong><button className="button button--secondary" type="button" onClick={() => navigateTo({ name: "home" })}>بازگشت به درس‌ها</button></div>
+            : selectedLesson ? <LessonWorkspace key={selectedLesson.id} lesson={selectedLesson} onBack={() => navigateTo({ name: "learn" })} canStartAttempt={canStartAttempt} sessionMessage={sessionMessage} onAttemptActiveChange={setActiveAttempt} />
+              : <div className="state-panel"><strong>این درس در فهرست فعلی وجود ندارد.</strong><button className="button button--secondary" type="button" onClick={() => navigateTo({ name: "learn" })}>بازگشت به درس‌ها</button></div>
+      ) : route.name === "learn" ? (
+        <LearningLibrary
+          state={lessonState}
+          onBack={() => navigateTo({ name: "home" })}
+          onRetry={() => void loadLessons()}
+          onSelect={(lesson) => navigateTo({ name: "lesson", lessonId: lesson.id })}
+        />
       ) : route.name === "progress" ? (
-        <ProgressPanel isAuthenticated={canStartAttempt} lessonTitles={lessonTitles} onBack={() => navigateTo({ name: "home" })} onOpenLessons={() => navigateTo({ name: "home" })} />
+        <ProgressPanel isAuthenticated={canStartAttempt} lessonTitles={lessonTitles} onBack={() => navigateTo({ name: "home" })} onOpenLessons={() => navigateTo({ name: "learn" })} />
       ) : route.name === "profile" ? (
         <ProfilePanel isAuthenticated={canStartAttempt} isTelegramHost={getPlatformContext().host === "telegram"} signingOut={signingOut} error={signOutError ?? undefined} onSignOut={() => void handleSignOut()} onBack={() => navigateTo({ name: "home" })} />
       ) : (
@@ -157,28 +170,23 @@ export default function App() {
             </div>
           </section>
 
-          {sessionMessage && <div className="session-banner" role="status"><span className="session-banner__dot" />{sessionMessage}</div>}
+          {sessionMessage && <div className="session-banner" role="status"><span className="session-banner__dot" /><span>{sessionMessage}</span>{sessionState.status === "error" && <button className="button button--secondary session-banner__retry" type="button" onClick={() => void retrySession()}>تلاش دوباره</button>}</div>}
 
           <section className="learning-overview" aria-label="نمای کلی یادگیری">
-            <div className="section-heading"><div><p className="eyebrow">LEARNING OVERVIEW</p><h2>فضای یادگیری تو</h2></div><span className="section-caption">اطلاعات حساب پس از اتصال پروفایل نمایش داده می‌شود</span></div>
+            <div className="section-heading"><div><p className="eyebrow">LEARNING OVERVIEW</p><h2>فضای یادگیری تو</h2></div><span className="section-caption">جزئیات امتیازها در صفحهٔ پیشرفت</span></div>
             <div className="overview-grid">
-              <article className="overview-card overview-card--primary"><span className="overview-card__icon" aria-hidden="true">↗</span><div><strong>مسیر یادگیری</strong><p>از فهرست درس‌های منتشرشده یک درس را انتخاب کن.</p></div></article>
-              <article className="overview-card"><span className="overview-card__icon overview-card__icon--mint" aria-hidden="true">✓</span><div><strong>پیشرفت قابل سنجش</strong><p>امتیاز و پیشرفت فقط پس از ثبت معتبر در سرور نمایش داده می‌شود.</p></div></article>
+              <button className="overview-card overview-card--primary overview-card--action" type="button" onClick={() => navigateTo({ name: "learn" })}><span className="overview-card__icon" aria-hidden="true">↗</span><span><strong>مسیر یادگیری</strong><p>از فهرست درس‌های منتشرشده یک درس را انتخاب کن.</p></span></button>
+              <button className="overview-card overview-card--action" type="button" onClick={() => navigateTo({ name: "progress" })}><span className="overview-card__icon overview-card__icon--mint" aria-hidden="true">✓</span><span><strong>پیشرفت قابل سنجش</strong><p>امتیاز و پیشرفت فقط پس از ثبت معتبر در سرور نمایش داده می‌شود.</p></span></button>
             </div>
           </section>
 
-          <section className="lessons-section" id="lessons" aria-labelledby="lessons-title">
-            <div className="section-heading"><div><p className="eyebrow">START LEARNING</p><h2 id="lessons-title">درس‌های در دسترس</h2></div>{lessonState.status === "ready" && <span className="lesson-count">{lessons.length} درس</span>}</div>
-            <div className="catalog-toolbar"><label className="catalog-search"><span aria-hidden="true">⌕</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="جست‌وجوی عنوان یا سطح درس" aria-label="جست‌وجوی درس‌ها" /></label><span className="catalog-hint">برای مشاهدهٔ محتوای هر درس انتخابش کن</span></div>
-            <LessonCatalog lessons={visibleLessons} state={lessonState.status} errorMessage={lessonState.status === "error" ? lessonState.message : undefined} onRetry={() => void loadLessons()} onSelect={(lesson) => navigateTo({ name: "lesson", lessonId: lesson.id })} />
-          </section>
           <footer className="footer"><span>یادگیری با استمرار ساخته می‌شود.</span><span className="footer__brand">EnglishCode · MVP</span></footer>
         </>
       )}
 
       <nav className="mobile-nav" aria-label="ناوبری اصلی">
         <button className={route.name === "home" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "home" })}><span aria-hidden="true">⌂</span><small>خانه</small></button>
-        <button className={route.name === "lesson" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "home" })}><span aria-hidden="true">▤</span><small>درس‌ها</small></button>
+        <button className={route.name === "learn" || route.name === "lesson" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "learn" })}><span aria-hidden="true">▤</span><small>یادگیری</small></button>
         <button className={route.name === "progress" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "progress" })}><span aria-hidden="true">◷</span><small>پیشرفت</small></button>
         <button className={route.name === "profile" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "profile" })}><span aria-hidden="true">○</span><small>پروفایل</small></button>
       </nav>

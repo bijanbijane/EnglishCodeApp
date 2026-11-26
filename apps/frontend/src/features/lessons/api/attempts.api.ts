@@ -1,9 +1,17 @@
 import { apiPost, ApiError } from "../../../shared/api/client";
 import { clearSession, getSessionToken } from "../../../services/auth/session";
+import {
+  parseAttemptResponse,
+  parseAnswerSubmissionResult,
+  parseLessonCompletionResult,
+  assertAnswerBelongsToQuestion,
+  assertCompletionMatchesAttempt,
+  type LessonAttempt,
+  type AnswerSubmissionResult,
+  type LessonCompletionResult,
+} from "./attempts.contract";
 
-export type LessonAttempt = { attemptId: string; status: "started" | "completed" };
-export type AnswerSubmissionResult = { questionId: string; answerId: string; isCorrect: boolean; explanation: string };
-export type LessonCompletionResult = { attemptId: string; status: "completed"; score: number };
+export type { LessonAttempt, AnswerSubmissionResult, LessonCompletionResult } from "./attempts.contract";
 
 async function withSession<T>(action: (accessToken: string) => Promise<T>): Promise<T> {
   const accessToken = await getSessionToken();
@@ -19,25 +27,27 @@ async function withSession<T>(action: (accessToken: string) => Promise<T>): Prom
 }
 
 export async function startLessonAttempt(lessonId: string): Promise<LessonAttempt> {
-  return withSession((accessToken) => apiPost<LessonAttempt>(
-    "/api/v1/lessons/" + encodeURIComponent(lessonId) + "/attempts",
-    {},
-    { accessToken },
-  ));
+  return withSession(async (accessToken) => parseAttemptResponse(await apiPost<unknown>(
+    "/api/v1/lessons/" + encodeURIComponent(lessonId) + "/attempts", {}, { accessToken },
+  )));
 }
 
 export async function submitLessonAnswer(attemptId: string, questionId: string, answerId: string): Promise<AnswerSubmissionResult> {
-  return withSession((accessToken) => apiPost<AnswerSubmissionResult>(
-    "/api/v1/attempts/" + encodeURIComponent(attemptId) + "/answers",
-    { questionId, answerId },
-    { accessToken },
-  ));
+  return withSession(async (accessToken) => {
+    const result = parseAnswerSubmissionResult(await apiPost<unknown>(
+      "/api/v1/attempts/" + encodeURIComponent(attemptId) + "/answers", { questionId, answerId }, { accessToken },
+    ));
+    assertAnswerBelongsToQuestion(result, questionId);
+    return result;
+  });
 }
 
 export async function completeLessonAttempt(attemptId: string): Promise<LessonCompletionResult> {
-  return withSession((accessToken) => apiPost<LessonCompletionResult>(
-    "/api/v1/attempts/" + encodeURIComponent(attemptId) + "/complete",
-    {},
-    { accessToken },
-  ));
+  return withSession(async (accessToken) => {
+    const result = parseLessonCompletionResult(await apiPost<unknown>(
+      "/api/v1/attempts/" + encodeURIComponent(attemptId) + "/complete", {}, { accessToken },
+    ));
+    assertCompletionMatchesAttempt(result, attemptId);
+    return result;
+  });
 }

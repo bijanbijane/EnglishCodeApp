@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getMyProgress, type LessonProgress } from "../api/progress.api";
 import type { ProgressState } from "../model/progress.types";
 
@@ -24,16 +24,17 @@ function ProgressRow({ row, title }: { row: LessonProgress; title: string }) {
 export function ProgressPanel({ isAuthenticated, lessonTitles, onBack, onOpenLessons }: ProgressPanelProps) {
   const [state, setState] = useState<ProgressState>({ status: "loading" });
   const [retry, setRetry] = useState(0);
-  const load = useCallback(async () => {
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let active = true;
     setState({ status: "loading" });
-    try {
-      const rows = await getMyProgress();
-      setState({ status: "ready", rows });
-    } catch (error) {
-      setState({ status: "error", message: error instanceof Error ? error.message : "دریافت پیشرفت ناموفق بود." });
-    }
-  }, []);
-  useEffect(() => { if (isAuthenticated) void load(); }, [isAuthenticated, load, retry]);
+    void getMyProgress().then((rows) => {
+      if (active) setState({ status: "ready", rows });
+    }).catch((error: unknown) => {
+      if (active) setState({ status: "error", message: error instanceof Error ? error.message : "دریافت پیشرفت ناموفق بود." });
+    });
+    return () => { active = false; };
+  }, [isAuthenticated, retry]);
 
   const totals = useMemo(() => {
     if (state.status !== "ready") return { lessons: 0, completions: 0, average: 0 };

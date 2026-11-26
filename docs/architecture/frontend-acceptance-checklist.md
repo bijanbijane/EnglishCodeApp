@@ -23,7 +23,7 @@ This checklist operationalizes `frontend-product-spec.md`. Check an item only wh
 ## C. UI states
 - [ ] Loading, loaded, empty, error and retry states.
 - [ ] Session expired/unauthorized state.
-- [ ] Submitting state prevents duplicate actions.
+- [x] Submitting state prevents duplicate actions.
 - [ ] Recoverable errors preserve safe user input.
 - [ ] Network failure and stale data behavior are defined.
 - [ ] Feedback explains errors and provides a next action.
@@ -67,14 +67,14 @@ This checklist operationalizes `frontend-product-spec.md`. Check an item only wh
 - [ ] Backend remains authoritative for grading and progress.
 
 ## G. Testing and performance
-- [ ] Unit tests for meaningful domain-to-view mapping and utilities.
+- [x] Unit tests for meaningful domain-to-view mapping and utilities.
 - [ ] Component tests for states, forms and keyboard behavior.
 - [ ] Integration test for lesson catalog.
 - [ ] Integration test for lesson start, answer submit and server result.
 - [ ] Session expiry and recovery tested.
 - [ ] E2E critical journey passes in test environment.
-- [ ] TypeScript typecheck passes.
-- [ ] Production build passes.
+- [x] TypeScript typecheck passes.
+- [x] Production build passes.
 - [ ] CI run is green and linked.
 - [ ] Mobile network and representative device performance checked.
 - [ ] No performance compliance claim without measurement.
@@ -95,4 +95,18 @@ This checklist operationalizes `frontend-product-spec.md`. Check an item only wh
 
 ## Current source implementation note — 2026-11-26
 
-The branch now contains a searchable lesson catalog, public question retrieval, Telegram Bot API 9.0 SecureStorage session bootstrap, authenticated attempt/answer/complete requests, server-confirmed feedback and score, authenticated profile and progress screens, logout, hash navigation and Telegram BackButton/safe-area/theme integration. These are implementation artifacts only. The relevant checklist items above remain unchecked until typecheck, production build, automated integration tests and Telegram device tests provide evidence. Browser authentication remains unavailable because the backend does not yet expose a secure HttpOnly cookie/session contract.
+The branch now contains a searchable lesson catalog, public question retrieval, Telegram Bot API 9.0 SecureStorage session bootstrap, authenticated attempt/answer/complete requests, server-confirmed feedback and score, authenticated profile and progress screens, logout, hash navigation and Telegram BackButton/safe-area/theme integration. Frontend typecheck, unit/contract tests and production build have passed locally; integration tests, hosted CI, Telegram-device verification and browser E2E remain open. Browser authentication remains unavailable because the backend does not yet expose a secure HttpOnly cookie/session contract.
+
+
+## Learn library implementation update — 2026-11-26
+
+The source now separates the Home dashboard from the dedicated `#/learn` library. The library supports search by lesson title, CEFR level and description, a data-driven CEFR level selector, Persian/Arabic keyboard-variant normalization, explicit no-results feedback, and the existing loading/empty/error/retry catalog states. Pure tests cover filters and verify the source list is not mutated. Lesson selection opens the lesson player; returning from the player returns to Learn. Pure search and route tests were added to the repository.
+
+The profile screen now offers a retry action after a recoverable `GET /api/v1/me` failure without clearing the authenticated session. Local validation on 2026-11-26 passed: clean `npm ci`, frontend typecheck, 39/39 frontend tests, Vite production build and `git diff --check`. Backend workspace typecheck/tests and hosted CI remain separate open gates; Telegram-device and E2E checks have not been run.
+
+Practice and Review remain intentionally absent from active navigation until the frontend's backend base exposes the required server-owned contracts. The five-destination navigation acceptance item above remains unchecked. Local frontend unit tests, typecheck and production build are now checked based on 2026-11-26 execution evidence. Component/integration/E2E tests, hosted CI, accessibility audits and Telegram-device checks remain unchecked.
+
+
+## Duplicate-action safeguard — 2026-11-26
+
+The lesson UI now uses single-flight guards for answer submission, attempt creation and completion. Local tests verify that concurrent invocations do not start a second action and that a failed action releases the guard for retry. Backend idempotency and end-to-end verification are still required.

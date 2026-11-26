@@ -14,13 +14,21 @@ export type SessionBootstrapResult =
   | { status: "browser-preview" }
   | { status: "missing-init-data" }
   | { status: "secure-storage-unavailable"; message: string }
+  | { status: "reopen-required"; message: string }
   | { status: "error"; message: string };
 
 let bootstrapPromise: Promise<SessionBootstrapResult> | null = null;
 
 export function bootstrapTelegramSession(): Promise<SessionBootstrapResult> {
-  if (!bootstrapPromise) bootstrapPromise = performBootstrap();
+  if (!bootstrapPromise) {
+    bootstrapPromise = performBootstrap().finally(() => { bootstrapPromise = null; });
+  }
   return bootstrapPromise;
+}
+
+export function retryTelegramSessionBootstrap(): Promise<SessionBootstrapResult> {
+  // Reuse an in-flight request so rapid repeat clicks cannot issue duplicate auth requests.
+  return bootstrapTelegramSession();
 }
 
 async function performBootstrap(): Promise<SessionBootstrapResult> {
@@ -39,6 +47,9 @@ async function performBootstrap(): Promise<SessionBootstrapResult> {
     await saveSession({ token: response.token, expiresAt: response.expiresAt });
     return { status: "authenticated", displayName: response.user.displayName };
   } catch (error) {
+    if (error instanceof ApiError && error.code === "TELEGRAM_INIT_DATA_REPLAYED") {
+      return { status: "reopen-required", message: "اطلاعات ورود تلگرام قبلاً استفاده شده یا منقضی است؛ Mini App را ببند و دوباره از ربات باز کن." };
+    }
     return { status: "error", message: error instanceof Error ? error.message : "ورود به حساب انجام نشد." };
   }
 }
@@ -46,7 +57,8 @@ async function performBootstrap(): Promise<SessionBootstrapResult> {
 export async function signOut(): Promise<void> {
   const token = await getSessionToken();
   try {
-    await apiPost<{ signedOut: boolean }>("/api/v1/auth/logout", {}, { accessToken: token });
+    const response = await apiPost<{ signedOut: boolean }>("/api/v1/auth/logout", {}, { accessToken: token });
+    if (!response || response.signedOut !== true) throw new Error("سرور خروج از حساب را تأیید نکرد.");
   } catch (error) {
     if (!(error instanceof ApiError) || error.status !== 401) throw error;
   }

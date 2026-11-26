@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: backend-ci-${{ github.workflow }}-${{ github.ref }}
+  group: englishcode-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -45,6 +45,9 @@ jobs:
 
       - name: Backend unit tests
         run: npm test
+
+      - name: Frontend unit tests
+        run: npm run test --workspace @englishcode/frontend
 
       - name: Frontend production build
         run: npm run build:frontend
