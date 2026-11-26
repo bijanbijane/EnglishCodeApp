@@ -47,7 +47,14 @@ The API must not return stack traces, SQL text, secrets, session tokens, or priv
 | POST | `/attempts/:attemptId/complete` | Bearer session | Complete attempt and update progress in one D1 batch | Implemented; atomicity unverified |
 | GET | `/me/progress` | Bearer session | Current user's lesson progress | Implemented; D1 integration unverified |
 
-## Content and assessment invariants
+## Role-protected administration endpoints\n\n| POST | `/admin/content/lessons/:lessonId/versions` | content_author | Create a draft lesson version | Implemented |
+| GET | `/admin/content/lessons/:lessonId/versions` | content_author | List own lesson versions | Implemented |
+| POST | `/admin/content/lessons/:lessonId/versions/:versionId/submit-review` | content_author | Submit own draft for review | Implemented |
+| GET | `/admin/content/reviews` | content_reviewer | Bounded review queue | Implemented |
+| GET | `/admin/content/reviews/:requestId` | content_reviewer | Read review detail including private answer key | Implemented |
+| POST | `/admin/content/reviews/:requestId/decision` | content_reviewer | Approve or reject; no self-review | Implemented |
+| POST | `/admin/content/reviews/:requestId/publish` | admin | Publish approved lesson version | Implemented |
+| GET | `/admin/audit` | admin | Filtered keyset-paginated audit feed | Implemented |\n\nThere is no public role-grant endpoint. First-admin bootstrap is owner-controlled; see `ADMIN-BOOTSTRAP.md`.\n\n## Content and assessment invariants
 
 - Only records with `status = 'published'` are returned by public catalog routes.
 - Public pre-answer question DTOs never select or return `answer_key` or answer `explanation`.
