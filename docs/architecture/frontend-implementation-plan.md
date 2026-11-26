@@ -337,3 +337,12 @@ These are source-level changes only; runtime verification remains pending until 
 - Implementation commit: [6d9dae3](https://github.com/bijanbijane/EnglishCodeApp/commit/6d9dae3280eac8d26b622ac67c78ae20a14d0220). Test commit: [14d542c](https://github.com/bijanbijane/EnglishCodeApp/commit/14d542c7b2ad1994591305d34d24e3a9e32ae270).
 - CI run [#804](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45862345361) on the implementation commit failed both jobs; the subsequent test commit triggered run [#805](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45862349805), which was queued at the latest inspection. The earlier failures have repeatedly shown empty job steps and no assigned runner. The #805 outcome must be checked before claiming validation.
 - These are source changes and source-contract assertions only. No test/typecheck/build pass is claimed for this update. Checklist coverage remains unchanged at 34/50 (68.0%).
+
+
+### تکمیل ثبت ممیزی وضعیت‌های مسیر درس و شواهد CI — ۲۶ نوامبر ۲۰۲۶
+
+- تغییرات app-level برای اعلان بارگذاری و درس ناموجود در [6d9dae3](https://github.com/bijanbijane/EnglishCodeApp/commit/6d9dae3280eac8d26b622ac67c78ae20a14d0220) و تست‌های آن در [14d542c](https://github.com/bijanbijane/EnglishCodeApp/commit/14d542c7b2ad1994591305d34d24e3a9e32ae270) ثبت شده‌اند.
+- سپس commit مستقل دیگری روی همین شاخه برای proxy کردن API از طریق Cloudflare Service Binding ثبت شده است: [bd25c33](https://github.com/bijanbijane/EnglishCodeApp/commit/bd25c334a2943dcbd95779b6f22694fca242c3b1). این تغییر خارج از این vertical slice است؛ فایل‌های آن در این نوبت دست‌کاری نشدند و نباید به‌عنوان کار انجام‌شده توسط این نوبت نسبت داده شوند.
+- پس از تغییرات، runهای [#806](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45862361457)، [#807](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45862384418) و [#808](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45862395884) هر دو job را fail گزارش کردند. در هر سه، metadata خام jobها نشان می‌دهد `steps: []`، `runner_id: 0` و `runner_name` خالی است؛ زمان پایان حدود یک تا دو ثانیه بعد از شروع بوده است.
+- تکرار این الگو پس از source change، test change و documentation change همچنان با شکست پیش از اجرای stepها سازگار است؛ علت ریشه‌ای سمت پلتفرم هنوز اثبات نشده است. هیچ test/typecheck/build result برای این head ادعا نمی‌شود.
+- آخرین head مشاهده‌شده پیش از این ثبت، [987bb50](https://github.com/bijanbijane/EnglishCodeApp/commit/987bb500a61f4de676c1b39b3975e5f41a6e5394) بود. Checklist coverage بدون تغییر 34/50 (68.0%) باقی می‌ماند.
