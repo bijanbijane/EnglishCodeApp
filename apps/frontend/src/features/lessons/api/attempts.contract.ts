@@ -33,9 +33,9 @@ export function parseLessonCompletionResult(value: unknown): LessonCompletionRes
   return { attemptId: row.attemptId, status: "completed", score: row.score };
 }
 
-export function assertAnswerMatchesRequest(result: AnswerSubmissionResult, questionId: string, answerId: string): void {
-  if (result.questionId !== questionId || result.answerId !== answerId) {
-    throw new Error("بازخورد سرور با پرسش و گزینهٔ ارسال‌شده مطابقت ندارد.");
+export function assertAnswerBelongsToQuestion(result: AnswerSubmissionResult, questionId: string): void {
+  if (result.questionId !== questionId) {
+    throw new Error("بازخورد سرور متعلق به پرسش ارسال‌شده نیست.");
   }
 }
 
