@@ -4,6 +4,7 @@ import { AppError } from "./shared/errors";
 import contentRoutes from "./modules/content/routes";
 import authRoutes from "./modules/auth/routes";
 import userRoutes from "./modules/users/routes";
+import learningRoutes from "./modules/learning/routes";
 
 const app = new Hono<AppEnv>();
 
@@ -45,6 +46,7 @@ app.get("/api/v1/ready", async (c) => {
 app.route("/api/v1", contentRoutes);
 app.route("/api/v1", authRoutes);
 app.route("/api/v1", userRoutes);
+app.route("/api/v1", learningRoutes);
 
 app.notFound((c) =>
   c.json(
