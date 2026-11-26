@@ -1,8 +1,8 @@
 export type TelegramInsets = { top: number; right: number; bottom: number; left: number };
 
 type TelegramSecureStorage = {
-  setItem: (key: string, value: string, callback?: (error: string | null, success?: boolean) => void) => TelegramSecureStorage;
-  getItem: (key: string, callback: (error: string | null, value: string | null, canRestore?: boolean) => void) => TelegramSecureStorage;
+  setItem: (key: string, value: string, callback?: (error: unknown, success?: boolean) => void) => TelegramSecureStorage;
+  getItem: (key: string, callback: (error: unknown, value: string | null, canRestore?: boolean) => void) => TelegramSecureStorage;
   removeItem: (key: string, callback?: (error: string | null, success?: boolean) => void) => TelegramSecureStorage;
 };
 
