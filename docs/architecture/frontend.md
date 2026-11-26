@@ -1,11 +1,15 @@
 # Frontend Architecture — EnglishCodeApp
 
-**Status:** Initial implementation baseline  
+**Status:** Architecture baseline; product requirements are defined in the companion specification.  
 **Date:** 2026-11-26
+
+## Source of truth
+
+The complete product and experience requirements are in [Frontend Product & Experience Specification](./frontend-product-spec.md). This file records technical architecture and implementation boundaries. If a UI implementation decision conflicts with the product specification, record the conflict and resolve it rather than silently diverging.
 
 ## Decision
 
-Use a feature-based modular monolith built with React, TypeScript and Vite. Keep the first client optimized for Telegram Mini App and small screens while preserving a channel-independent learning UI.
+Use a feature-based modular monolith built with React 19, TypeScript and Vite. The first client is optimized for Telegram Mini App and small screens, while learning features remain channel-independent.
 
 Do not introduce micro-frontends, a global event bus, a large state framework or a UI component library in the MVP without measured need.
 
@@ -13,7 +17,7 @@ Do not introduce micro-frontends, a global event bus, a large state framework or
 
 ```text
 app composition
-  ├── feature modules
+  ├── feature public APIs
   │     ├── feature UI
   │     ├── feature API adapter
   │     └── feature model/types
@@ -25,53 +29,77 @@ app composition
 ```
 
 Rules:
+1. App composition may import public feature APIs.
+2. A feature may depend on shared infrastructure and its own internals.
+3. A feature must not import another feature's private files.
+4. Shared modules must not import features.
+5. Platform adapters contain platform capabilities, not learning-domain rules.
+6. UI components do not own grading, authorization or progress calculation.
+7. API response types are explicit; avoid untyped `any`.
+8. Telegram SDK access is isolated behind an adapter and optional in a normal browser.
 
-1. A feature may depend on shared infrastructure.
-2. A feature must not import another feature's internal files. Cross-feature use requires an explicit public export or an application-level composition.
-3. Shared modules must not import feature modules.
-4. UI components do not own business rules such as grading, authorization or progress calculation.
-5. API response types are explicit; do not spread untyped `any` through the app.
-6. Telegram SDK access is isolated behind an adapter and is optional when running in a normal browser.
-
-## Initial feature boundaries
+## Feature boundaries
 
 - `identity`: login state, current-user view and session lifecycle.
 - `learning-paths`: course/path discovery and enrollment.
-- `lessons`: lesson catalog and lesson metadata.
+- `lessons`: lesson catalog, metadata and player.
 - `practice`: question rendering and answer submission UI.
-- `vocabulary`: vocabulary study and review.
-- `grammar`: grammar topics and exercises.
-- `listening`: audio learning experience.
-- `speaking`: speaking exercises (later phase; no speech recognition in MVP).
-- `reading`: reading passages and comprehension.
-- `writing`: writing exercises and feedback.
+- `review`: due review sessions and learner responses.
+- `vocabulary`, `grammar`: focused learning and practice.
+- `listening`, `speaking`, `reading`, `writing`: skill-specific experiences.
 - `progress`: server-confirmed progress and history.
-- `profile`: user preferences and account controls.
+- `profile`: preferences and account controls.
 
-Create a feature directory only when its first real use case is implemented; empty folders are not architecture.
+Create a feature directory only when its first real use case is implemented. Empty folders are not architecture.
 
 ## State strategy
 
 - Local component state for ephemeral UI state.
+- URL/navigation state for routes and shareable location.
+- Backend is authoritative for identity, permissions, lesson content, correctness, score, attempts and progress.
 - TanStack Query may be introduced when cache invalidation, retries and multiple screens justify server-state orchestration.
 - Zustand may be introduced only for genuinely shared client state; do not mirror server-owned data in a global store.
 - Never store secrets or long-lived bearer tokens in localStorage.
-- The backend remains authoritative for user identity, permissions, answer correctness, score and progress.
 
-## Routing and navigation
+## Routing
 
-Keep route definitions in `app/`. Add a routing dependency when the first multi-screen authenticated flow is implemented. Navigation must work with Telegram Mini App constraints and browser refresh/deep links.
+Route definitions belong in `app/`. Add a router when the first multi-screen authenticated flow is implemented. Navigation must support Telegram Mini App constraints, browser refresh and safe deep links.
 
-## Telegram boundary
+## Platform boundary
 
-Expose a small adapter for platform capabilities (initData, viewport, back button, haptics and theme). Feature modules must not import Telegram SDK directly. The raw initData is forwarded to the backend; `initDataUnsafe` is presentation-only and never an authentication source.
+Expose a small interface for raw Telegram initData, viewport/safe area, back button, theme and optional haptics. Feature modules must not import Telegram SDK directly. Browser adapter provides safe fallback behavior.
 
-## Quality and acceptance
+Raw initData is forwarded to the backend for validation. `initDataUnsafe` is presentation-only and never an authentication source. Bot tokens and secrets must never enter the browser bundle.
 
-- Strict TypeScript; no implicit `any`.
-- Loading, empty, error and retry states for remote data.
-- RTL and keyboard/accessibility semantics.
-- Mobile-first responsive behavior.
-- Unit/component tests for stateful features and E2E coverage for the critical learning journey.
-- Build, typecheck and relevant tests must pass in CI.
-- No public deployment, paid resource activation or production data mutation is part of this implementation.
+## API boundary
+
+Use versioned `/api/v1` endpoints and feature-owned typed adapters. Shared HTTP transport normalizes errors, handles cancellation and follows the backend-defined credential/session policy. Do not invent a client-side session scheme before the backend contract is confirmed.
+
+Backend owns all security-sensitive validation and learning-domain decisions. Frontend validation exists for usability only.
+
+## UI and design system
+
+Follow the Editorial Learning Studio direction in the product specification. Centralize color, typography, spacing, radius, motion, breakpoints and focus tokens. Preserve RTL Persian interface chrome and LTR English learning content at the component level. Avoid adding a component library until a concrete need justifies it.
+
+## Quality gates
+
+- strict Typecheck and production build;
+- loading, empty, error and retry states for remote data;
+- semantic HTML, keyboard operation, visible focus and screen-reader status;
+- RTL/LTR mixed-content checks;
+- responsive behavior across Telegram and browser;
+- unit/component tests for stateful features;
+- integration and E2E coverage for the critical learning journey;
+- no secrets or answer keys in client payloads;
+- CI evidence before considering work verified.
+
+## Current implementation baseline
+
+Branch: `feat/frontend-modular-foundation`  
+PR: [#4](https://github.com/bijanbijane/EnglishCodeApp/pull/4)
+
+Implemented in the branch: app composition split, shared API client, lesson catalog feature, loading/error/empty states, responsive RTL dashboard, architecture docs and CI workflow path correction.
+
+Not yet verified: npm install, typecheck, tests, production build and end-to-end behavior. Telegram session integration and the lesson player remain incomplete.
+
+No merge, deployment, production migration, production data mutation or paid-resource activation is part of this work.
