@@ -140,7 +140,7 @@ learning.post("/attempts/:attemptId/answers", requireSession, async (c) => {
   const inserted = await c.env.DB.prepare(
     `INSERT INTO attempt_answers
        (id, attempt_id, question_id, submitted_answer, is_correct)
-     SELECT ?, a.id, q.id, ?, ?
+     SELECT ?, a.id, q.question_id, ?, ?
      FROM lesson_attempts a
      JOIN attempt_questions q ON q.attempt_id = a.id
      WHERE a.id = ? AND a.user_id = ? AND a.status = 'in_progress' AND q.question_id = ?
@@ -191,7 +191,7 @@ learning.post("/attempts/:attemptId/complete", requireSession, async (c) => {
            score = COALESCE((
              SELECT CAST(ROUND(
                100.0 * SUM(CASE WHEN aa.is_correct = 1 THEN 1 ELSE 0 END) /
-               NULLIF(COUNT(q.id), 0)
+               NULLIF(COUNT(q.question_id), 0)
              ) AS INTEGER)
              FROM attempt_questions q
              LEFT JOIN attempt_answers aa
