@@ -7,7 +7,7 @@ import contentRoutes from "./modules/content/routes";
 import authRoutes from "./modules/auth/routes";
 import userRoutes from "./modules/users/routes";
 import learningRoutes from "./modules/learning/routes";
-import adminRoutes from "./modules/admin/routes";
+import { adminRoutes } from "./modules/admin/routes";
 import adminReadRoutes from "./modules/admin/audit-routes";
 
 const app = new Hono<AppEnv>();
@@ -42,8 +42,8 @@ app.use("/api/v1/*", cors({
     const allowed = new Set(
       (context.env.ALLOWED_ORIGINS ?? "")
         .split(",")
-        .map((value) => value.trim())
-        .filter((value) => value.length > 0),
+        .map((value: string) => value.trim())
+        .filter((value: string) => value.length > 0),
     );
     return allowed.has(origin) ? origin : undefined;
   },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { D1Database, D1PreparedStatement } from "../src/env";
+import type { Env } from "../src/env";
 import { createAdminAuditStatement } from "../src/modules/admin/audit";
 
 function captureDatabase() {
@@ -12,9 +12,9 @@ function captureDatabase() {
           return statement;
         },
       };
-      return statement as D1PreparedStatement;
+      return statement;
     },
-  } as unknown as D1Database;
+  } as unknown as Env["DB"];
   return { db, getInserted: () => inserted };
 }
 

@@ -1,7 +1,7 @@
 export interface Env {
   DB: D1Database;
   TELEGRAM_BOT_TOKEN?: string;
-  APP_ENV?: "local" | "staging" | "production";
+  APP_ENV?: "local" | "development" | "staging" | "production";
   ALLOWED_ORIGINS?: string;
 }
 

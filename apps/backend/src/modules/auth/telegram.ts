@@ -43,9 +43,11 @@ function constantTimeHexEqual(left: string, right: string): boolean {
 }
 
 async function hmacSha256(keyBytes: Uint8Array, message: string): Promise<Uint8Array> {
+  const keyData = new ArrayBuffer(keyBytes.byteLength);
+  new Uint8Array(keyData).set(keyBytes);
   const key = await crypto.subtle.importKey(
     "raw",
-    keyBytes,
+    keyData,
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
