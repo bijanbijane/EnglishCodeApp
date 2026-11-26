@@ -86,6 +86,7 @@ export default function App() {
 
   useEffect(() => { void loadLessons(); }, [loadLessons]);
   useEffect(() => subscribeToSessionInvalidation(() => setSessionState({ status: "missing-init-data" })), []);
+  useEffect(() => subscribeToSessionInvalidation(() => setSessionState({ status: "missing-init-data" })), []);
 
   useEffect(() => {
     if (route.name === "home") return;
@@ -174,7 +175,7 @@ export default function App() {
       <nav className="mobile-nav" aria-label="ناوبری اصلی">
         <button className={route.name === "home" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "home" })}><span aria-hidden="true">⌂</span><small>خانه</small></button>
         <button className={route.name === "lesson" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "home" })}><span aria-hidden="true">▤</span><small>درس‌ها</small></button>
-        <button className={activeScreen === "progress" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => { setSelectedLesson(null); setActiveScreen("progress"); }}><span aria-hidden="true">◷</span><small>پیشرفت</small></button>
+        <button className={route.name === "progress" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "progress" })}><span aria-hidden="true">◷</span><small>پیشرفت</small></button>
         <button className={route.name === "profile" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "profile" })}><span aria-hidden="true">○</span><small>پروفایل</small></button>
       </nav>
     </main>
