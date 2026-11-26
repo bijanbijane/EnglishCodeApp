@@ -357,11 +357,24 @@ def main() -> None:
         }
         required_indexes = {
             "idx_admin_audit_created_id",
+            "idx_admin_audit_resource_created_id",
             "idx_content_review_status_submitted_id",
             "idx_lesson_attempts_user_completed",
         }
         missing_indexes = required_indexes - index_names
         assert not missing_indexes, f"missing admin read indexes: {sorted(missing_indexes)}"
+
+        audit_plan = [
+            row["detail"] for row in db.execute(
+                """EXPLAIN QUERY PLAN
+                   SELECT id,created_at FROM admin_audit_events
+                   WHERE resource_type=?
+                   ORDER BY created_at DESC,id DESC LIMIT ?""",
+                ("lesson_version", 26),
+            )
+        ]
+        assert any("idx_admin_audit_resource_created_id" in detail for detail in audit_plan), audit_plan
+        assert not any("USE TEMP B-TREE" in detail for detail in audit_plan), audit_plan
 
         violations = db.execute("PRAGMA foreign_key_check").fetchall()
         assert not violations, f"foreign key violations: {violations}"
