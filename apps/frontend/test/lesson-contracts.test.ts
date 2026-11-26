@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseLessonQuestions } from "../src/features/lessons/api/questions.api.ts";
+import { parseLessonQuestions } from "../src/features/lessons/api/questions.contract.ts";
 
 test("parses a valid multiple-choice lesson payload", () => {
   const questions = parseLessonQuestions([{
