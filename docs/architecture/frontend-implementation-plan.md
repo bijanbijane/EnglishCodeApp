@@ -166,5 +166,8 @@ These are source-level changes only; runtime verification remains pending until 
 ### Progress accounting
 
 - Architecture design: **100% documented** (module boundaries, route/state ownership, Telegram adapter, API/security contracts, accessibility, resilience and acceptance criteria are recorded).
-- Implementation checklist: **25/42 source tasks (59.5%)** after recording the new Learn screen work. This is source-level completion, not a runtime pass rate.
+- Implementation checklist: **26/43 source tasks (60.5%)** after recording the new Learn screen work. This is source-level completion, not a runtime pass rate.
 - Runtime/release verification: **not yet verified**. Do not count written tests as passing tests until a green CI or local execution report exists.
+
+
+- The latest CI run inspected after the Learn/library changes is [#602](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45813122927) on head `1ffedec6dec9f2bfc1c8b3bd8af0c6727646fa72`; both jobs failed, but job metadata contains no step list or logs URL. The root cause remains unknown and no local execution has been performed.
