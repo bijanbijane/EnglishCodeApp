@@ -35,7 +35,9 @@ npm run preview
 
 - The client sends raw `Telegram.WebApp.initData` to the backend. It never trusts `initDataUnsafe` for identity or authorization.
 - The backend remains authoritative for authentication, answer correctness, scoring and progress.
-- The bearer token is held in session-scoped browser storage and sent only in the Authorization header.
+- Telegram bearer tokens are stored only through Telegram Bot API 9.0+ SecureStorage (iOS Keychain / Android Keystore) and sent only in the Authorization header.
+- Browser-only authentication is intentionally disabled; no token is persisted in localStorage or sessionStorage.
+- If Telegram SecureStorage is unavailable, authenticated learning actions remain disabled rather than falling back to insecure browser storage.
 - No database credentials, bot token or server secrets are included in the frontend bundle.
 - Outside Telegram, the catalogue remains browsable, but authenticated learning actions require a supported sign-in flow.
 
