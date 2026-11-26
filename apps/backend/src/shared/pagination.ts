@@ -17,7 +17,7 @@ export function decodePageCursor(value: string): PageCursor | null {
   try {
     const timestamp = decodeURIComponent(parts[0]);
     const id = decodeURIComponent(parts[1]);
-    const isIsoTimestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\\.\d{3}Z$/.test(timestamp);
+    const isIsoTimestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(timestamp);
     const isSqliteTimestamp = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(timestamp);
     const normalizedTimestamp = isSqliteTimestamp
       ? `${timestamp.replace(" ", "T")}.000Z`
