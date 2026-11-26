@@ -2,16 +2,34 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getLessons } from "../features/lessons/api/lessons.api";
 import { LessonCatalog } from "../features/lessons/ui/LessonCatalog";
 import { LessonWorkspace } from "../features/lessons/ui/LessonWorkspace";
+import { ProfilePanel } from "../features/identity/ui/ProfilePanel";
 import type { Lesson, LessonListState } from "../features/lessons/model/lesson.types";
-import { bindTelegramLayoutMetrics, initializeTelegramHost, setTelegramBackAction } from "../services/platform/telegram";
-import { bootstrapTelegramSession, type SessionBootstrapResult } from "../features/identity/api/auth.api";
+import { bindTelegramLayoutMetrics, getPlatformContext, initializeTelegramHost, setTelegramBackAction } from "../services/platform/telegram";
+import { bootstrapTelegramSession, signOut, type SessionBootstrapResult } from "../features/identity/api/auth.api";
 
 export default function App() {
   const [lessonState, setLessonState] = useState<LessonListState>({ status: "loading" });
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [activeScreen, setActiveScreen] = useState<"home" | "profile">("home");
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sessionState, setSessionState] = useState<SessionBootstrapResult | { status: "checking" }>({ status: "checking" });
   const hostInitialized = useRef(false);
+
+  const handleSignOut = useCallback(async () => {
+    setSigningOut(true);
+    setSignOutError(null);
+    try {
+      await signOut();
+      setSessionState({ status: "missing-init-data" });
+      setActiveScreen("home");
+    } catch (error) {
+      setSignOutError(error instanceof Error ? error.message : "خروج از حساب انجام نشد.");
+    } finally {
+      setSigningOut(false);
+    }
+  }, []);
 
   const loadLessons = useCallback(async () => {
     setLessonState({ status: "loading" });
@@ -68,12 +86,14 @@ export default function App() {
         </a>
         <div className="topbar__actions">
           <span className="environment-pill"><span className="environment-pill__dot" /> نسخهٔ آزمایشی</span>
-          <div className="avatar" aria-label="پروفایل زبان‌آموز">E</div>
+          <button className="avatar avatar--button" type="button" aria-label="باز کردن پروفایل" onClick={() => { setSelectedLesson(null); setActiveScreen("profile"); }}>E</button>
         </div>
       </header>
 
       {selectedLesson ? (
         <LessonWorkspace key={selectedLesson.id} lesson={selectedLesson} onBack={() => setSelectedLesson(null)} canStartAttempt={canStartAttempt} sessionMessage={sessionMessage} />
+      ) : activeScreen === "profile" ? (
+        <ProfilePanel isAuthenticated={canStartAttempt} isTelegramHost={getPlatformContext().host === "telegram"} signingOut={signingOut} error={signOutError ?? undefined} onSignOut={() => void handleSignOut()} onBack={() => setActiveScreen("home")} />
       ) : (
         <>
           <section className="welcome-panel" id="home">
@@ -113,10 +133,10 @@ export default function App() {
       )}
 
       <nav className="mobile-nav" aria-label="ناوبری اصلی">
-        <button className={selectedLesson ? "mobile-nav__item" : "mobile-nav__item mobile-nav__item--active"} type="button" onClick={() => setSelectedLesson(null)}><span aria-hidden="true">⌂</span><small>خانه</small></button>
-        <button className="mobile-nav__item" type="button" onClick={() => { setSelectedLesson(null); document.getElementById("lessons")?.scrollIntoView({ behavior: "smooth" }); }}><span aria-hidden="true">▤</span><small>درس‌ها</small></button>
+        <button className={activeScreen === "home" && !selectedLesson ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => { setSelectedLesson(null); setActiveScreen("home"); }}><span aria-hidden="true">⌂</span><small>خانه</small></button>
+        <button className="mobile-nav__item" type="button" onClick={() => { setSelectedLesson(null); setActiveScreen("home"); document.getElementById("lessons")?.scrollIntoView({ behavior: "smooth" }); }}><span aria-hidden="true">▤</span><small>درس‌ها</small></button>
         <span className="mobile-nav__item mobile-nav__item--disabled" aria-disabled="true"><span aria-hidden="true">◷</span><small>مرور</small></span>
-        <span className="mobile-nav__item mobile-nav__item--disabled" aria-disabled="true"><span aria-hidden="true">○</span><small>پروفایل</small></span>
+        <button className={activeScreen === "profile" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => { setSelectedLesson(null); setActiveScreen("profile"); }}><span aria-hidden="true">○</span><small>پروفایل</small></button>
       </nav>
     </main>
   );
