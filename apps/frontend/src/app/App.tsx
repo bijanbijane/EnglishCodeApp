@@ -115,6 +115,7 @@ export default function App() {
         ? "برای ورود معتبر، Mini App را از دکمهٔ منو یا صفحهٔ اصلی ربات باز کن."
         : sessionState.status === "secure-storage-unavailable"
           ? sessionState.message
+          : sessionState.status === "reopen-required" ? sessionState.message
           : sessionState.status === "error" ? sessionState.message : undefined;
 
   const lessonTitles = useMemo(() => Object.fromEntries(lessons.map((lesson) => [lesson.id, lesson.title])) as Record<string, string>, [lessons]);
