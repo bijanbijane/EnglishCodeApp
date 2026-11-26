@@ -12,6 +12,7 @@ describe("public lesson content", () => {
       level: "A1",
       position: 1,
       version: 1,
+      lesson_version_id: "lesson-1:v1",
     };
     const question = {
       id: "question-1",
