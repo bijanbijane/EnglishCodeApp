@@ -17,6 +17,7 @@ type TelegramWebApp = {
 declare global { interface Window { Telegram?: { WebApp?: TelegramWebApp } } }
 
 type Screen = "home" | "lesson" | "result";
+type ProgressEntry = { lesson_id: string; course_id: string; best_score: number; completed_count: number; lesson_title: string; last_completed_at: string };
 const telegram = window.Telegram?.WebApp;
 
 function App() {
@@ -25,6 +26,8 @@ function App() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [progress, setProgress] = useState<ProgressEntry[]>([]);
+  const [progressLoading, setProgressLoading] = useState(false);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [screen, setScreen] = useState<Screen>("home");
   const [loading, setLoading] = useState(true);
@@ -117,6 +120,16 @@ function App() {
     finally { setBusy(false); }
   };
 
+  useEffect(() => {
+    if (!profile) { setProgress([]); return; }
+    let active = true;
+    setProgressLoading(true);
+    api.progress().then((entries) => { if (active) setProgress(entries); })
+      .catch((e: unknown) => { if (active) setNotice(e instanceof Error ? e.message : "Could not load learning progress."); })
+      .finally(() => { if (active) setProgressLoading(false); });
+    return () => { active = false; };
+  }, [profile]);
+
   const currentQuestion = attempt?.questions[questionIndex];
   const completed = useMemo(() => attempt?.questions.filter((q) => q.submittedAnswer !== null).length ?? 0, [attempt]);
 
@@ -139,16 +152,31 @@ function App() {
     try {
       const result = await api.complete(attempt.id);
       setScore(result.score); setScreen("result");
+      const latestProgress = await api.progress();
+      setProgress(latestProgress);
     } catch (e) { setError(e instanceof Error ? e.message : "Could not complete the lesson."); }
     finally { setBusy(false); }
   };
 
   const goHome = () => { setScreen("home"); setSelectedLesson(null); setAttempt(null); setNotice(""); setError(""); };
 
+  const logout = async () => {
+    setBusy(true); setError("");
+    try {
+      await api.logout();
+      await new Promise<void>((resolve) => {
+        telegram?.SecureStorage?.removeItem("englishcode_session", () => resolve());
+        if (!telegram?.SecureStorage) resolve();
+      });
+      setAccessToken(null); setProfile(null); setProgress([]); setNotice("You have signed out.");
+    } catch (e) { setError(e instanceof Error ? e.message : "Could not sign out."); }
+    finally { setBusy(false); }
+  };
+
   return <main className="app-shell">
     <header className="topbar">
       <button className="brand" onClick={goHome} aria-label="English Code home"><span className="brand-mark">EC</span><span>english<span className="brand-accent">code</span></span></button>
-      <div className="account">{profile ? <><span className="status-dot" />{profile.display_name || "Learner"}</> : <span className="muted">{telegram ? "Connecting…" : "Preview mode"}</span>}</div>
+      <div className="account">{profile ? <><span className="status-dot" />{profile.display_name || "Learner"}<button className="text-button account-action" onClick={() => void logout()} disabled={busy}>Sign out</button></> : <span className="muted">{telegram ? "Connecting…" : "Preview mode"}</span>}</div>
     </header>
 
     <section className="hero">
@@ -161,7 +189,17 @@ function App() {
     {error && <div className="alert" role="alert"><span>{error}</span><button onClick={() => setError("")} aria-label="Dismiss error">×</button></div>}
     {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss message">×</button></div>}
 
-    {screen === "home" && <section className="content-section">
+    {screen === "home" && <>
+      {profile && <section className="progress-section" aria-label="Learning progress">
+        <div className="progress-heading"><div><p className="eyebrow">YOUR ACTIVITY</p><h2>Progress overview</h2></div><span className="progress-caption">{progressLoading ? "Updating…" : `${progress.length} lessons completed`}</span></div>
+        <div className="progress-stats">
+          <article className="progress-stat"><span>LESSONS</span><strong>{progress.reduce((sum, item) => sum + item.completed_count, 0)}</strong><small>completed attempts</small></article>
+          <article className="progress-stat"><span>BEST SCORES</span><strong>{progress.length ? Math.round(progress.reduce((sum, item) => sum + item.best_score, 0) / progress.length) : 0}<i>%</i></strong><small>average across lessons</small></article>
+          <article className="progress-stat"><span>LESSON RECORDS</span><strong>{progress.length}</strong><small>unique lessons practiced</small></article>
+        </div>
+        {progress.length > 0 && <div className="recent-progress"><h3>Recently completed</h3>{progress.slice(0,3).map((item) => <div className="recent-row" key={item.lesson_id}><span>{item.lesson_title}</span><strong>{item.best_score}%</strong></div>)}</div>}
+      </section>}
+      <section className="content-section">
       <div className="section-heading"><div><p className="eyebrow">YOUR LEARNING SPACE</p><h2>{selectedCourse ? selectedCourse.title : "Choose your path"}</h2></div>
         {selectedCourse && <button className="text-button" onClick={() => { setSelectedCourse(null); setLessons([]); }}>All courses ←</button>}
       </div>
