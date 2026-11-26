@@ -63,7 +63,7 @@ Create a feature directory only when its first real use case is implemented. Emp
 
 ## Routing
 
-Route definitions belong in `app/navigation/`. The current app uses a small hash-based route adapter for `#/`, `#/profile` and `#/lessons/:lessonId`, avoiding a routing dependency while supporting refresh, browser back/forward and Telegram BackButton. If nested route complexity grows, replace the adapter behind the same route contract rather than moving routing into feature modules.
+Route definitions belong in `app/navigation/`. The current app uses a small hash-based route adapter for `#/`, `#/profile`, `#/progress` and `#/lessons/:lessonId`, avoiding a routing dependency while supporting refresh, direct lesson links, browser back/forward and Telegram BackButton. The app composition maps lesson IDs to catalog data and injects labels into progress views; feature modules do not import each other's private implementation. If nested route complexity grows, replace the adapter behind the same route contract rather than moving routing into feature modules.
 
 ## Platform boundary
 
