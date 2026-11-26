@@ -7,10 +7,11 @@ TypeScript Modular Monolith using Hono and a Cloudflare Worker-compatible entryp
 - Versioned API, request IDs, structured errors, liveness and D1 readiness endpoints.
 - D1-backed lesson and question reads.
 - Telegram Mini App initData HMAC-SHA-256 verification, duplicate-key rejection and auth_date freshness checks.
+- Replay protection: each accepted initData hash is stored once in D1 until its auth window expires.
 - Opaque bearer sessions; only SHA-256 token hashes are stored.
 - Authenticated profile and progress reads.
 - Lesson attempts, server-side answer grading, completion scoring and progress aggregation.
-- Migration for sessions, progress and one-answer-per-question uniqueness.
+- Migrations for sessions, progress, one-answer-per-question uniqueness and Telegram replay records.
 - Unit tests for Telegram signature verification.
 
 ## API
@@ -19,7 +20,7 @@ TypeScript Modular Monolith using Hono and a Cloudflare Worker-compatible entryp
 |---|---|---|---|
 | GET | /api/v1/health | No | Liveness |
 | GET | /api/v1/ready | No | D1 readiness |
-| POST | /api/v1/auth/telegram | No | Verify initData and issue session |
+| POST | /api/v1/auth/telegram | No | Verify initData, reject replay and issue session |
 | POST | /api/v1/auth/logout | Bearer | Revoke current session |
 | GET | /api/v1/me | Bearer | Current user |
 | GET | /api/v1/me/progress | Bearer | Current user's progress |
@@ -31,7 +32,7 @@ TypeScript Modular Monolith using Hono and a Cloudflare Worker-compatible entryp
 
 ## Telegram authentication
 
-The client sends the raw Telegram.WebApp.initData string. Never trust initDataUnsafe. The backend verifies the signature with the bot token and rejects stale auth_date values. The bot token must be configured as a Worker secret and must never be committed.
+The client sends the raw Telegram.WebApp.initData string. Never trust initDataUnsafe. The backend verifies the official HMAC signature, rejects duplicate query keys and stale auth_date values, and rejects a previously consumed hash. The bot token must be configured as a Worker secret and must never be committed.
 
 The response returns an opaque bearer token. Only its SHA-256 hash is stored in D1. The current token transport is JSON; keep it in memory where practical and never log it or place it in URLs.
 
@@ -40,6 +41,7 @@ The response returns an opaque bearer token. Only its SHA-256 hash is stored in 
 Apply in order to a local/test D1 database:
 1. database/migrations/0001_initial.sql
 2. database/migrations/0002_backend_foundation.sql
+3. database/migrations/0003_telegram_auth_replay.sql
 
 Seed only local/test:
 - database/seeds/0001_demo.sql
@@ -56,6 +58,7 @@ No Wrangler config is added. This new Cloudflare project follows the cf CLI dire
 
 - Browser never supplies user ownership or answer correctness.
 - Session tokens are random, opaque, expiring and revocable; only hashes are persisted.
+- Telegram initData hash is one-time-use within its freshness window.
 - Public question responses omit answer keys.
 - Attempts are scoped to the authenticated user.
 - A unique index enforces one answer per question per attempt.
