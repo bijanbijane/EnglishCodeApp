@@ -4,6 +4,10 @@
 
 The frontend is a mobile-first React application. Telegram is the first delivery channel, but the learning interface and feature modules must remain independent of Telegram-specific APIs so the same application can later support a standalone web client.
 
+## Product and experience specification
+
+The complete UI/product requirements, pedagogy, screen inventory, design system, accessibility, privacy, testing and delivery phases are documented in [docs/architecture/frontend-product-spec.md](../../docs/architecture/frontend-product-spec.md).
+
 ## Architecture
 
 The frontend follows a **feature-based modular monolith**:
