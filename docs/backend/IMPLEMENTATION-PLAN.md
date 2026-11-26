@@ -32,13 +32,13 @@
 
 ## B2 — Learning write path
 
-- [ ] Define attempt state machine and assessment policy version.
-- [ ] Start attempt with server-derived owner and pinned content version.
-- [ ] Submit answer with strict owner/state checks and deterministic idempotency semantics.
-- [ ] Grade on the server; never trust client correctness or score.
-- [ ] Complete attempt with single-winner conditional update.
-- [ ] Update progress atomically with completion; prove no double increments.
-- [ ] Add D1 concurrency and cross-user integration tests.
+- [x] Implement authenticated attempt creation with server-derived owner and lesson-version pin.
+- [x] Implement answer validation, server-side grading, same-answer retry behavior, and conflict for a different second answer.
+- [x] Implement conditional completion and progress upsert in one D1 batch.
+- [x] Implement current-user progress read endpoint.
+- [ ] Prove answer/completion race behavior and exactly-once progress update against Local D1.
+- [ ] Add cross-user, state-transition, and full D1 integration tests.
+- [ ] Finalize assessment policy edge cases (empty lessons, future question types, pass thresholds).
 
 ## B3 — Content lifecycle and administration
 
