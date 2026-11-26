@@ -25,6 +25,7 @@
 - `GET /api/v1/courses/:courseId/lessons`
 - `GET /api/v1/lessons/:lessonId` (never selects or returns `answer_key`)
 - Initial D1 schema and synthetic local seed data
+- Bounded daily cleanup of expired Telegram replay fingerprints and stale sessions (Worker Cron)
 - Backend typecheck/test scripts and a dedicated GitHub Actions workflow
 
 ## Local setup
