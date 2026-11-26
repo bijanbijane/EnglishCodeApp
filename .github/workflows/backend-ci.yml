@@ -34,3 +34,7 @@ jobs:
       - run: npm install
       - run: npm run typecheck
       - run: npm test
+      - name: Apply migrations to isolated local D1
+        run: npm run db:migrate:local
+      - name: Load synthetic seed data
+        run: npm run db:seed:local
