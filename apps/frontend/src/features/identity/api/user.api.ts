@@ -1,16 +1,9 @@
 import { apiGet, ApiError } from "../../../shared/api/client";
 import { clearSession, getSessionToken } from "../../../services/auth/session";
 
-export type LearnerProfile = { id: string; displayName: string | null };
+import { parseLearnerProfile, type LearnerProfile } from "./user.contract";
 
-function parseLearnerProfile(value: unknown): LearnerProfile {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("ساختار اطلاعات حساب معتبر نیست.");
-  const row = value as Record<string, unknown>;
-  if (typeof row.id !== "string" || !row.id || !(row.displayName === null || typeof row.displayName === "string")) {
-    throw new Error("اطلاعات شناسه یا نام نمایشی حساب ناقص است.");
-  }
-  return { id: row.id, displayName: row.displayName };
-}
+export type { LearnerProfile } from "./user.contract";
 
 export async function getMyProfile(): Promise<LearnerProfile> {
   const accessToken = await getSessionToken();
