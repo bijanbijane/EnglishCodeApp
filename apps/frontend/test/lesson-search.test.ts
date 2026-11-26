@@ -49,3 +49,16 @@ test("does not mutate the source list or its lesson objects", () => {
   assert.notStrictEqual(result, lessons);
   assert.deepEqual(lessons, before);
 });
+
+test("normalizes Persian and Arabic yeh/kaf variants with Unicode normalization", () => {
+  const persianLessons: Lesson[] = [
+    { id: "fa-1", title: "کتاب انگليسی", level: "B1", position: 4 },
+  ];
+  assert.deepEqual(filterLessons(persianLessons, "كتاب انگلیسی").map((lesson) => lesson.id), ["fa-1"]);
+});
+
+test("returns a new array for an empty query without mutating the source", () => {
+  const result = filterLessons(lessons, "  ");
+  assert.notStrictEqual(result, lessons);
+  assert.deepEqual(lessons.map((lesson) => lesson.id), ["a1", "b1", "a2"]);
+});
