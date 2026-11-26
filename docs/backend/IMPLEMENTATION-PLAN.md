@@ -69,7 +69,7 @@
 1. Remote desktop test environment is offline; no local shell execution was available during the current work session.
 2. GitHub returned no visible status checks for the current commits; the workflow is configured but not verified green.
 3. Telegram login code is implemented, but D1 replay/session atomicity is not yet verified against Local D1.
-4. The initial migration history on main must be reconciled before any shared database is attached.
+4. The initial migration history on main must be reconciled before any shared database is attached.\n5. GitHub Actions jobs currently fail before runner allocation (runner_id=0, no steps); account-level Actions/runner availability must be restored before CI evidence exists.
 
 
 ## Newly implemented after the previous checkpoint
