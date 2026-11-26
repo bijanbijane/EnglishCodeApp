@@ -31,7 +31,7 @@ content.get("/lessons/:lessonId", async (c) => {
   );
   if (!lesson) throw new AppError("NOT_FOUND", "Lesson was not found.", 404);
 
-  const rows = await contentRepository.listLessonQuestions(c.env.DB, lesson.id);
+  const rows = await contentRepository.listLessonQuestions(c.env.DB, lesson.lesson_version_id);
   const questions = rows.map((question) => {
     let options: unknown;
     try {
