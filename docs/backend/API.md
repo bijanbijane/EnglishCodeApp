@@ -12,6 +12,9 @@ Verified Telegram login ensures a provider-neutral identity row (provider=telegr
 
 ## Learning and versioned assessment
 - GET /lessons — published lesson list from current immutable lesson versions.
+- GET /me/attempts?limit=20&cursor=... — authenticated keyset-paginated history for the current user.
+- GET /attempts/:attemptId — owned attempt metadata; cross-user IDs return 404.
+- GET /attempts/:attemptId/result — owned completed result; returns 409 until completion.
 - GET /lessons/:lessonId/questions — public question array; response retains the existing data array and adds meta.lessonVersion. answer_key is never returned.
 - POST /lessons/:lessonId/attempts — authenticated; creates attempt pinned to current lesson_version_id and assessment_policy_version_id.
 - POST /attempts/:attemptId/answers — body { "questionId": "...", "answerId": "..." }. Server grades against the question version pinned to the attempt. Same answer retry returns stored result; a different second answer returns 409.
