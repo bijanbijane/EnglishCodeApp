@@ -155,6 +155,20 @@ def main():
             ready = expect_status(request("GET", "/api/v1/ready"), 200, "readiness")
             assert ready.get("data", {}).get("database") == "ok"
 
+            courses = expect_status(request("GET", "/api/v1/courses"), 200, "frontend course contract")
+            assert courses["data"]
+            course = courses["data"][0]
+            for field in ("id", "slug", "title", "source_language", "target_language"):
+                assert field in course, f"course contract missing {field}"
+            lessons = expect_status(
+                request("GET", f"/api/v1/courses/{course['id']}/lessons"),
+                200,
+                "frontend lesson-list contract",
+            )
+            assert lessons["data"]
+            for field in ("id", "course_id", "slug", "title", "description", "level", "position", "version"):
+                assert field in lessons["data"][0], f"lesson contract missing {field}"
+
             init_data = make_init_data(900000001, "Local Learner")
             tampered = init_data[:-1] + ("0" if init_data[-1] != "0" else "1")
             expect_status(
@@ -171,7 +185,8 @@ def main():
             token = login["data"]["accessToken"]
             profile = expect_status(request("GET", "/api/v1/me", token), 200, "profile")
             user_id = profile["data"]["id"]
-            assert user_id
+            assert user_id == login["data"]["user"]["id"]
+            assert "display_name" in profile["data"] and "created_at" in profile["data"]
 
             expired_token = secrets.token_urlsafe(32)
             expired_hash = hashlib.sha256(expired_token.encode()).hexdigest()
@@ -221,6 +236,8 @@ def main():
                 200,
                 "read attempt",
             )
+            for field in ("id", "lesson_id", "status", "score", "questions"):
+                assert field in attempt["data"], f"attempt contract missing {field}"
             questions = attempt["data"]["questions"]
             assert len(questions) == 2
             assert "answer_key" not in json.dumps(attempt)
@@ -267,9 +284,12 @@ def main():
                 completed = expect_status(result, 200, "concurrent completion")
                 assert completed["data"]["status"] == "completed"
                 assert completed["data"]["score"] == 100
+                assert completed["data"]["completedAt"]
 
             progress = expect_status(request("GET", "/api/v1/me/progress", token), 200, "progress")
             assert len(progress["data"]) == 1
+            for field in ("lesson_id", "course_id", "best_score", "completed_count", "lesson_title", "last_completed_at"):
+                assert field in progress["data"][0], f"progress contract missing {field}"
             assert progress["data"][0]["completed_count"] == 1
 
             second_init = make_init_data(900000002, "Second Learner")
@@ -466,7 +486,7 @@ def main():
             print(
                 "Wrangler local D1 integration passed: Telegram HMAC/replay, "
                 "session issuance/revocation, content privacy, attempt ownership, "
-                "answer idempotency, concurrent completion, concurrent login replay, admin/reviewer RBAC grant/revocation, review/audit cursor pagination, and login rate limiting with Retry-After."
+                "answer idempotency, concurrent completion, concurrent login replay, admin/reviewer RBAC grant/revocation, review/audit cursor pagination, login rate limiting with Retry-After, and frontend API response-contract compatibility."
             )
         finally:
             process.terminate()
