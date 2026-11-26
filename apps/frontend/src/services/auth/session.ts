@@ -9,7 +9,7 @@ let memorySession: AuthSession | null = null;
 const invalidationListeners = new Set<() => void>();
 
 function notifySessionInvalidated(): void {
-  notifySessionInvalidated();
+  invalidationListeners.forEach((listener) => listener());
 }
 
 export function subscribeToSessionInvalidation(listener: () => void): () => void {
@@ -58,7 +58,7 @@ export async function saveSession(session: AuthSession): Promise<void> {
 
 export async function clearSession(): Promise<void> {
   memorySession = null;
-  invalidationListeners.forEach((listener) => listener());
+  notifySessionInvalidated();
   if (getPlatformContext().host === "telegram") {
     await removeTelegramSecureItem(SESSION_STORAGE_KEY);
   }
