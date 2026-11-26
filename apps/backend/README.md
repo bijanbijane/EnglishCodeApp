@@ -11,8 +11,8 @@ TypeScript Modular Monolith using Hono and a Cloudflare Worker-compatible entryp
 - Authenticated profile and progress reads.
 - Lesson attempts, server-side answer grading, completion scoring and progress aggregation.
 - Pure learning-domain grading/scoring functions with unit tests.
-- Migration for sessions, Telegram replay prevention, progress and one-answer-per-question uniqueness.
-- Unit tests for Telegram signature validation and learning-domain rules.
+- Migrations for sessions, progress, one-answer-per-question uniqueness and Telegram replay prevention.
+- Unit tests for Telegram signatures, replay rejection and learning-domain rules.
 
 ## API
 
@@ -32,7 +32,7 @@ TypeScript Modular Monolith using Hono and a Cloudflare Worker-compatible entryp
 
 ## Telegram authentication
 
-The client sends the raw Telegram.WebApp.initData string. Never trust initDataUnsafe. The backend verifies the signature and auth_date, then stores a SHA-256 fingerprint of the canonical signed payload to reject reuse until its authentication window expires. The raw initData is not persisted.
+The client sends the raw Telegram.WebApp.initData string. Never trust initDataUnsafe. The backend verifies the official signature, rejects duplicate query parameters and stale auth_date values, then stores a SHA-256 fingerprint of the canonical signed payload to reject reuse. The raw initData is not persisted. Replayed payloads return HTTP 409.
 
 The bot token must be configured as a Worker secret and must never be committed. The response returns an opaque bearer token. Only its SHA-256 hash is stored in D1. Keep the bearer token in memory where practical and never log it or place it in a URL.
 
@@ -41,6 +41,7 @@ The bot token must be configured as a Worker secret and must never be committed.
 Apply in order to a local/test D1 database:
 1. database/migrations/0001_initial.sql
 2. database/migrations/0002_backend_foundation.sql
+3. database/migrations/0003_telegram_auth_replay.sql
 
 Seed only local/test:
 - database/seeds/0001_demo.sql
@@ -49,7 +50,7 @@ Migrations have not been applied to a Cloudflare account or production database.
 
 ## Local development and deployment boundary
 
-The current Node adapter is a UI preview fixture, not a D1 emulator. It does not provide persistent auth or learning writes. A local D1 test harness is still required for end-to-end verification.
+The current Node adapter is a UI preview fixture, not a D1 emulator. It does not provide persistent auth or learning writes. The replay route has a mocked-D1 test; a local D1 test harness is still required for end-to-end verification.
 
 No Wrangler config is added. This new Cloudflare project follows the cf CLI direction. No Cloudflare resources, secrets, deployments, or paid services are created by this branch.
 
