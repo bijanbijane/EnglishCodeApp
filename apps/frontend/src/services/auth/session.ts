@@ -1,7 +1,7 @@
 import { getPlatformContext } from "../platform/telegram";
 import { getTelegramSecureItem, removeTelegramSecureItem, setTelegramSecureItem } from "../platform/telegram";
 
-const SESSION_STORAGE_KEY = "englishcode.session.v1";
+const SESSION_STORAGE_KEY = "englishcode_session_v1";
 const EXPIRY_SKEW_MS = 30_000;
 
 export type AuthSession = { token: string; expiresAt: string };
