@@ -27,7 +27,7 @@ Base path: `/api/v1`. Timestamps are UTC ISO-8601. Success and error responses i
 | POST | `/admin/content/lessons/:lessonId/versions` | content_author | Create draft lesson version |
 | GET | `/admin/content/lessons/:lessonId/versions` | content_author | List own versions |
 | POST | `/admin/content/lessons/:lessonId/versions/:versionId/submit-review` | content_author | Submit own draft |
-| GET | `/admin/content/reviews` | content_reviewer | Bounded review queue |
+| GET | `/admin/content/reviews` | content_reviewer | Keyset-paginated review queue (`limit` 1–50; optional `cursor`) |
 | GET | `/admin/content/reviews/:requestId` | content_reviewer | Review details including private answer key |
 | POST | `/admin/content/reviews/:requestId/decision` | content_reviewer | Approve or reject; self-review forbidden |
 | POST | `/admin/content/reviews/:requestId/publish` | admin | Publish approved version |
@@ -37,7 +37,7 @@ There is no public role-grant endpoint. First-admin bootstrap is owner-controlle
 
 ## Response envelopes
 
-Success:
+Success (paginated endpoints include `meta.nextCursor`, which is `null` when the final page is reached):
 
 ```json
 {

@@ -350,6 +350,18 @@ def main() -> None:
         ).fetchone()
         assert foreign_attempt is None
 
+        index_names = {
+            row[0] for row in db.execute(
+                "SELECT name FROM sqlite_master WHERE type='index'"
+            )
+        }
+        required_indexes = {
+            "idx_admin_audit_created_id",
+            "idx_content_review_status_submitted_id",
+        }
+        missing_indexes = required_indexes - index_names
+        assert not missing_indexes, f"missing admin read indexes: {sorted(missing_indexes)}"
+
         violations = db.execute("PRAGMA foreign_key_check").fetchall()
         assert not violations, f"foreign key violations: {violations}"
         assert db.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
