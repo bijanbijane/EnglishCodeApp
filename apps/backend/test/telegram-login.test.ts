@@ -40,7 +40,7 @@ async function makeValidInitData(): Promise<string> {
   return params.toString();
 }
 
-function makeDatabase(replayInserted = 1) {
+function makeDatabase(replayInserted = 1, requestCount = 1) {
   const batch = vi.fn().mockResolvedValue([
     { meta: { changes: 1 } },
     { meta: { changes: 1 } },
@@ -52,7 +52,7 @@ function makeDatabase(replayInserted = 1) {
     },
   ]);
   const prepare = vi.fn((sql: string) => ({
-    bind: vi.fn((...values: unknown[]) => ({ sql, values })),
+    bind: vi.fn((...values: unknown[]) => ({ sql, values, first: vi.fn().mockResolvedValue({ request_count: requestCount }) })),
   }));
   return { prepare, batch };
 }
@@ -100,6 +100,24 @@ describe("Telegram login endpoint", () => {
     expect(await response.json()).toMatchObject({
       error: { code: "CONFLICT" },
     });
+  });
+
+  it("rejects login attempts above the per-IP minute limit before database writes", async () => {
+    const initData = await makeValidInitData();
+    const DB = makeDatabase(1, 31);
+    const response = await app.request(
+      "/api/v1/auth/telegram",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.8" },
+        body: JSON.stringify({ initData }),
+      },
+      { DB, TELEGRAM_BOT_TOKEN: botToken } as never,
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("60");
+    expect(DB.batch).not.toHaveBeenCalled();
   });
 
   it("does not accept a login if the bot token is not configured", async () => {
