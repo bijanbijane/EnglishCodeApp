@@ -19,6 +19,7 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [sessionState, setSessionState] = useState<SessionBootstrapResult | { status: "checking" }>({ status: "checking" });
   const hostInitialized = useRef(false);
+  const lessonRequestId = useRef(0);
 
   const navigateTo = useCallback((next: AppRoute) => {
     const leavingActiveLesson = route.name === "lesson" && (next.name !== "lesson" || next.lessonId !== route.lessonId);
@@ -90,7 +91,10 @@ export default function App() {
     return () => { active = false; };
   }, []);
 
-  useEffect(() => { void loadLessons(); }, [loadLessons]);
+  useEffect(() => {
+    void loadLessons();
+    return () => { lessonRequestId.current += 1; };
+  }, [loadLessons]);
   useEffect(() => subscribeToSessionInvalidation(() => setSessionState({ status: "missing-init-data" })), []);
 
   useEffect(() => {
