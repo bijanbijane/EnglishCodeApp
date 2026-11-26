@@ -47,7 +47,7 @@ Wrangler uses a local D1 database for these commands. The configured database ID
 
 - Success: `{ "data": ..., "meta": { "requestId": "..." } }`
 - Error: `{ "error": { "code": "...", "message": "...", "requestId": "..." } }`
-- CORS is intentionally not enabled until exact client origins and deployment topology are agreed.
+- CORS uses an exact comma-separated `ALLOWED_ORIGINS` allowlist; wildcard origins and credentialed requests are not enabled. Keep the variable unset until approved client origins are known.
 - Public content queries filter to published records only.
 - The public pre-answer question DTO omits both `answer_key` and answer `explanation`.
 
