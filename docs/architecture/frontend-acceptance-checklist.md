@@ -100,6 +100,6 @@ The branch now contains a searchable lesson catalog, public question retrieval, 
 
 ## Learn library implementation update — 2026-11-26
 
-The source now separates the Home dashboard from the dedicated `#/learn` library. The library supports search by lesson title, CEFR level and description, explicit no-results feedback, and reuses the existing loading/empty/error/retry catalog states. Lesson selection opens the lesson player; returning from the player returns to Learn. Pure search and route tests were added to the repository.
+The source now separates the Home dashboard from the dedicated `#/learn` library. The library supports search by lesson title, CEFR level and description, a data-driven CEFR level selector, Persian/Arabic keyboard-variant normalization, explicit no-results feedback, and the existing loading/empty/error/retry catalog states. Pure tests cover filters and verify the source list is not mutated. Lesson selection opens the lesson player; returning from the player returns to Learn. Pure search and route tests were added to the repository.
 
 Practice and Review remain intentionally absent from active navigation: the current inspected backend does not define a separate Practice Center or server-owned spaced-review queue. The five-destination navigation acceptance item above remains unchecked. All runtime, integration, build, accessibility and Telegram-device acceptance items remain unchecked until evidence is available.
