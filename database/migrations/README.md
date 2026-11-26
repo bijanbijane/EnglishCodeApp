@@ -20,7 +20,7 @@ Migration 0002 خودش telegram_auth_replays و index انقضا را ایجا�
 ## 0005 — Vocabulary and review
 - vocabulary_items: محتوای واژگان منتشرشده در یک جفت زبان.
 - user_vocabulary: وضعیت یادگیری و زمان مرور بعدی برای هر کاربر/واژه.
-- vocabulary_review_events: تاریخچهٔ append-only مرور با idempotency key یکتا برای هر کاربر.
+- vocabulary_review_events: رخدادهای مرور با idempotency key یکتا برای هر کاربر؛ UPDATE روی تاریخچه ممنوع است. حذف حساب از طریق cascade برای اجرای retention/deletion مجاز می‌ماند.
 - revision در user_vocabulary برای جلوگیری از overwrite شدن دو مرور هم‌زمان.
 
 ## 0006 — Immutable learning content
@@ -29,7 +29,7 @@ Migration 0002 خودش telegram_auth_replays و index انقضا را ایجا�
 - Published lesson and question versions cannot be edited or deleted.
 - The lesson publication pointer must reference a published version belonging to the same lesson.
 - Assessment policy versions are immutable.
-- Existing attempts are backfilled to the version 1 and percentage-v1 policy.
+- Existing attempts are backfilled to version 1 and percentage-v1 policy.
 
 ## Execution policy
 - ابتدا تمام migrationها را روی Local D1 خالی اجرا کنید.
