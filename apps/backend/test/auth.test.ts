@@ -18,6 +18,7 @@ async function makeInitData(botToken: string): Promise<string> {
 
 function makeReplayAwareDatabase(): D1Database {
   let replayConsumed = false;
+  let linkedIdentity: { user_id: string } | null = null;
   return {
     prepare(sql: string) {
       const statement: any = {
@@ -28,10 +29,14 @@ function makeReplayAwareDatabase(): D1Database {
           if (sql.includes("SELECT id,display_name FROM users")) {
             return { id: "user-test", display_name: "Test User" } as T;
           }
+          if (sql.includes("SELECT user_id FROM user_identities")) return linkedIdentity as T | null;
           return null;
         },
         async all<T>() { return { results: [] as T[] }; },
-        async run() { return { success: true, meta: { changes: 1 } }; }
+        async run() {
+          if (sql.includes("INSERT OR IGNORE INTO user_identities")) linkedIdentity = { user_id: String(statement.values[1]) };
+          return { success: true, meta: { changes: 1 } };
+        }
       };
       return statement as unknown as D1PreparedStatement;
     },

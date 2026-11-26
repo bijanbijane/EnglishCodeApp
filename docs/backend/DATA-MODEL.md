@@ -36,6 +36,23 @@ SQL migration files are the schema source of truth. This page describes the bran
 - lesson_attempts pins lesson_version_id and assessment_policy_version_id. Existing attempts are backfilled to v1.
 - Triggers prevent updates/deletes to published lesson/question versions and prevent invalid publication pointers.
 
+### 0007
+- user_roles: explicit, revocable RBAC grants; roles are not client-controlled.
+- admin_audit_events: minimal append-only audit facts. Actor may be nulled on account deletion; event content cannot be updated/deleted.
+
+### 0008
+- attempt_results: immutable completed-attempt facts with score, weights, counts and pinned versions.
+- progress_events: append-only completion facts, one per attempt.
+- Existing completed attempts are backfilled; user_progress is rebuilt from progress_events.
+- Completion writes the result, event and projection conditionally in a single D1 batch.
+
+### 0009
+- lesson_versions.created_by_user_id records the author of new draft versions.
+- content_review_requests records one review lifecycle per version.
+- content_review_events is append-only and records submission, decision and publication.
+- Self-review is blocked by route authorization and a D1 trigger.
+- Content authoring, reviewer decisions and admin publishing write audit facts transactionally.
+
 ## Integrity rules
 - A session belongs to one user; token hash unique.
 - An external provider subject maps to at most one internal user.
@@ -47,9 +64,11 @@ SQL migration files are the schema source of truth. This page describes the bran
 - A Telegram initData fingerprint can be consumed once during its valid auth window.
 - Review events are idempotent per user; optimistic revision prevents stale concurrent review updates.
 - Published lesson/question/policy versions are immutable.
+- Admin role checks read active grants from user_roles; privileged changes must be audited.
+- Attempt result facts and progress events are append-only; user_progress is a rebuildable projection.
 
 ## Target but not yet implemented
-Content authoring and publishing workflow, immutable attempt result facts, rebuildable progress projections, four-skill evidence, media assets/jobs, outbox, entitlements, RBAC/audit, analytics aggregates and account deletion workflows.
+Role bootstrap/revocation and audit query APIs, account linking/merge, four-skill evidence, media assets/jobs, durable outbox/queues, entitlements, analytics aggregates and account deletion workflows.
 
 ## Migration discipline
 1. Add a new numbered SQL migration; do not edit an applied migration.

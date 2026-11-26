@@ -3,36 +3,43 @@
 Status labels: implemented in source, SQL-smoke-tested, Local D1 verified, CI verified, production approved. These are separate evidence levels.
 
 ## G0 — Reproducible build and P0 correctness
-- [ ] GitHub Actions exposes logs/steps; current jobs fail before steps are reported.
-- [ ] Commit a reproducible root lockfile and use npm ci.
-- [ ] Green typecheck, backend tests and frontend build on one commit.
-- [x] Independent fixed Telegram HMAC vector added (not yet executed in CI).
-- [ ] Local D1 migrations from empty database and upgrade path.
-- [ ] Local D1 duplicate-login race: at most one valid session.
-- [ ] Local D1 conflicting answer and completion race tests.
-- [ ] Verify D1 batch changes()/conditional write behavior on Workers D1.
+- [ ] Hosted GitHub Actions exposes logs/steps; current jobs fail before steps are reported.
+- [x] Root lockfile committed and `npm ci` passes locally; hosted CI evidence remains blocked by empty job steps/logs.
+- [x] Typecheck, backend tests (49/49) and frontend build pass on the same local checkout.
+- [x] Independent fixed Telegram HMAC vector included and Telegram tests pass locally.
+- [x] Local D1 migrations from empty database (0001..0009), including isolated result backfill and content workflow tests.
+- [x] Local D1 upgrade/backfill path from 0001 legacy data through 0006; 0008 result/event backfill from synthetic completed attempts verified on a separate Local D1 database.
+- [x] Local D1 duplicate-login race: one 200 session and one 409 replay rejection.
+- [x] Local D1 answer/completion race, post-completion answer rejection and duplicate completion/progress idempotency.
+- [x] D1 batch conditional-write behavior verified on Wrangler Local D1; remote D1 remains unverified.
 
 ## G1 — Identity decoupling
 - [x] Provider-neutral user_identities table and uniqueness constraints added in migration 0004.
 - [x] Existing Telegram identities backfilled without changing users.id.
 - [x] Verified Telegram login writes provider mapping; identity service and unit tests added.
-- [ ] Local D1 migration/backfill verification.
+- [x] Local D1 migration/backfill verification on isolated upgrade database.
 - [ ] Account linking only with fresh proof of both identities; audited merge workflow later.
 
 ## G2 — Versioned learning content
 - [x] lesson_versions and question_versions tables added; existing content backfilled as v1.
 - [x] Attempts pin lesson_version and assessment_policy_version.
 - [x] Published version immutability triggers and publication pointer validation added.
-- [x] Public question DTO test added; array response shape preserved and answer key omitted.
-- [ ] Local D1 migration and route tests.
-- [ ] Content authoring/review/publish API with RBAC and audit.
+- [x] Public question DTO preserves the array shape and omits answer keys.
+- [x] Local D1 migration and Worker route verification.
+- [x] Content draft creation, author ownership, reviewer queue/detail, self-review prevention, reviewer decision and admin-only publish API with transactional audit (migration 0009).
 
 ## G3 — Assessment and progress integrity
 - [x] Fixed percentage assessment policy version seeded.
 - [x] Score query uses weights from pinned question version.
 - [x] Conditional completion/progress write implemented in source.
-- [ ] Local D1 concurrency and replay tests.
-- [ ] Immutable result facts, progress event facts and rebuild/reconciliation command.
+- [x] Local D1 completion race and progress idempotency verified.
+- [x] Immutable result facts and append-only progress event facts added in migration 0008.
+- [x] Completion writes result, event and progress projection in one D1 batch; repeat completion does not duplicate facts.
+- [x] Backfill from completed attempts and progress projection rebuild verified on isolated Local D1.
+- [x] Projection rebuild service added with atomic per-user D1 batch.
+- [ ] Admin-only invocation, audit trail and scheduled reconciliation runbook.
+- [x] Initial cross-user checks for attempt metadata/result/answer/completion/history and author draft ownership.
+- [ ] Complete ownership matrix across every content, review, vocabulary and admin endpoint.
 - [ ] Explicit pass/retry/manual-review policy beyond the initial percentage policy.
 
 ## G4 — Vocabulary and spaced repetition
@@ -41,14 +48,17 @@ Status labels: implemented in source, SQL-smoke-tested, Local D1 verified, CI ve
 - [x] Pure scheduler v1 with deterministic unit tests.
 - [x] Due review query indexed by user/state/due_at.
 - [x] Idempotent review submission and optimistic revision.
-- [ ] Execute unit tests and add Local D1 concurrency/time-boundary tests.
+- [x] Local D1 enrollment, same-key replay and changed-payload idempotency rejection.
+- [x] Unit tests passed as part of the 49-test backend suite.
+- [ ] Deterministically force stale review revision conflict and add review time-boundary tests.
 - [ ] Vocabulary authoring/import and curated content pipeline.
 
 ## G5 — Four skills and content production
 - [ ] Listening and reading content references.
 - [ ] Writing submissions and rubric version.
 - [ ] Speaking flow only after consent and media policy.
-- [ ] Admin content draft/review/publish with RBAC and audit.
+- [x] RBAC role-check middleware, append-only audit writer and content administration routes added; role bootstrap/grant endpoint remains owner-controlled and unexposed.
+- [x] Admin content draft/review/publish with RBAC and audit; author, reviewer and admin roles are separated.
 
 ## G6 — Media, audio and AI
 - [ ] Private R2 and upload-intent policy.

@@ -6,20 +6,20 @@ This is the module-level implementation contract for Architecture v3. Planned me
 
 | Module | Current state | Target responsibility |
 |---|---|---|
-| Auth | Partial | Provider verification and session lifecycle |
-| Identity | Missing | Internal users and provider identity mapping |
+| Auth | Telegram initData verification, replay-safe session issue/revoke | Provider verification and session lifecycle |
+| Identity | Provider-neutral user_identities mapping and legacy backfill | Internal users and secure provider linking |
 | Profiles | Minimal /me | Preferences, locale, account lifecycle |
-| Content | Basic lesson/question reads | Immutable versioned content and publishing |
-| Assessment | Basic attempt/answer/complete | Versioned policies, grading and results |
-| Progress | Basic per-lesson aggregate | Rebuildable skill/mastery projections |
-| Vocabulary | Missing | Lexicon and user vocabulary |
-| Review | Missing | Versioned spaced-repetition scheduler |
+| Content | Immutable versioned snapshots, draft authoring and protected review/publish workflow | Rich content types, bulk authoring, ETag/If-Match and localization |
+| Assessment | Pinned lesson/policy attempts, weighted grading and immutable attempt_results | Rich item types, policy governance and manual review |
+| Progress | Append-only completion facts and atomic per-user projection rebuild | Rebuildable skill/mastery projections |
+| Vocabulary | User enrollment, list and due queue | Curated lexicon and user vocabulary |
+| Review | Deterministic scheduler v1 and idempotent review API | Scheduler policies and mastery state |
 | Skills | Missing | Listening/speaking/reading/writing evidence |
 | Media | Missing | Private assets, upload lifecycle and retention |
 | Jobs | Missing | Outbox, async job state and idempotent consumers |
 | Integrations | Telegram login only | Bot webhook and external adapters |
 | Entitlements | Missing | Central action-level access policy |
-| Administration | Missing | RBAC, content review/publish, audit |
+| Administration | RBAC middleware, audit writer, content draft/review/publish routes and review queue/detail | Role bootstrap/management, audit queries and broader admin console |
 | Analytics | Missing | Purpose-limited aggregate product metrics |
 
 ## Route conventions
@@ -49,7 +49,7 @@ Assessment:
 - GET /attempts/:attemptId
 - POST /attempts/:attemptId/answers
 - POST /attempts/:attemptId/complete
-- GET /attempts/:attemptId/result
+- GET /attempts/:attemptId/result — reads immutable attempt_results facts (score, earned/total weight, counts and pinned versions).
 - GET /me/attempts?cursor=...
 All routes enforce ownership and pinned content/policy versions. Result DTO is immutable after completion except explicitly versioned manual review.
 
@@ -57,7 +57,7 @@ Progress:
 - GET /me/progress
 - GET /me/skills
 - GET /me/learning-history?cursor=...
-Progress is a projection from immutable facts and can be rebuilt deterministically.
+Progress is a projection from immutable progress_events and can be rebuilt per user with modules/progress/rebuild.ts.
 
 Vocabulary/review:
 - GET /vocabulary?languagePair=...&cursor=...
@@ -85,10 +85,13 @@ Only private R2 objects. Upload intent binds owner, max bytes, MIME/codec allowl
 Entitlements: internal application service authorize(userId, action, context). Do not trust client-provided plan. Unknown state denies paid/restricted operations but must not block free learning.
 
 Administration/audit:
-- GET /admin/audit
-- GET /admin/users/:userId (minimum necessary data)
-- Content author/reviewer/publisher operations.
-Every admin endpoint requires explicit permission and records an audit event. Support role must not grant arbitrary content or account mutation.
+- GET /admin/audit (planned)
+- GET /admin/users/:userId (planned; minimum necessary data)
+- POST /admin/content/lessons/:lessonId/versions (content_author)
+- GET /admin/content/reviews (content_reviewer)
+- POST /admin/content/reviews/:requestId/decision (content_reviewer)
+- POST /admin/content/reviews/:requestId/publish (admin)
+Every implemented privileged mutation requires explicit permission and writes an audit event in the same D1 batch. Support role does not grant content or account mutation.
 
 Analytics:
 - POST /events only for allowlisted event types, bounded payload schemas and purpose tags.
@@ -97,16 +100,14 @@ Analytics:
 
 ## Module implementation order
 
-1. Stabilize auth/learning P0 with executable CI and Local D1 integration.
-2. Introduce provider-neutral identity with a forward-only backfill migration.
-3. Add content versioning and immutable attempt references.
-4. Add assessment policy and attempt state machine.
-5. Add rebuildable progress facts/projections.
-6. Add vocabulary + review scheduler.
-7. Add skill-specific learning records.
-8. Add media/job/outbox only when audio workflow is ready.
-9. Add RBAC/audit before admin routes.
-10. Add entitlements and analytics after privacy policy and product rules.
+1. Obtain hosted GitHub Actions runner evidence; local typecheck, 49 tests, build and Local D1 gates are green.
+2. Complete deterministic stale-review concurrency and cross-user ownership matrices.
+3. Implement role bootstrap/revocation as a controlled owner-only operation and wire audit writer into privileged service commands.
+4. Extend the implemented content draft/review/publish API with ETag/If-Match, bulk authoring, rejection revision workflow and stronger concurrency tests.
+5. Add explicit assessment policy lifecycle, pass/retry/manual-review rules and reconciliation runbook.
+6. Add listening/reading/writing/speaking records with versioned rubrics.
+7. Add media/R2 and Queue/outbox only after consent, retention and deletion policy.
+8. Add entitlements and privacy-minimal analytics after product rules are approved.
 
 ## Cross-module invariants
 

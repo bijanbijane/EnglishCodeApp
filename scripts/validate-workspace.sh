@@ -10,12 +10,12 @@ npm --version
 
 echo "== Workspace manifest checks =="
 test -f package.json
+test -f package-lock.json
 test -f apps/backend/package.json
 test -f apps/frontend/package.json
 
-echo "== Dependency installation =="
-# Until package-lock.json is committed, npm install is the supported fallback.
-npm install --no-audit --no-fund
+echo "== Install locked dependencies =="
+npm ci --no-audit --no-fund
 
 echo "== TypeScript typecheck =="
 npm run typecheck

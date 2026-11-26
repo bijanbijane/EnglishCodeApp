@@ -44,7 +44,7 @@ apps/backend/src/
 - modules/jobs: async job state and idempotency
 - modules/integrations: Telegram bot/webhook and provider adapters
 - modules/entitlements: plan-independent permission checks
-- modules/administration: RBAC, audit and publishing commands
+- modules/admin: RBAC, audit and publishing commands
 - modules/analytics: minimal aggregated product events
 - platform/: D1, R2, Queue, clock, IDs
 - shared/: errors, validation, pagination, crypto, result
@@ -104,7 +104,7 @@ Assessment policy must define question types, accepted answer representations, r
 
 ## 6. Learning domains
 
-Progress and mastery: store immutable attempt results as facts; derive per-user progress as a projection. Projection updates must be transactionally idempotent and rebuildable. Distinguish completion, accuracy, streak and mastery.
+Progress and mastery: store immutable attempt results as facts; derive per-user progress as a projection. Projection updates must be transactionally idempotent and rebuildable from append-only progress events. A result fact snapshots earned/total weight, correct/question counts, score, pinned lesson version, assessment policy version and completion timestamp. Account erasure must reconcile immutable fact retention through an explicit tombstone/pseudonymization and retention policy; do not add physical-delete routes that violate fact integrity. Distinguish completion, accuracy, streak and mastery.
 
 Vocabulary and spaced repetition: separate canonical vocabulary items from per-user state. Store language pair, lemma, normalized form, senses, examples, tags and source/version. User state stores familiarity, due_at, interval, ease/difficulty, last_reviewed_at and review count. Scheduler logic is pure and versioned. Review events are append-only; due queues are indexed by user and due_at. Do not claim a scientifically optimal schedule without validation.
 
@@ -126,7 +126,7 @@ Media and async processing:
 
 Entitlements: one service answers whether a user can perform an action. Never trust client-provided plan. Unknown state denies restricted operations but must not block free learning. No payment provider or paid feature activates without explicit approval.
 
-Administration: server-enforced RBAC and least privilege. Suggested roles: content_author, content_reviewer, publisher, support, analyst, security_admin, owner. Separate authoring from publishing. Every privileged mutation writes append-only audit event with actor, action, target, timestamp, request ID and redacted change summary.
+Administration: server-enforced RBAC and least privilege. Current schema roles: content_author, content_reviewer, admin and support. The admin role owns publishing authority until a finer-grained publisher capability is justified. Role grants are server-side only; there is no public grant endpoint. Implemented v1 operations include draft creation/listing, reviewer queue/detail, reviewer decision and admin-only publishing. Authors cannot review their own versions. Every privileged mutation writes an append-only audit event with actor, action, target, timestamp, request ID and allowlisted metadata in the same D1 batch.
 
 Analytics: collect only events with defined product purpose. Prefer aggregate counts and coarse time buckets. Do not collect keystrokes, mouse movements, passwords, raw audio, exact continuous location or inferred psychological profiles. Apply retention and deletion rules. Analytics cannot make consequential decisions about an individual user.
 

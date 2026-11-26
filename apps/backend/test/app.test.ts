@@ -22,7 +22,7 @@ describe("EnglishCodeApp API", () => {
     expect(await response.json()).toEqual({ data: [{ id: "lesson-1", title: "Greetings", level: "A1", position: 1 }] });
   });
   it("returns a clear unavailable response when D1 is not configured", async () => {
-    const response = await app.request("/api/v1/lessons");
+    const response = await app.request("/api/v1/lessons", {}, {});
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ error: { code: "DATABASE_UNAVAILABLE" } });
   });
@@ -33,6 +33,26 @@ describe("EnglishCodeApp API", () => {
     const requestId = response.headers.get("X-Request-Id");
     expect(requestId).toMatch(/^[0-9a-f-]{36}$/i);
     expect(requestId).not.toBe("edge-ray-example");
+  });
+  it("does not expose internal exception messages in API responses or logs", async () => {
+    const original = console.error;
+    let logged = "";
+    console.error = (...args: unknown[]) => { logged = args.map(String).join(" "); };
+    try {
+      const failingApp = app;
+      const response = await failingApp.request("/api/v1/lessons", {}, {
+        DB: {
+          prepare: () => ({
+            all: async () => { throw new Error("private SQL fragment and bound value"); }
+          })
+        } as unknown as D1Database
+      });
+      expect(response.status).toBe(500);
+      expect(await response.text()).not.toContain("private SQL fragment");
+      expect(logged).not.toContain("private SQL fragment");
+    } finally {
+      console.error = original;
+    }
   });
   it("returns a structured 404 for unknown routes", async () => {
     const response = await app.request("/missing");
