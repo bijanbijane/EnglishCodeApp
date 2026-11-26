@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import type { AppEnv } from "./env";
 import { AppError } from "./shared/errors";
 import contentRoutes from "./modules/content/routes";
+import authRoutes from "./modules/auth/routes";
+import userRoutes from "./modules/users/routes";
 
 const app = new Hono<AppEnv>();
 
@@ -41,6 +43,8 @@ app.get("/api/v1/ready", async (c) => {
 });
 
 app.route("/api/v1", contentRoutes);
+app.route("/api/v1", authRoutes);
+app.route("/api/v1", userRoutes);
 
 app.notFound((c) =>
   c.json(
