@@ -38,6 +38,11 @@ describe("Telegram initData verification", () => {
     await expect(verifyTelegramInitData(raw, { botToken, nowSeconds: now, maxAgeSeconds: 3600 }))
       .rejects.toMatchObject({ code: "TELEGRAM_AUTH_EXPIRED" });
   });
+  it("rejects data at the exact maximum-age boundary", async () => {
+    const raw = await signedInitData(botToken, { auth_date: String(now - 3600), user: JSON.stringify({ id: 123, first_name: "Test" }) });
+    await expect(verifyTelegramInitData(raw, { botToken, nowSeconds: now, maxAgeSeconds: 3600 }))
+      .rejects.toMatchObject({ code: "TELEGRAM_AUTH_EXPIRED" });
+  });
   it("rejects future-dated data outside the allowed clock skew", async () => {
     const raw = await signedInitData(botToken, { auth_date: String(now + 120), user: JSON.stringify({ id: 123, first_name: "Test" }) });
     await expect(verifyTelegramInitData(raw, { botToken, nowSeconds: now, futureSkewSeconds: 30 }))
