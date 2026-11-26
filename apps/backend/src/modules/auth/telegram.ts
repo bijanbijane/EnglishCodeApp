@@ -34,7 +34,7 @@ export async function verifyTelegramInitData(
   const now = options.nowSeconds ?? Math.floor(Date.now() / 1000);
   const maxAge = options.maxAgeSeconds ?? 3600;
   const futureSkew = options.futureSkewSeconds ?? 30;
-  if (!Number.isInteger(authDate) || authDate <= 0 || authDate > now + futureSkew || now - authDate > maxAge) {
+  if (!Number.isInteger(authDate) || authDate <= 0 || authDate > now + futureSkew || now - authDate >= maxAge) {
     throw new AppError("TELEGRAM_AUTH_EXPIRED", "Telegram authentication data has expired.", 401);
   }
 
