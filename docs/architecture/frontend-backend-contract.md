@@ -26,6 +26,8 @@ Backend errors are produced through `errorBody(code, message, requestId)`; the c
 | POST | `/api/v1/attempts/:attemptId/answers` | Bearer session | Accepts `{ questionId, answerId }`; returns server-confirmed correctness and explanation |
 | POST | `/api/v1/attempts/:attemptId/complete` | Bearer session | Completes attempt and returns server-calculated score |
 | POST | `/api/v1/auth/logout` | Bearer session | Revokes current session |
+| GET | `/api/v1/me` | Bearer session | Returns current user id and display name |
+| GET | `/api/v1/me/progress` | Bearer session | Returns per-lesson best score, completion count and last completion timestamp |
 
 ## 3. Confirmed frontend behavior
 
@@ -40,14 +42,14 @@ Backend errors are produced through `errorBody(code, message, requestId)`; the c
 The backend issues a bearer token in the JSON response from `POST /api/v1/auth/telegram`; protected learning routes require that token in the `Authorization` header. The frontend now implements the Telegram-specific session path:
 
 1. Detect Telegram SecureStorage support with `isVersionAtLeast("9.0")` and feature detection.
-2. Read an unexpired session from the Telegram SecureStorage key `englishcode.session.v1`.
+2. Read an unexpired session from the Telegram SecureStorage key `englishcode_session_v1`.
 3. If no valid session exists and raw `initData` is present, call `POST /api/v1/auth/telegram` and store the returned token/expiry in SecureStorage.
-4. Attach the bearer token only to protected attempt, answer, complete and logout requests.
+4. Attach the bearer token only to protected attempt, answer, complete, profile, progress and logout requests.
 5. Never read `initDataUnsafe`, and never persist the bearer token in browser localStorage/sessionStorage.
 
 The browser client remains public-preview-only. The inspected backend does not establish an HttpOnly cookie, so browser sign-in and persistent browser sessions are not enabled. Telegram clients without Bot API 9.0 SecureStorage support also remain preview-only; no insecure fallback is used.
 
-The lesson flow now calls the real attempt, answer and completion routes when a valid Telegram session exists. Server responses determine answer correctness, explanations and final score. A 401 response clears the stored client session and asks the learner to reopen the Mini App. This is source-implemented but still requires runtime integration testing; it is not yet verified in Telegram.
+The lesson flow now calls the real attempt, answer and completion routes when a valid Telegram session exists. Server responses determine answer correctness, explanations and final score. The profile and progress screens use the authenticated `/api/v1/me` and `/api/v1/me/progress` routes. A 401 response clears the stored client session and asks the learner to reopen the Mini App. These flows are source-implemented but still require runtime integration testing; they are not yet verified in Telegram.
 
 ## 5. Contract and quality gates still required
 
