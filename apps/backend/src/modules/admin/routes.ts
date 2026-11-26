@@ -341,17 +341,43 @@ adminRoutes.get(
     if (!c.env.DB) return c.json(errorBody("DATABASE_UNAVAILABLE", "Content review storage is unavailable.", c.get("requestId")), 503);
     const status = c.req.query("status") ?? "pending";
     const limit = Number(c.req.query("limit") ?? 20);
+    const rawCursor = c.req.query("cursor");
+    const cursor = rawCursor ? decodeAdminPageCursor(rawCursor) : null;
     if (!["pending", "approved", "rejected", "published"].includes(status) ||
-        !Number.isInteger(limit) || limit < 1 || limit > 50) {
-      return c.json(errorBody("INVALID_REVIEW_QUERY", "status or limit is invalid.", c.get("requestId")), 400);
+        !Number.isInteger(limit) || limit < 1 || limit > 50 ||
+        (rawCursor !== undefined && !cursor)) {
+      return c.json(errorBody("INVALID_REVIEW_QUERY", "status, limit or cursor is invalid.", c.get("requestId")), 400);
     }
+
     const rows = await c.env.DB.prepare(
       "SELECT r.id AS review_request_id,r.status,r.submitted_at,r.reviewed_at,r.reason_code," +
       "lv.id AS lesson_version_id,lv.version,lv.title,lv.level,lv.lesson_id " +
       "FROM content_review_requests r INNER JOIN lesson_versions lv ON lv.id=r.lesson_version_id " +
-      "WHERE r.status=? ORDER BY r.submitted_at ASC LIMIT ?"
-    ).bind(status, limit).all();
-    return c.json({ data: rows.results ?? [] });
+      "WHERE r.status=? AND (? IS NULL OR (r.submitted_at>? OR (r.submitted_at=? AND r.id>?))) " +
+      "ORDER BY r.submitted_at ASC,r.id ASC LIMIT ?"
+    ).bind(
+      status,
+      cursor?.timestamp ?? null,
+      cursor?.timestamp ?? null,
+      cursor?.timestamp ?? null,
+      cursor?.id ?? null,
+      limit + 1
+    ).all<{
+      review_request_id: string; status: string; submitted_at: string;
+      reviewed_at: string | null; reason_code: string | null; lesson_version_id: string;
+      version: number; title: string; level: string; lesson_id: string;
+    }>();
+
+    const items = rows.results ?? [];
+    const hasMore = items.length > limit;
+    const page = hasMore ? items.slice(0, limit) : items;
+    const last = page[page.length - 1];
+    return c.json({
+      data: page,
+      meta: {
+        nextCursor: hasMore && last ? encodeAdminPageCursor(last.submitted_at, last.review_request_id) : null
+      }
+    });
   }
 );
 
