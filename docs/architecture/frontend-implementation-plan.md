@@ -77,6 +77,7 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 
 ### Phase A — Foundation and contract
 - [x] Split app composition from the root entry point.
+- [x] Add explicit public `index.ts` export surfaces for lessons, identity and progress features; app composition imports through those boundaries.
 - [x] Add an application-level render error boundary with an accessible reload fallback.
 - [x] Validate question/option identity and reject duplicate or malformed learning payloads.
 - [x] Verify answer feedback matches the submitted question/answer and completion belongs to the active attempt.
