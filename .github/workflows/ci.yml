@@ -6,15 +6,40 @@ on:
     branches: [main, "feat/**"]
 
 jobs:
-  validate:
+  validate-backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --package-lock-only
-      - run: npm install
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run build:frontend
+          cache: npm
+          cache-dependency-path: apps/backend/package.json
+      - name: Install backend dependencies
+        run: npm install
+        working-directory: apps/backend
+      - name: Backend typecheck
+        run: npm run typecheck
+        working-directory: apps/backend
+      - name: Backend unit tests
+        run: npm test
+        working-directory: apps/backend
+
+  validate-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/frontend/package.json
+      - name: Install frontend dependencies
+        run: npm install
+        working-directory: apps/frontend
+      - name: Frontend typecheck
+        run: npm run typecheck
+        working-directory: apps/frontend
+      - name: Frontend production build
+        run: npm run build
+        working-directory: apps/frontend
