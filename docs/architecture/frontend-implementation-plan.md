@@ -255,3 +255,10 @@ These are source-level changes only; runtime verification remains pending until 
 - The new test has been committed but has **not** been executed in this environment. Do not count it as passing until local or hosted test output is available.
 - Hosted CI run [#755](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45853964599) still reports both jobs as failed; the GitHub job API exposes no steps or logs. The cause remains unknown and cannot be attributed to this frontend change.
 - Checklist coverage remains 34/50 (68.0%); no acceptance criterion was checked off by this source-only change.
+
+### CI result on the reduced-motion commit
+
+- The reduced-motion implementation commit triggered CI run [#761](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45856188523).
+- Both `validate-frontend` and `validate-backend` completed with failure. The job API again returned `steps=null` and no downloadable log URLs.
+- The hosted result does not identify whether the frontend source, runner setup or backend dependency caused the failure. Local typecheck, test and build have not been run in this environment.
+- Keep this change unverified; do not mark its test or release acceptance as complete.
