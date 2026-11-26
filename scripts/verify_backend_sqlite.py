@@ -92,46 +92,74 @@ def main() -> None:
         assert replay_results[1].rowcount == 0, "duplicate replay must not issue a session"
         assert db.execute("SELECT COUNT(*) FROM sessions").fetchone()[0] == 1
 
-        # Attempt creation and immutable question snapshot.
+        # Published version pointers and immutable question content.
+        published = db.execute(
+            """SELECT l.current_published_version_id, lv.status
+               FROM lessons l JOIN lesson_versions lv
+                 ON lv.id = l.current_published_version_id
+               WHERE l.id = ?""",
+            ("lesson-greetings-001",),
+        ).fetchone()
+        assert published and published["status"] == "published"
+        assert db.execute(
+            "SELECT COUNT(*) FROM question_versions WHERE lesson_version_id = ?",
+            (published["current_published_version_id"],),
+        ).fetchone()[0] == 2
+
+        # Attempt creation pins a published lesson and assessment policy, then snapshots
+        # the exact published question versions and their weights in one transaction.
         attempt_id = "attempt-1"
         user_id = "user-telegram-1"
         lesson_id = "lesson-greetings-001"
         attempt_results = run_batch(db, [
             (
-                """INSERT INTO lesson_attempts (id, user_id, lesson_id, lesson_version, status)
-                   SELECT ?, ?, id, version, 'in_progress' FROM lessons
-                   WHERE id = ? AND status = 'published'
-                     AND EXISTS (SELECT 1 FROM questions WHERE lesson_id = lessons.id)""",
+                """INSERT INTO lesson_attempts
+                     (id,user_id,lesson_id,lesson_version,lesson_version_id,assessment_policy_version_id,status)
+                   SELECT ?,?,l.id,lv.version,lv.id,ap.id,'in_progress'
+                   FROM lessons l
+                   JOIN lesson_versions lv ON lv.id=l.current_published_version_id
+                   JOIN assessment_policy_versions ap ON ap.id='percentage-v1'
+                   WHERE l.id=? AND l.status='published' AND lv.status='published'
+                     AND EXISTS (SELECT 1 FROM question_versions WHERE lesson_version_id=lv.id)""",
                 (attempt_id, user_id, lesson_id),
             ),
             (
                 """INSERT INTO attempt_questions
-                     (attempt_id, question_id, question_type, prompt, options_json, answer_key, position)
-                   SELECT ?, q.id, q.type, q.prompt, q.options_json, q.answer_key, q.position
-                   FROM questions q JOIN lesson_attempts a ON a.lesson_id = q.lesson_id
-                   WHERE a.id = ? AND a.user_id = ? AND a.status = 'in_progress'
-                     AND changes() = 1""",
+                     (attempt_id,question_id,question_version_id,question_type,prompt,options_json,answer_key,position,question_weight)
+                   SELECT ?,q.source_question_id,q.id,q.question_type,q.prompt,q.options_json,q.answer_key,q.position,q.weight
+                   FROM question_versions q
+                   JOIN lesson_attempts a ON a.lesson_version_id=q.lesson_version_id
+                   WHERE a.id=? AND a.user_id=? AND a.status='in_progress' AND changes()=1""",
                 (attempt_id, attempt_id, user_id),
             ),
         ])
         assert attempt_results[0].rowcount == 1
-        assert attempt_results[1].rowcount == 2, "all source questions must be snapshotted"
+        assert attempt_results[1].rowcount == 2, "all published question versions must be snapshotted"
 
         original_prompt = db.execute(
-            "SELECT prompt FROM attempt_questions WHERE attempt_id = ? AND question_id = ?",
+            "SELECT prompt FROM attempt_questions WHERE attempt_id=? AND question_id=?",
             (attempt_id, "question-greetings-001"),
         ).fetchone()[0]
+        try:
+            db.execute(
+                "UPDATE question_versions SET prompt=? WHERE source_question_id=?",
+                ("Forbidden published mutation", "question-greetings-001"),
+            )
+            raise AssertionError("published question versions must be immutable")
+        except sqlite3.IntegrityError:
+            db.rollback()
         db.execute(
-            "UPDATE questions SET prompt = ?, answer_key = ? WHERE id = ?",
+            "UPDATE questions SET prompt=?,answer_key=? WHERE id=?",
             ("Mutated source prompt", "b", "question-greetings-001"),
         )
         db.commit()
         snapshot = db.execute(
-            "SELECT prompt, answer_key FROM attempt_questions WHERE attempt_id = ? AND question_id = ?",
+            "SELECT prompt,answer_key,question_weight FROM attempt_questions WHERE attempt_id=? AND question_id=?",
             (attempt_id, "question-greetings-001"),
         ).fetchone()
         assert snapshot["prompt"] == original_prompt
         assert snapshot["answer_key"] == "a", "attempt must retain the original answer key"
+        assert snapshot["question_weight"] == 1
 
         # Server-side answer insert uses the attempt snapshot and unique key.
         answer_sql = """INSERT INTO attempt_answers
@@ -156,8 +184,8 @@ def main() -> None:
            SET status = 'completed',
                score = COALESCE((
                  SELECT CAST(ROUND(
-                   100.0 * SUM(CASE WHEN aa.is_correct = 1 THEN 1 ELSE 0 END) /
-                   NULLIF(COUNT(q.question_id), 0)
+                   100.0 * SUM(CASE WHEN aa.is_correct = 1 THEN q.question_weight ELSE 0 END) /
+                   NULLIF(SUM(q.question_weight), 0)
                  ) AS INTEGER)
                  FROM attempt_questions q
                  LEFT JOIN attempt_answers aa
