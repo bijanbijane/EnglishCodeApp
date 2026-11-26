@@ -236,6 +236,9 @@ def main() -> None:
             "INSERT INTO user_roles (id,user_id,role,granted_by) VALUES (?,?,?,?)",
             ("role-admin", "admin-1", "admin", None),
         )
+        # Commit valid principals and grants before testing the expected constraint failure.
+        # sqlite3.Connection.rollback() otherwise removes the whole pending setup transaction.
+        db.commit()
         try:
             db.execute(
                 "INSERT INTO user_roles (id,user_id,role,granted_by) VALUES (?,?,?,?)",
