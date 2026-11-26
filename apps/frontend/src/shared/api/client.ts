@@ -32,6 +32,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, option
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  headers.delete("Authorization");
   if (options.accessToken) headers.set("Authorization", "Bearer " + options.accessToken);
 
   const response = await fetch(path, { ...init, headers, credentials: "same-origin" });
