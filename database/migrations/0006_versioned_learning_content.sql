@@ -113,3 +113,31 @@ WHEN EXISTS (SELECT 1 FROM lesson_versions WHERE id=OLD.lesson_version_id AND st
 BEGIN
   SELECT RAISE(ABORT,'published question versions cannot be deleted');
 END;
+
+CREATE INDEX IF NOT EXISTS idx_lessons_current_published_version
+  ON lessons(current_published_version_id);
+
+CREATE TRIGGER IF NOT EXISTS trg_lessons_published_pointer_valid
+BEFORE UPDATE OF current_published_version_id ON lessons
+WHEN NEW.current_published_version_id IS NOT NULL
+ AND NOT EXISTS (
+   SELECT 1 FROM lesson_versions
+   WHERE id=NEW.current_published_version_id
+     AND lesson_id=NEW.id
+     AND status='published'
+ )
+BEGIN
+  SELECT RAISE(ABORT,'current published version must belong to lesson and be published');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_assessment_policy_versions_no_update
+BEFORE UPDATE ON assessment_policy_versions
+BEGIN
+  SELECT RAISE(ABORT,'assessment policy versions are immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_assessment_policy_versions_no_delete
+BEFORE DELETE ON assessment_policy_versions
+BEGIN
+  SELECT RAISE(ABORT,'assessment policy versions cannot be deleted');
+END;
