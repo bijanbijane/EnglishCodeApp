@@ -21,6 +21,7 @@
 - Role grants stored in D1; no public role-grant endpoint.
 - Author/reviewer/admin separation, self-review prevention, publication state triggers and append-only audit/review events.
 - Audit metadata allowlist drops arbitrary free text and unknown keys.
+- Global `Cache-Control: no-store` on Worker responses to prevent caching of authentication and user-specific API data.
 - Bounded cleanup for replay fingerprints, rate-limit buckets and stale sessions.
 
 ## Remaining controls and verification
