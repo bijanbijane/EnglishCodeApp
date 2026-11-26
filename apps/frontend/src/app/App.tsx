@@ -3,6 +3,7 @@ import { getLessons } from "../features/lessons/api/lessons.api";
 import { LessonCatalog } from "../features/lessons/ui/LessonCatalog";
 import { LessonWorkspace } from "../features/lessons/ui/LessonWorkspace";
 import { ProfilePanel } from "../features/identity/ui/ProfilePanel";
+import { ProgressPanel } from "../features/progress/ui/ProgressPanel";
 import type { Lesson, LessonListState } from "../features/lessons/model/lesson.types";
 import { bindTelegramLayoutMetrics, getPlatformContext, initializeTelegramHost, setTelegramBackAction } from "../services/platform/telegram";
 import { bootstrapTelegramSession, signOut, type SessionBootstrapResult } from "../features/identity/api/auth.api";
@@ -158,7 +159,7 @@ export default function App() {
       <nav className="mobile-nav" aria-label="ناوبری اصلی">
         <button className={route.name === "home" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "home" })}><span aria-hidden="true">⌂</span><small>خانه</small></button>
         <button className={route.name === "lesson" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "home" })}><span aria-hidden="true">▤</span><small>درس‌ها</small></button>
-        <span className="mobile-nav__item mobile-nav__item--disabled" aria-disabled="true"><span aria-hidden="true">◷</span><small>مرور</small></span>
+        <button className={activeScreen === "progress" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => { setSelectedLesson(null); setActiveScreen("progress"); }}><span aria-hidden="true">◷</span><small>پیشرفت</small></button>
         <button className={route.name === "profile" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "profile" })}><span aria-hidden="true">○</span><small>پروفایل</small></button>
       </nav>
     </main>
