@@ -55,7 +55,7 @@ authRoutes.post("/telegram", async (c) => {
         "INSERT OR IGNORE INTO telegram_auth_replays (init_data_hash,expires_at) VALUES (?,?)"
       ).bind(initDataHash, verified.authDate + maxAgeSeconds).run();
       if ((replay.meta?.changes ?? 0) !== 1) {
-        await revokeSession(c.env.DB, session.token);
+        await revokeSession(c.env.DB, session.token).catch(() => undefined);
         throw new AppError("TELEGRAM_INIT_DATA_REPLAYED", "This Telegram sign-in payload has already been used.", 409);
       }
     } catch (error) {
