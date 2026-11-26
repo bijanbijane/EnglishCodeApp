@@ -98,8 +98,8 @@ Follow the Editorial Learning Studio direction in the product specification. Cen
 Branch: `feat/frontend-modular-foundation`  
 PR: [#4](https://github.com/bijanbijane/EnglishCodeApp/pull/4)
 
-Implemented in the branch: app composition split, shared API client, lesson catalog feature, loading/error/empty states, responsive RTL dashboard, architecture docs and CI workflow path correction.
+Implemented in the branch: app composition split, shared API client, searchable/selectable lesson catalog, public question-list preview UI, responsive RTL dashboard, a capability-detected Telegram host adapter, architecture/implementation documentation and CI workflow path correction.
 
-Not yet verified: npm install, typecheck, tests, production build and end-to-end behavior. Telegram session integration and the lesson player remain incomplete.
+Not yet verified: npm install, typecheck, tests, production build, browser behavior and Telegram-client behavior. The public lesson preview is not an authenticated lesson player: attempt creation, answer submission, completion, progress and logout remain gated by the unresolved secure session contract.
 
 No merge, deployment, production migration, production data mutation or paid-resource activation is part of this work.
