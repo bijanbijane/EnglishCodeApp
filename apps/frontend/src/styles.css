@@ -245,3 +245,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid #8ba4ff; outline-offs
 .profile-identity > div { display:grid; gap:5px; min-width:0; }
 .profile-identity strong { color:#2b3854; font-size:13px; }
 .profile-identity > div > span { color:#8993a6; font-size:10px; }
+
+.app-fatal-error { max-width:680px; margin:clamp(40px,12vh,120px) auto; padding:24px; }
+.app-fatal-error strong { display:block; color:#963f4c; font-size:15px; }
+.app-fatal-error p { margin:9px 0 0; color:#68758d; font-size:12px; line-height:2; }
+.app-fatal-error .button { margin-top:17px; }
