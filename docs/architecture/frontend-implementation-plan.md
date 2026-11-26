@@ -32,11 +32,12 @@
 
 1. Stabilize shell, route/view state, navigation and responsive primitives.
 2. Complete public catalog → lesson preview → public question retrieval.
-3. Resolve backend session contract before wiring Telegram sign-in, attempt creation, answer submission, completion or logout.
-4. Add contract validation and component/integration tests around each API boundary.
-5. Implement review, progress and profile only against verified backend endpoints and data definitions.
-6. Add Telegram host lifecycle, viewport, safe-area, theme and BackButton integration.
-7. Complete accessibility, RTL/LTR, mobile and performance audits.
+3. Store Telegram bearer sessions in Bot API 9.0 SecureStorage and wire protected attempt/answer/complete calls.
+4. Resolve browser session transport with a backend-approved secure cookie; keep browser in public-preview mode until then.
+5. Add contract validation and component/integration tests around each API boundary.
+6. Implement review, progress and profile only against verified backend endpoints and data definitions.
+7. Verify Telegram host lifecycle, viewport, safe-area, theme and BackButton integration.
+8. Complete accessibility, RTL/LTR, mobile and performance audits.
 
 ## Verification gates
 
@@ -50,6 +51,7 @@
 
 ## Current blockers
 
-- Backend issues a bearer token but the frontend has no approved secure storage/session transport.
-- CI job logs were unavailable in the prior inspection; both frontend and backend jobs failed and the root cause remains unknown.
-- No terminal/browser execution was available during this repository-only implementation pass. Source writes are not runtime verification.
+- Telegram bearer sessions now use the official SecureStorage API when Bot API 9.0 is supported; device verification is still outstanding.
+- Browser session persistence remains blocked because the backend has no HttpOnly cookie contract.
+- CI job logs remain unavailable; the latest frontend and backend jobs failed and the root cause remains unknown.
+- No npm install/typecheck/build or browser execution was available during this repository-only implementation pass. Source writes are not runtime verification.
