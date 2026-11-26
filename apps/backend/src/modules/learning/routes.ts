@@ -65,14 +65,26 @@ function getOptionIds(optionsJson: string): string[] {
 
 learning.post("/lessons/:lessonId/attempts", requireSession, async (c) => {
   const attemptId = crypto.randomUUID();
-  const result = await c.env.DB.prepare(
-    `INSERT INTO lesson_attempts (id, user_id, lesson_id, lesson_version, status)
-     SELECT ?, ?, id, version, 'in_progress'
-     FROM lessons
-     WHERE id = ? AND status = 'published'`,
-  ).bind(attemptId, c.get("userId"), c.req.param("lessonId")).run();
+  const results = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `INSERT INTO lesson_attempts (id, user_id, lesson_id, lesson_version, status)
+       SELECT ?, ?, id, version, 'in_progress'
+       FROM lessons
+       WHERE id = ? AND status = 'published'
+         AND EXISTS (SELECT 1 FROM questions WHERE lesson_id = lessons.id)`,
+    ).bind(attemptId, c.get("userId"), c.req.param("lessonId")),
+    c.env.DB.prepare(
+      `INSERT INTO attempt_questions
+         (attempt_id, question_id, question_type, prompt, options_json, answer_key, position)
+       SELECT ?, q.id, q.type, q.prompt, q.options_json, q.answer_key, q.position
+       FROM questions q
+       JOIN lesson_attempts a ON a.lesson_id = q.lesson_id
+       WHERE a.id = ? AND a.user_id = ? AND a.status = 'in_progress'
+         AND changes() = 1`,
+    ).bind(attemptId, attemptId, c.get("userId")),
+  ]);
 
-  if (result.meta.changes !== 1) {
+  if (results[0]?.meta.changes !== 1 || (results[1]?.meta.changes ?? 0) < 1) {
     throw new AppError("NOT_FOUND", "Published lesson was not found.", 404);
   }
 
@@ -94,10 +106,10 @@ learning.post("/attempts/:attemptId/answers", requireSession, async (c) => {
   const attemptId = c.req.param("attemptId");
 
   const question = await c.env.DB.prepare(
-    `SELECT q.id, q.options_json, q.answer_key
-     FROM questions q
-     JOIN lesson_attempts a ON a.lesson_id = q.lesson_id
-     WHERE a.id = ? AND a.user_id = ? AND a.status = 'in_progress' AND q.id = ?
+    `SELECT q.question_id AS id, q.options_json, q.answer_key
+     FROM attempt_questions q
+     JOIN lesson_attempts a ON a.id = q.attempt_id
+     WHERE a.id = ? AND a.user_id = ? AND a.status = 'in_progress' AND q.question_id = ?
      LIMIT 1`,
   ).bind(attemptId, userId, questionId).first<QuestionForAnswer>();
 
@@ -130,8 +142,8 @@ learning.post("/attempts/:attemptId/answers", requireSession, async (c) => {
        (id, attempt_id, question_id, submitted_answer, is_correct)
      SELECT ?, a.id, q.id, ?, ?
      FROM lesson_attempts a
-     JOIN questions q ON q.lesson_id = a.lesson_id
-     WHERE a.id = ? AND a.user_id = ? AND a.status = 'in_progress' AND q.id = ?
+     JOIN attempt_questions q ON q.attempt_id = a.id
+     WHERE a.id = ? AND a.user_id = ? AND a.status = 'in_progress' AND q.question_id = ?
      ON CONFLICT(attempt_id, question_id) DO NOTHING`,
   ).bind(
     crypto.randomUUID(),
@@ -181,10 +193,10 @@ learning.post("/attempts/:attemptId/complete", requireSession, async (c) => {
                100.0 * SUM(CASE WHEN aa.is_correct = 1 THEN 1 ELSE 0 END) /
                NULLIF(COUNT(q.id), 0)
              ) AS INTEGER)
-             FROM questions q
+             FROM attempt_questions q
              LEFT JOIN attempt_answers aa
-               ON aa.attempt_id = lesson_attempts.id AND aa.question_id = q.id
-             WHERE q.lesson_id = lesson_attempts.lesson_id
+               ON aa.attempt_id = lesson_attempts.id AND aa.question_id = q.question_id
+             WHERE q.attempt_id = lesson_attempts.id
            ), 0),
            completed_at = ?
        WHERE id = ? AND user_id = ? AND status = 'in_progress'`,
