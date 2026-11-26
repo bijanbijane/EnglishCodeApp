@@ -38,7 +38,7 @@ Existing lessons/questions are backfilled into a first version. Historical attem
 
 The current progress table is a mutable projection. A later migration should add immutable attempt-result and progress-event facts plus a deterministic projection rebuild, after the Local D1 transaction path is verified.
 
-## Retention and operational cleanup
+## Administration and content governance\n\n| Table | Purpose | Key invariants |\n|---|---|---|\n| `user_roles` | Server-side role grants | Partial unique index allows one active grant per user/role; no public grant endpoint |\n| `admin_audit_events` | Privileged action history | Allowlisted metadata, append-only trigger, indexed keyset read |\n| `content_review_requests` | Draft review state | One request per lesson version; author and version identity immutable; no self-review; controlled state transitions |\n| `content_review_events` | Review event history | Append-only; event actor and timestamp retained |\n\nThe first admin role is owner-bootstrapped through a trusted D1 batch, not through the application API. See `ADMIN-BOOTSTRAP.md`.\n\n## Retention and operational cleanup
 
 - Telegram replay fingerprints are removed after expiry in bounded batches.
 - Rate-limit buckets older than 48 hours are removed in bounded batches.
