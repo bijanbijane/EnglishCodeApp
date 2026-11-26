@@ -159,10 +159,10 @@ export default function App() {
           {sessionMessage && <div className="session-banner" role="status"><span className="session-banner__dot" />{sessionMessage}</div>}
 
           <section className="learning-overview" aria-label="نمای کلی یادگیری">
-            <div className="section-heading"><div><p className="eyebrow">LEARNING OVERVIEW</p><h2>فضای یادگیری تو</h2></div><span className="section-caption">اطلاعات حساب پس از اتصال پروفایل نمایش داده می‌شود</span></div>
+            <div className="section-heading"><div><p className="eyebrow">LEARNING OVERVIEW</p><h2>فضای یادگیری تو</h2></div><span className="section-caption">جزئیات امتیازها در صفحهٔ پیشرفت</span></div>
             <div className="overview-grid">
-              <article className="overview-card overview-card--primary"><span className="overview-card__icon" aria-hidden="true">↗</span><div><strong>مسیر یادگیری</strong><p>از فهرست درس‌های منتشرشده یک درس را انتخاب کن.</p></div></article>
-              <article className="overview-card"><span className="overview-card__icon overview-card__icon--mint" aria-hidden="true">✓</span><div><strong>پیشرفت قابل سنجش</strong><p>امتیاز و پیشرفت فقط پس از ثبت معتبر در سرور نمایش داده می‌شود.</p></div></article>
+              <button className="overview-card overview-card--primary overview-card--action" type="button" onClick={() => document.getElementById("lessons")?.scrollIntoView({ behavior: "smooth" })}><span className="overview-card__icon" aria-hidden="true">↗</span><span><strong>مسیر یادگیری</strong><p>از فهرست درس‌های منتشرشده یک درس را انتخاب کن.</p></span></button>
+              <button className="overview-card overview-card--action" type="button" onClick={() => navigateTo({ name: "progress" })}><span className="overview-card__icon overview-card__icon--mint" aria-hidden="true">✓</span><span><strong>پیشرفت قابل سنجش</strong><p>امتیاز و پیشرفت فقط پس از ثبت معتبر در سرور نمایش داده می‌شود.</p></span></button>
             </div>
           </section>
 
