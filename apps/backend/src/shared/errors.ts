@@ -5,7 +5,8 @@ export type ErrorCode =
   | "UNAUTHENTICATED"
   | "FORBIDDEN"
   | "VALIDATION_ERROR"
-  | "CONFLICT";
+  | "CONFLICT"
+  | "RATE_LIMITED";
 
 export class AppError extends Error {
   constructor(
