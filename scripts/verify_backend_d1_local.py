@@ -39,7 +39,9 @@ def run(command):
     return result.stdout
 
 
-def request(method, path, token=None, payload=None, ip="203.0.113.10"):
+def request(
+    method, path, token=None, payload=None, ip="203.0.113.10", include_headers=False
+):
     headers = {
         "Accept": "application/json",
         "CF-Connecting-IP": ip,
@@ -55,10 +57,14 @@ def request(method, path, token=None, payload=None, ip="203.0.113.10"):
         with urlopen(req, timeout=12) as response:
             status = response.status
             body = response.read()
+            response_headers = dict(response.headers.items())
     except HTTPError as error:
         status = error.code
         body = error.read()
+        response_headers = dict(error.headers.items())
     parsed = json.loads(body.decode() or "{}")
+    if include_headers:
+        return status, parsed, response_headers
     return status, parsed
 
 
@@ -366,10 +372,36 @@ def main():
             assert logout["data"]["loggedOut"] is True
             expect_status(request("GET", "/api/v1/me", token), 401, "revoked session")
 
+            clear_limits = PERSIST_DIR / "clear-rate-limits.sql"
+            clear_limits.write_text("DELETE FROM auth_rate_limits;", encoding="utf-8")
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={clear_limits}",
+            ])
+            for attempt_number in range(30):
+                status, _ = request(
+                    "POST", "/api/v1/auth/telegram",
+                    payload={"initData": "invalid"},
+                    ip="203.0.113.12",
+                )
+                if status != 401:
+                    raise AssertionError(
+                        f"Rate limit request {attempt_number + 1} expected 401, got {status}"
+                    )
+            status, limited_body, response_headers = request(
+                "POST", "/api/v1/auth/telegram",
+                payload={"initData": "invalid"},
+                ip="203.0.113.12",
+                include_headers=True,
+            )
+            assert status == 429, (status, limited_body)
+            assert limited_body.get("error", {}).get("code") == "RATE_LIMITED"
+            assert response_headers.get("Retry-After") == "60", response_headers
+
             print(
                 "Wrangler local D1 integration passed: Telegram HMAC/replay, "
                 "session issuance/revocation, content privacy, attempt ownership, "
-                "answer idempotency, concurrent completion, concurrent login replay, and admin/reviewer RBAC grant/revocation."
+                "answer idempotency, concurrent completion, concurrent login replay, and admin/reviewer RBAC grant/revocation, and login rate limiting with Retry-After."
             )
         finally:
             process.terminate()
