@@ -20,8 +20,17 @@ function makeReplayAwareDatabase(): D1Database {
   let replayConsumed = false;
   return {
     prepare(sql: string) {
-      const statement = {
-        bind() { return statement; },
+      const statement: {
+        sql: string;
+        values: unknown[];
+        bind: (...values: unknown[]) => typeof statement;
+        first: <T>() => Promise<T | null>;
+        all: <T>() => Promise<{ results: T[] }>;
+        run: () => Promise<{ success: boolean; meta: { changes: number } }>;
+      } = {
+        sql,
+        values: [],
+        bind(...values: unknown[]) { statement.values = values; return statement; },
         async first<T>() {
           if (sql.includes("SELECT id,display_name FROM users")) {
             return { id: "user-test", display_name: "Test User" } as T;
@@ -29,18 +38,24 @@ function makeReplayAwareDatabase(): D1Database {
           return null;
         },
         async all<T>() { return { results: [] as T[] }; },
-        async run() {
-          if (sql.includes("INSERT OR IGNORE INTO telegram_auth_replays")) {
-            if (replayConsumed) return { success: true, meta: { changes: 0 } };
-            replayConsumed = true;
-            return { success: true, meta: { changes: 1 } };
-          }
-          return { success: true, meta: { changes: 1 } };
-        }
+        async run() { return { success: true, meta: { changes: 1 } }; }
       };
       return statement as unknown as D1PreparedStatement;
     },
-    async batch() { return []; }
+    async batch(statements) {
+      const results: { success: boolean; meta: { changes: number } }[] = [];
+      for (const statement of statements as unknown as { sql: string }[]) {
+        let changes = 1;
+        if (statement.sql.includes("INSERT OR IGNORE INTO telegram_auth_replays")) {
+          if (replayConsumed) changes = 0;
+          else replayConsumed = true;
+        } else if (statement.sql.includes("INSERT INTO sessions")) {
+          changes = results[2]?.meta.changes === 1 ? 1 : 0;
+        }
+        results.push({ success: true, meta: { changes } });
+      }
+      return results;
+    }
   };
 }
 
@@ -70,6 +85,24 @@ describe("Telegram login replay protection", () => {
     }, env);
     expect(second.status).toBe(409);
     expect(await second.json()).toMatchObject({ error: { code: "TELEGRAM_INIT_DATA_REPLAYED" } });
+  });
+
+  it("allows at most one session when identical initData requests race", async () => {
+    const botToken = "test-bot-token";
+    const initData = await makeInitData(botToken);
+    const env = {
+      DB: makeReplayAwareDatabase(),
+      TELEGRAM_BOT_TOKEN: botToken,
+      TELEGRAM_AUTH_MAX_AGE_SECONDS: "3600",
+      SESSION_TTL_SECONDS: "3600"
+    };
+    const request = () => app.request("/api/v1/auth/telegram", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData })
+    }, env);
+    const responses = await Promise.all([request(), request()]);
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
   });
 
   it("fails closed when authentication lifetime configuration is invalid", async () => {
