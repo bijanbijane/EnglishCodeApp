@@ -258,6 +258,68 @@ def main():
             assert sorted(status for status, _ in login_results) == [201, 409], login_results
             second_login = next(body for status, body in login_results if status == 201)
             second_token = second_login["data"]["accessToken"]
+            second_profile = expect_status(
+                request("GET", "/api/v1/me", second_token),
+                200,
+                "second profile",
+            )
+            second_user_id = second_profile["data"]["id"]
+            if not second_user_id.replace("-", "").replace("_", "").isalnum():
+                raise AssertionError("Unexpected user ID format")
+
+            expect_status(
+                request("GET", "/api/v1/admin/audit", second_token),
+                403,
+                "admin RBAC denial",
+            )
+            expect_status(
+                request("GET", "/api/v1/admin/content/reviews", second_token),
+                403,
+                "reviewer RBAC denial",
+            )
+
+            grant_file = PERSIST_DIR / "grant-local-admin-roles.sql"
+            grant_file.write_text(
+                "INSERT INTO user_roles (id,user_id,role,granted_by) VALUES "
+                f"('local-admin-role','{second_user_id}','admin',NULL),"
+                f"('local-reviewer-role','{second_user_id}','content_reviewer',NULL);",
+                encoding="utf-8",
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={grant_file}",
+            ])
+            expect_status(
+                request("GET", "/api/v1/admin/audit", second_token),
+                200,
+                "admin role grant",
+            )
+            expect_status(
+                request("GET", "/api/v1/admin/content/reviews", second_token),
+                200,
+                "reviewer role grant",
+            )
+
+            revoke_file = PERSIST_DIR / "revoke-local-admin-roles.sql"
+            revoke_file.write_text(
+                "UPDATE user_roles SET revoked_at=CURRENT_TIMESTAMP "
+                "WHERE id IN ('local-admin-role','local-reviewer-role');",
+                encoding="utf-8",
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={revoke_file}",
+            ])
+            expect_status(
+                request("GET", "/api/v1/admin/audit", second_token),
+                403,
+                "admin role revocation",
+            )
+            expect_status(
+                request("GET", "/api/v1/admin/content/reviews", second_token),
+                403,
+                "reviewer role revocation",
+            )
 
             expect_status(
                 request("GET", f"/api/v1/attempts/{attempt_id}", second_token),
@@ -285,7 +347,7 @@ def main():
             print(
                 "Wrangler local D1 integration passed: Telegram HMAC/replay, "
                 "session issuance/revocation, content privacy, attempt ownership, "
-                "answer idempotency, concurrent completion, and concurrent login replay."
+                "answer idempotency, concurrent completion, concurrent login replay, and admin/reviewer RBAC grant/revocation."
             )
         finally:
             process.terminate()
