@@ -262,3 +262,13 @@ These are source-level changes only; runtime verification remains pending until 
 - Both `validate-frontend` and `validate-backend` completed with failure. The job API again returned `steps=null` and no downloadable log URLs.
 - The hosted result does not identify whether the frontend source, runner setup or backend dependency caused the failure. Local typecheck, test and build have not been run in this environment.
 - Keep this change unverified; do not mark its test or release acceptance as complete.
+
+
+## Mobile navigation accessibility continuation — 2026-11-26
+
+- Added `aria-current="page"` to the active mobile navigation item for Home, Learning (including the lesson workspace), Progress and Profile. The visual active class is preserved; assistive technology now also receives the current-page state.
+- Added a source-contract test covering all four route conditions in `apps/frontend/test/accessibility-ui-contracts.test.ts`.
+- Source changes are committed on `feat/frontend-modular-foundation`: implementation commit [013b574](https://github.com/bijanbijane/EnglishCodeApp/commit/013b574a02b6970fad2926d46155dd4c453b9497), test commit [96a2e73](https://github.com/bijanbijane/EnglishCodeApp/commit/96a2e73602d743929405197f0f16a1fb07ce0b2f).
+- Read-back confirms four `aria-current` bindings and the new test are present. The test, typecheck and production build have not been executed in this environment; this change is not verified.
+- The workflow-run lookup returned no PR-triggered run for the latest commit at the time of inspection. No inference about CI success is justified.
+- Checklist coverage remains 34/50 (68.0%); this targeted source change does not close the broader accessibility acceptance gate. Keyboard/screen-reader walkthrough, contrast, zoom/reflow and Telegram iOS/Android checks remain open.
