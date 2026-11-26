@@ -8,11 +8,19 @@ export class ApiError extends Error {
 type ApiEnvelope<T> = { data: T };
 export type ApiRequestOptions = { accessToken?: string };
 
-function unwrap<T>(payload: T | ApiEnvelope<T>): T {
-  if (typeof payload === "object" && payload !== null && "data" in payload) {
-    return (payload as ApiEnvelope<T>).data;
+export class ApiContractError extends Error {
+  readonly code = "INVALID_RESPONSE_ENVELOPE";
+  constructor() {
+    super("ساختار پاسخ دریافتی از سرویس معتبر نیست.");
+    this.name = "ApiContractError";
   }
-  return payload as T;
+}
+
+export function unwrapApiEnvelope<T>(payload: unknown): T {
+  if (typeof payload !== "object" || payload === null || Array.isArray(payload) || !Object.prototype.hasOwnProperty.call(payload, "data")) {
+    throw new ApiContractError();
+  }
+  return (payload as ApiEnvelope<T>).data;
 }
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}, options: ApiRequestOptions = {}): Promise<T> {
@@ -38,9 +46,9 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, option
 }
 
 export async function apiGet<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
-  return unwrap(await apiRequest<T | ApiEnvelope<T>>(path, {}, options));
+  return unwrapApiEnvelope<T>(await apiRequest<unknown>(path, {}, options));
 }
 
 export async function apiPost<T>(path: string, body: unknown, options: ApiRequestOptions = {}): Promise<T> {
-  return unwrap(await apiRequest<T | ApiEnvelope<T>>(path, { method: "POST", body: JSON.stringify(body) }, options));
+  return unwrapApiEnvelope<T>(await apiRequest<unknown>(path, { method: "POST", body: JSON.stringify(body) }, options));
 }
