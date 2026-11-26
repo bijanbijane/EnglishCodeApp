@@ -328,6 +328,71 @@ def main():
                 "reviewer role grant",
             )
 
+            pagination_sql = PERSIST_DIR / "admin-pagination-fixtures.sql"
+            pagination_sql.write_text(
+                "INSERT INTO lesson_versions "
+                "(id,lesson_id,version,title,description,level,position,status,created_by_user_id) VALUES "
+                f"('review-page-v2','lesson-greetings-001',2,'Review Page 2','Local fixture','A1',2,'draft','{user_id}'),"
+                f"('review-page-v3','lesson-greetings-001',3,'Review Page 3','Local fixture','A1',3,'draft','{user_id}');"
+                "INSERT INTO content_review_requests "
+                "(id,lesson_version_id,author_user_id,status,submitted_at) VALUES "
+                f"('review-page-1','review-page-v2','{user_id}','pending','2026-11-26 10:00:00'),"
+                f"('review-page-2','review-page-v3','{user_id}','pending','2026-11-26 10:00:00');"
+                "INSERT INTO admin_audit_events "
+                "(id,actor_user_id,action,resource_type,resource_id,request_id,metadata_json,created_at) VALUES "
+                f"('audit-page-1','{second_user_id}','test.pagination','test_resource','1','req-audit-0001','{{}}','2026-11-26 10:00:00'),"
+                f"('audit-page-2','{second_user_id}','test.pagination','test_resource','2','req-audit-0002','{{}}','2026-11-26 10:00:00');",
+                encoding="utf-8",
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={pagination_sql}",
+            ])
+
+            review_page_one = expect_status(
+                request("GET", "/api/v1/admin/content/reviews?status=pending&limit=1", second_token),
+                200,
+                "review queue first page",
+            )
+            assert [row["review_request_id"] for row in review_page_one["data"]] == ["review-page-1"]
+            review_cursor = review_page_one["meta"]["nextCursor"]
+            assert review_cursor
+            review_page_two = expect_status(
+                request(
+                    "GET",
+                    "/api/v1/admin/content/reviews?" + urlencode({
+                        "status": "pending", "limit": "1", "cursor": review_cursor
+                    }),
+                    second_token,
+                ),
+                200,
+                "review queue second page",
+            )
+            assert [row["review_request_id"] for row in review_page_two["data"]] == ["review-page-2"]
+            assert review_page_two["meta"]["nextCursor"] is None
+
+            audit_page_one = expect_status(
+                request("GET", "/api/v1/admin/audit?limit=1", second_token),
+                200,
+                "audit first page",
+            )
+            assert [row["id"] for row in audit_page_one["data"]] == ["audit-page-2"]
+            audit_cursor = audit_page_one["meta"]["nextCursor"]
+            assert audit_cursor
+            audit_page_two = expect_status(
+                request(
+                    "GET",
+                    "/api/v1/admin/audit?" + urlencode({
+                        "limit": "1", "cursor": audit_cursor
+                    }),
+                    second_token,
+                ),
+                200,
+                "audit second page",
+            )
+            assert [row["id"] for row in audit_page_two["data"]] == ["audit-page-1"]
+            assert audit_page_two["meta"]["nextCursor"] is None
+
             revoke_file = PERSIST_DIR / "revoke-local-admin-roles.sql"
             revoke_file.write_text(
                 "UPDATE user_roles SET revoked_at=CURRENT_TIMESTAMP "
@@ -401,7 +466,7 @@ def main():
             print(
                 "Wrangler local D1 integration passed: Telegram HMAC/replay, "
                 "session issuance/revocation, content privacy, attempt ownership, "
-                "answer idempotency, concurrent completion, concurrent login replay, and admin/reviewer RBAC grant/revocation, and login rate limiting with Retry-After."
+                "answer idempotency, concurrent completion, concurrent login replay, admin/reviewer RBAC grant/revocation, review/audit cursor pagination, and login rate limiting with Retry-After."
             )
         finally:
             process.terminate()
