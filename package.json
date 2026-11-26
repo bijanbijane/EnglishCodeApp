@@ -1,0 +1,14 @@
+{
+  "name": "englishcodeapp",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/frontend", "apps/backend"],
+  "scripts": {
+    "dev:frontend": "npm run dev --workspace @englishcode/frontend",
+    "dev:backend": "npm run dev --workspace @englishcode/backend",
+    "build:frontend": "npm run build --workspace @englishcode/frontend",
+    "typecheck": "npm run typecheck --workspace @englishcode/frontend && npm run typecheck --workspace @englishcode/backend",
+    "test": "npm run test --workspace @englishcode/backend"
+  },
+  "engines": { "node": ">=22" }
+}
