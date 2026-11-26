@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 const progress = readFileSync(new URL("../src/features/progress/ui/ProgressPanel.tsx", import.meta.url), "utf8");
 const workspace = readFileSync(new URL("../src/features/lessons/ui/LessonWorkspace.tsx", import.meta.url), "utf8");
 const catalog = readFileSync(new URL("../src/features/lessons/ui/LessonCatalog.tsx", import.meta.url), "utf8");
+const app = readFileSync(new URL("../src/app/App.tsx", import.meta.url), "utf8");
 
 test("progress bars are announced with learner-facing lesson names", () => {
   assert.match(progress, /aria-label=\{\"بهترین امتیاز درس \" \+ title\}/);
@@ -20,4 +21,11 @@ test("progress and lesson loading states are announced politely", () => {
 
 test("catalog retry action has an explicit non-submit button type", () => {
   assert.match(catalog, /className=\"button button--secondary\" type=\"button\" onClick=\{onRetry\}/);
+});
+
+test("mobile navigation exposes the active route with aria-current", () => {
+  assert.match(app, /aria-current=\{route\.name === "home" \? "page" : undefined\}/);
+  assert.match(app, /aria-current=\{route\.name === "learn" \|\| route\.name === "lesson" \? "page" : undefined\}/);
+  assert.match(app, /aria-current=\{route\.name === "progress" \? "page" : undefined\}/);
+  assert.match(app, /aria-current=\{route\.name === "profile" \? "page" : undefined\}/);
 });
