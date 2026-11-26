@@ -300,3 +300,12 @@ These are source-level changes only; runtime verification remains pending until 
 - The latest pre-change hosted run [#777](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45858906005), on head `f571be0`, failed both `validate-frontend` and `validate-backend`. The jobs endpoint returned empty step arrays; both log downloads returned `BlobNotFound`. The failure stage and root cause remain unknown.
 - The empty-state implementation and its new test are source changes only. They have not yet been executed locally or by CI; do not count them as passing.
 - Checklist coverage remains 34/50 (68.0%). No broader accessibility or release acceptance gate is closed by this change.
+
+
+### CI runner-dispatch evidence — run #783, attempt 2
+
+- Re-ran only the failed jobs in [run #783](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45860012960). Attempt 2 also failed both validation jobs.
+- The raw GitHub attempt-specific jobs endpoint reports `steps: []`, `runner_id: 0`, empty `runner_name`, and completion roughly two seconds after job start for both jobs. No step was executed and no runner was assigned in the returned job metadata.
+- This narrows the observed failure to before normal job-step execution (runner dispatch/provisioning or GitHub Actions infrastructure). It is not evidence of a TypeScript, test, build, or application-code failure. The exact platform-side cause remains unavailable.
+- Do not change application code or CI commands based only on these empty jobs. Escalate/inspect GitHub Actions service and runner availability; retain the workflow as-is until a run reaches actual steps.
+- Latest source head remains `596842c39f9a906a40876c816a4dfcf18a3e470f`; the empty-catalog accessibility change remains unverified. Checklist coverage remains 34/50 (68.0%).
