@@ -318,3 +318,12 @@ These are source-level changes only; runtime verification remains pending until 
 - Implementation commit: [dfd1661](https://github.com/bijanbijane/EnglishCodeApp/commit/dfd16611fde451eddcdf265ca656e78ca6d294c2). Test commit: [3110184](https://github.com/bijanbijane/EnglishCodeApp/commit/3110184241148a351ee0cb02aaa8661006e49479).
 - These are source-level changes only. The latest observed CI attempts fail before any job step starts: GitHub reports empty `steps`, `runner_id: 0` and no runner name for both jobs. No test, typecheck or build result is claimed for this change.
 - Checklist coverage remains 34/50 (68.0%); the broader accessibility audit and release gates remain open.
+
+
+## Accessibility continuation — empty lesson question state — 2026-11-26
+
+- The lesson player now exposes the ready-but-empty question state as `role="status"` with `aria-live="polite"`. This is the asynchronous state reached after the questions request succeeds with an empty array; assistive technology can announce that no exercises are published yet.
+- Added a source-contract assertion in `apps/frontend/test/accessibility-ui-contracts.test.ts` for this exact state and live-region contract.
+- Implementation commit: [728905a](https://github.com/bijanbijane/EnglishCodeApp/commit/728905aef293e6b4cab2885788f59946edd83151). Test commit: [98776d5](https://github.com/bijanbijane/EnglishCodeApp/commit/98776d5ebc6d1c7a61b1a06a25097ca578defe76).
+- Hosted CI runs [#794](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45861235781) and [#795](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45861243608) both failed in both jobs before any step executed. The raw jobs API reports `steps: []`, `runner_id: 0`, and an empty runner name. This is evidence of failure before runner assignment/step execution, not evidence that the source test or application build failed. No test, typecheck, or build result is claimed for these commits.
+- This narrow accessibility correction does not close any broader keyboard, screen-reader, RTL/reflow, device, or release acceptance gate. Checklist totals are unchanged.
