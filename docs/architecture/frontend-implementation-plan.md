@@ -168,7 +168,7 @@ These are source-level changes only; runtime verification remains pending until 
 ### Progress accounting
 
 - Architecture design: **100% documented** (module boundaries, route/state ownership, Telegram adapter, API/security contracts, accessibility, resilience and acceptance criteria are recorded).
-- Implementation checklist: **27/44 source tasks (61.4%)** after recording the new Learn screen work. This is source-level completion, not a runtime pass rate.
+- Implementation checklist: **28/45 source tasks (62.2%)** after recording the new Learn screen work. This is source-level completion, not a runtime pass rate.
 - Runtime/release verification: **not yet verified**. Do not count written tests as passing tests until a green CI or local execution report exists.
 
 
