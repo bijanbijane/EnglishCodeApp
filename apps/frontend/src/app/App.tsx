@@ -6,16 +6,24 @@ import { ProfilePanel } from "../features/identity/ui/ProfilePanel";
 import type { Lesson, LessonListState } from "../features/lessons/model/lesson.types";
 import { bindTelegramLayoutMetrics, getPlatformContext, initializeTelegramHost, setTelegramBackAction } from "../services/platform/telegram";
 import { bootstrapTelegramSession, signOut, type SessionBootstrapResult } from "../features/identity/api/auth.api";
+import { hashFromRoute, routeFromHash, type AppRoute } from "./navigation/routes";
 
 export default function App() {
   const [lessonState, setLessonState] = useState<LessonListState>({ status: "loading" });
-  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
-  const [activeScreen, setActiveScreen] = useState<"home" | "profile">("home");
+  const [route, setRoute] = useState<AppRoute>(() => typeof window === "undefined" ? { name: "home" } : routeFromHash(window.location.hash));
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sessionState, setSessionState] = useState<SessionBootstrapResult | { status: "checking" }>({ status: "checking" });
   const hostInitialized = useRef(false);
+
+  const navigateTo = useCallback((next: AppRoute) => {
+    setRoute(next);
+    if (typeof window !== "undefined") {
+      const nextHash = hashFromRoute(next);
+      if (window.location.hash !== nextHash) window.location.hash = nextHash;
+    }
+  }, []);
 
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
@@ -23,13 +31,13 @@ export default function App() {
     try {
       await signOut();
       setSessionState({ status: "missing-init-data" });
-      setActiveScreen("home");
+      navigateTo({ name: "home" });
     } catch (error) {
       setSignOutError(error instanceof Error ? error.message : "خروج از حساب انجام نشد.");
     } finally {
       setSigningOut(false);
     }
-  }, []);
+  }, [navigateTo]);
 
   const loadLessons = useCallback(async () => {
     setLessonState({ status: "loading" });
@@ -42,24 +50,36 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const onHashChange = () => setRoute(routeFromHash(window.location.hash));
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  useEffect(() => {
     if (hostInitialized.current || lessonState.status === "loading" || sessionState.status === "checking") return;
     hostInitialized.current = true;
     initializeTelegramHost();
     const cleanup = bindTelegramLayoutMetrics();
     return () => { cleanup(); hostInitialized.current = false; };
   }, [lessonState.status, sessionState.status]);
+
   useEffect(() => {
     let active = true;
     void bootstrapTelegramSession().then((result) => { if (active) setSessionState(result); });
     return () => { active = false; };
   }, []);
+
   useEffect(() => { void loadLessons(); }, [loadLessons]);
+
   useEffect(() => {
-    if (selectedLesson) return setTelegramBackAction(() => setSelectedLesson(null));
-    if (activeScreen === "profile") return setTelegramBackAction(() => setActiveScreen("home"));
-  }, [selectedLesson, activeScreen]);
+    if (route.name === "home") return;
+    return setTelegramBackAction(() => navigateTo({ name: "home" }));
+  }, [route, navigateTo]);
 
   const lessons = lessonState.status === "ready" ? lessonState.lessons : [];
+  const selectedLesson: Lesson | null = route.name === "lesson" && lessonState.status === "ready"
+    ? lessonState.lessons.find((lesson) => lesson.id === route.lessonId) ?? null
+    : null;
   const canStartAttempt = sessionState.status === "authenticated";
   const sessionMessage = sessionState.status === "checking"
     ? "در حال بررسی نشست امن…"
@@ -80,20 +100,23 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <a className="brand" href="#home" onClick={() => { setSelectedLesson(null); setActiveScreen("home"); }} aria-label="صفحهٔ اصلی انگلیش‌کد">
+        <a className="brand" href="#/" onClick={() => navigateTo({ name: "home" })} aria-label="صفحهٔ اصلی انگلیش‌کد">
           <span className="brand-mark">E</span>
           <span className="brand-name">English<span>Code</span></span>
         </a>
         <div className="topbar__actions">
           <span className="environment-pill"><span className="environment-pill__dot" /> نسخهٔ آزمایشی</span>
-          <button className="avatar avatar--button" type="button" aria-label="باز کردن پروفایل" onClick={() => { setSelectedLesson(null); setActiveScreen("profile"); }}>E</button>
+          <button className="avatar avatar--button" type="button" aria-label="باز کردن پروفایل" onClick={() => navigateTo({ name: "profile" })}>E</button>
         </div>
       </header>
 
-      {selectedLesson ? (
-        <LessonWorkspace key={selectedLesson.id} lesson={selectedLesson} onBack={() => setSelectedLesson(null)} canStartAttempt={canStartAttempt} sessionMessage={sessionMessage} />
-      ) : activeScreen === "profile" ? (
-        <ProfilePanel isAuthenticated={canStartAttempt} isTelegramHost={getPlatformContext().host === "telegram"} signingOut={signingOut} error={signOutError ?? undefined} onSignOut={() => void handleSignOut()} onBack={() => setActiveScreen("home")} />
+      {route.name === "lesson" ? (
+        lessonState.status === "loading" ? <div className="state-panel" role="status"><span className="loader" /> در حال بارگذاری درس…</div>
+          : lessonState.status === "error" ? <div className="state-panel state-panel--error" role="alert"><div><strong>اطلاعات درس دریافت نشد.</strong><p>{lessonState.message}</p></div><button className="button button--secondary" type="button" onClick={() => void loadLessons()}>تلاش دوباره</button></div>
+            : selectedLesson ? <LessonWorkspace key={selectedLesson.id} lesson={selectedLesson} onBack={() => navigateTo({ name: "home" })} canStartAttempt={canStartAttempt} sessionMessage={sessionMessage} />
+              : <div className="state-panel"><strong>این درس در فهرست فعلی وجود ندارد.</strong><button className="button button--secondary" type="button" onClick={() => navigateTo({ name: "home" })}>بازگشت به درس‌ها</button></div>
+      ) : route.name === "profile" ? (
+        <ProfilePanel isAuthenticated={canStartAttempt} isTelegramHost={getPlatformContext().host === "telegram"} signingOut={signingOut} error={signOutError ?? undefined} onSignOut={() => void handleSignOut()} onBack={() => navigateTo({ name: "home" })} />
       ) : (
         <>
           <section className="welcome-panel" id="home">
@@ -126,17 +149,17 @@ export default function App() {
           <section className="lessons-section" id="lessons" aria-labelledby="lessons-title">
             <div className="section-heading"><div><p className="eyebrow">START LEARNING</p><h2 id="lessons-title">درس‌های در دسترس</h2></div>{lessonState.status === "ready" && <span className="lesson-count">{lessons.length} درس</span>}</div>
             <div className="catalog-toolbar"><label className="catalog-search"><span aria-hidden="true">⌕</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="جست‌وجوی عنوان یا سطح درس" aria-label="جست‌وجوی درس‌ها" /></label><span className="catalog-hint">برای مشاهدهٔ محتوای هر درس انتخابش کن</span></div>
-            <LessonCatalog lessons={visibleLessons} state={lessonState.status} errorMessage={lessonState.status === "error" ? lessonState.message : undefined} onRetry={() => void loadLessons()} onSelect={setSelectedLesson} />
+            <LessonCatalog lessons={visibleLessons} state={lessonState.status} errorMessage={lessonState.status === "error" ? lessonState.message : undefined} onRetry={() => void loadLessons()} onSelect={(lesson) => navigateTo({ name: "lesson", lessonId: lesson.id })} />
           </section>
           <footer className="footer"><span>یادگیری با استمرار ساخته می‌شود.</span><span className="footer__brand">EnglishCode · MVP</span></footer>
         </>
       )}
 
       <nav className="mobile-nav" aria-label="ناوبری اصلی">
-        <button className={activeScreen === "home" && !selectedLesson ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => { setSelectedLesson(null); setActiveScreen("home"); }}><span aria-hidden="true">⌂</span><small>خانه</small></button>
-        <button className="mobile-nav__item" type="button" onClick={() => { setSelectedLesson(null); setActiveScreen("home"); }}><span aria-hidden="true">▤</span><small>درس‌ها</small></button>
+        <button className={route.name === "home" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "home" })}><span aria-hidden="true">⌂</span><small>خانه</small></button>
+        <button className={route.name === "lesson" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "home" })}><span aria-hidden="true">▤</span><small>درس‌ها</small></button>
         <span className="mobile-nav__item mobile-nav__item--disabled" aria-disabled="true"><span aria-hidden="true">◷</span><small>مرور</small></span>
-        <button className={activeScreen === "profile" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => { setSelectedLesson(null); setActiveScreen("profile"); }}><span aria-hidden="true">○</span><small>پروفایل</small></button>
+        <button className={route.name === "profile" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "profile" })}><span aria-hidden="true">○</span><small>پروفایل</small></button>
       </nav>
     </main>
   );
