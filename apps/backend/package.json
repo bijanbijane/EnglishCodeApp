@@ -8,7 +8,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:migrate:local": "wrangler d1 migrations apply englishcode-local --local",
-    "db:seed:local": "wrangler d1 execute englishcode-local --local --file=../../database/seeds/0001_demo.sql"
+    "db:seed:local": "wrangler d1 execute englishcode-local --local --file=../../database/seeds/0001_demo.sql",
+    "db:migrate:dev": "wrangler d1 migrations apply englishcodeapp-dev --remote",
+    "db:seed:dev": "wrangler d1 execute englishcodeapp-dev --remote --file=../../database/seeds/0001_demo.sql",
+    "deploy:dry-run": "wrangler deploy --dry-run",
+    "deploy:dev": "wrangler deploy"
   },
   "dependencies": {
     "hono": "^4.8.0"
