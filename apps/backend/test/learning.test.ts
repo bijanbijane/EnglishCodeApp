@@ -59,6 +59,10 @@ describe("learning write API", () => {
     expect(await response.json()).toMatchObject({
       data: { status: "in_progress" },
     });
+    const statements = db.batch.mock.calls[0][0] as Array<{ sql: string }>;
+    expect(statements[0].sql).toContain("current_published_version_id");
+    expect(statements[0].sql).toContain("assessment_policy_versions");
+    expect(statements[1].sql).toContain("question_versions");
   });
 
   it("grades submitted answers on the server", async () => {
@@ -138,5 +142,8 @@ describe("learning write API", () => {
       data: { status: "completed", score: 50 },
     });
     expect(db.batch).toHaveBeenCalledTimes(1);
+    const statements = db.batch.mock.calls[0][0] as Array<{ sql: string }>;
+    expect(statements[0].sql).toContain("question_weight");
+    expect(statements[0].sql).toContain("SUM(q.question_weight)");
   });
 });
