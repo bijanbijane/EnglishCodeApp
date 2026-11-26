@@ -86,7 +86,6 @@ export default function App() {
 
   useEffect(() => { void loadLessons(); }, [loadLessons]);
   useEffect(() => subscribeToSessionInvalidation(() => setSessionState({ status: "missing-init-data" })), []);
-  useEffect(() => subscribeToSessionInvalidation(() => setSessionState({ status: "missing-init-data" })), []);
 
   useEffect(() => {
     if (route.name === "home") return;
@@ -132,6 +131,8 @@ export default function App() {
           : lessonState.status === "error" ? <div className="state-panel state-panel--error" role="alert"><div><strong>اطلاعات درس دریافت نشد.</strong><p>{lessonState.message}</p></div><button className="button button--secondary" type="button" onClick={() => void loadLessons()}>تلاش دوباره</button></div>
             : selectedLesson ? <LessonWorkspace key={selectedLesson.id} lesson={selectedLesson} onBack={() => navigateTo({ name: "home" })} canStartAttempt={canStartAttempt} sessionMessage={sessionMessage} onAttemptActiveChange={setActiveAttempt} />
               : <div className="state-panel"><strong>این درس در فهرست فعلی وجود ندارد.</strong><button className="button button--secondary" type="button" onClick={() => navigateTo({ name: "home" })}>بازگشت به درس‌ها</button></div>
+      ) : route.name === "progress" ? (
+        <ProgressPanel isAuthenticated={canStartAttempt} onBack={() => navigateTo({ name: "home" })} onOpenLessons={() => navigateTo({ name: "home" })} />
       ) : route.name === "profile" ? (
         <ProfilePanel isAuthenticated={canStartAttempt} isTelegramHost={getPlatformContext().host === "telegram"} signingOut={signingOut} error={signOutError ?? undefined} onSignOut={() => void handleSignOut()} onBack={() => navigateTo({ name: "home" })} />
       ) : (
