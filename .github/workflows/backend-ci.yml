@@ -23,7 +23,7 @@ permissions:
 jobs:
   backend:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: apps/backend
@@ -37,7 +37,5 @@ jobs:
       - run: npm test
       - name: Verify migration and transaction SQL invariants with SQLite
         run: python3 ../../scripts/verify_backend_sqlite.py
-      - name: Apply migrations to isolated local D1
-        run: npm run db:migrate:local
-      - name: Load synthetic seed data
-        run: npm run db:seed:local
+      - name: Run Wrangler local D1 integration suite
+        run: npm run test:d1-local
