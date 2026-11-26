@@ -340,6 +340,40 @@ def main() -> None:
         except sqlite3.IntegrityError:
             db.rollback()
 
+        # Admin read indexes and stable audit-feed keyset pagination.
+        audit_indexes = {
+            row[1] for row in db.execute("PRAGMA index_list('admin_audit_events')").fetchall()
+        }
+        review_indexes = {
+            row[1] for row in db.execute("PRAGMA index_list('content_review_requests')").fetchall()
+        }
+        assert "idx_admin_audit_created_id" in audit_indexes
+        assert "idx_content_review_status_submitted_id" in review_indexes
+
+        for event_id in ("audit-feed-a", "audit-feed-b", "audit-feed-c"):
+            db.execute(
+                """INSERT INTO admin_audit_events
+                     (id,actor_user_id,action,resource_type,resource_id,request_id,metadata_json,created_at)
+                   VALUES (?,?,'test.feed.read','test','resource',?,'{}','2099-01-01T00:00:00.000Z')""",
+                (event_id, "admin-1", "request-" + event_id),
+            )
+        audit_page_sql = """SELECT id,created_at FROM admin_audit_events
+           WHERE (? IS NULL OR (created_at<? OR (created_at=? AND id<?)))
+           ORDER BY created_at DESC,id DESC LIMIT ?"""
+        first_audit_page = db.execute(
+            audit_page_sql, (None, None, None, None, 2)
+        ).fetchall()
+        assert [row["id"] for row in first_audit_page] == ["audit-feed-c", "audit-feed-b"]
+        last_audit = first_audit_page[-1]
+        second_audit_page = db.execute(
+            audit_page_sql,
+            (last_audit["created_at"], last_audit["created_at"],
+             last_audit["created_at"], last_audit["id"], 2),
+        ).fetchall()
+        assert [row["id"] for row in second_audit_page] == ["audit-feed-a"]
+        assert not ({row["id"] for row in first_audit_page} &
+                    {row["id"] for row in second_audit_page}), "audit pagination must not repeat rows"
+
         # Ownership predicate must prevent another user from reading this attempt.
         foreign_attempt = db.execute(
             "SELECT id FROM lesson_attempts WHERE id = ? AND user_id = ?",
