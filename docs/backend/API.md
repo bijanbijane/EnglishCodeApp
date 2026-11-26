@@ -37,7 +37,7 @@ The API must not return stack traces, SQL text, secrets, session tokens, or priv
 | GET | `/ready` | Public | D1 readiness | Implemented |
 | GET | `/courses` | Public | Published course catalog | Implemented |
 | GET | `/courses/:courseId/lessons` | Public | Published lessons in a course | Implemented |
-| GET | `/lessons/:lessonId` | Public | Published lesson and pre-answer question DTOs | Implemented |
+| GET | `/lessons/:lessonId` | Public | Published lesson version and pre-answer question DTOs | Implemented |
 | POST | `/auth/telegram` | Public, signed initData required | Validate Telegram launch data, prevent replay, issue session | Implemented; D1 concurrency verification pending |
 | POST | `/auth/logout` | Bearer session | Revoke current session | Implemented |
 | GET | `/me` | Bearer session | Current profile | Implemented |
@@ -52,12 +52,12 @@ The API must not return stack traces, SQL text, secrets, session tokens, or priv
 - Only records with `status = 'published'` are returned by public catalog routes.
 - Public pre-answer question DTOs never select or return `answer_key` or answer `explanation`.
 - User ownership is derived from the authenticated principal, never from request JSON.
-- Each attempt snapshots question IDs, types, prompts, options, answer keys, and ordering at creation.
+- Each attempt pins a published lesson version and assessment policy version, then snapshots question IDs, types, prompts, options, answer keys, ordering, and weights at creation.
 - Attempt reads are owner-scoped and omit answer keys. Correctness is withheld until completion in the attempt-read DTO.
 - Answers are unique per attempt/question. Repeating the same answer returns the stored result; a different second answer returns 409.
 - Answer writes require an in-progress attempt and the question must belong to that attempt's snapshot.
 - Completion is a conditional state transition. Progress increment is conditional on the winning update in the same D1 batch; this requires a Local D1 concurrency test before production use.
-- Attempts pin the lesson version at creation. Snapshot rows preserve the exact assessment content even if the source lesson changes later.
+- Attempts pin the lesson version and assessment policy at creation. Snapshot rows preserve the exact assessment content and weights even if the source lesson changes later.
 
 ## Authentication invariants
 
