@@ -108,6 +108,8 @@ export default function App() {
           ? sessionState.message
           : sessionState.status === "error" ? sessionState.message : undefined;
 
+  const lessonTitles = useMemo(() => Object.fromEntries(lessons.map((lesson) => [lesson.id, lesson.title])) as Record<string, string>, [lessons]);
+
   const visibleLessons = useMemo(() => {
     const term = search.trim().toLocaleLowerCase();
     if (!term) return lessons;
