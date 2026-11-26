@@ -93,6 +93,7 @@ export default function App() {
   }, [route, navigateTo]);
 
   const lessons = lessonState.status === "ready" ? lessonState.lessons : [];
+  const lessonTitles = useMemo(() => Object.fromEntries(lessons.map((lesson) => [lesson.id, lesson.title])), [lessons]);
   const selectedLesson: Lesson | null = route.name === "lesson" && lessonState.status === "ready"
     ? lessonState.lessons.find((lesson) => lesson.id === route.lessonId) ?? null
     : null;
@@ -132,7 +133,7 @@ export default function App() {
             : selectedLesson ? <LessonWorkspace key={selectedLesson.id} lesson={selectedLesson} onBack={() => navigateTo({ name: "home" })} canStartAttempt={canStartAttempt} sessionMessage={sessionMessage} onAttemptActiveChange={setActiveAttempt} />
               : <div className="state-panel"><strong>این درس در فهرست فعلی وجود ندارد.</strong><button className="button button--secondary" type="button" onClick={() => navigateTo({ name: "home" })}>بازگشت به درس‌ها</button></div>
       ) : route.name === "progress" ? (
-        <ProgressPanel isAuthenticated={canStartAttempt} lessons={lessons} onBack={() => navigateTo({ name: "home" })} onOpenLessons={() => navigateTo({ name: "home" })} />
+        <ProgressPanel isAuthenticated={canStartAttempt} lessonTitles={lessonTitles} onBack={() => navigateTo({ name: "home" })} onOpenLessons={() => navigateTo({ name: "home" })} />
       ) : route.name === "profile" ? (
         <ProfilePanel isAuthenticated={canStartAttempt} isTelegramHost={getPlatformContext().host === "telegram"} signingOut={signingOut} error={signOutError ?? undefined} onSignOut={() => void handleSignOut()} onBack={() => navigateTo({ name: "home" })} />
       ) : (
