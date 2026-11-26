@@ -10,11 +10,15 @@ export const adminRoutes = new Hono<AppEnv>();
 const LEVELS = new Set(["Pre-A1", "A1", "A2", "B1", "B2", "C1", "C2"]);
 const REVIEW_REASONS = new Set(["approved", "quality_issue", "factual_error", "format_error", "policy_violation"]);
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+const OPTION_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+
+interface DraftOption { id: string; text: string; }
 
 interface DraftQuestion {
   sourceQuestionId?: string;
+  type: "multiple_choice";
   prompt: string;
-  options: string[];
+  options: DraftOption[];
   answerKey: string;
   explanation: string;
   weight: number;
@@ -34,6 +38,7 @@ function parseQuestions(value: unknown): DraftQuestion[] | null {
     const item = value[index];
     if (!isRecord(item)) return null;
     const sourceQuestionId = item.sourceQuestionId;
+    const questionType = item.type ?? "multiple_choice";
     const prompt = item.prompt;
     const options = item.options;
     const answerKey = item.answerKey;
@@ -42,10 +47,14 @@ function parseQuestions(value: unknown): DraftQuestion[] | null {
     const position = item.position ?? index + 1;
     if (sourceQuestionId !== undefined &&
         (typeof sourceQuestionId !== "string" || !ID_PATTERN.test(sourceQuestionId) || sourceIds.has(sourceQuestionId))) return null;
-    if (typeof prompt !== "string" || prompt.trim().length < 1 || prompt.length > 2000 ||
+    if (questionType !== "multiple_choice" ||
+        typeof prompt !== "string" || prompt.trim().length < 1 || prompt.length > 2000 ||
         !Array.isArray(options) || options.length < 2 || options.length > 10 ||
-        !options.every((option) => typeof option === "string" && option.length > 0 && option.length <= 256) ||
-        typeof answerKey !== "string" || !options.includes(answerKey) ||
+        !options.every((option) => isRecord(option) &&
+          typeof option.id === "string" && OPTION_ID_PATTERN.test(option.id) &&
+          typeof option.text === "string" && option.text.trim().length > 0 && option.text.length <= 256) ||
+        new Set(options.map((option) => (option as { id: string }).id)).size !== options.length ||
+        typeof answerKey !== "string" || !options.some((option) => (option as { id: string }).id === answerKey) ||
         typeof explanation !== "string" || explanation.length > 4000 ||
         typeof weight !== "number" || !Number.isFinite(weight) || weight <= 0 || weight > 100 ||
         !Number.isInteger(position) || (position as number) < 0 || (position as number) > 10000 ||
@@ -54,7 +63,7 @@ function parseQuestions(value: unknown): DraftQuestion[] | null {
     positions.add(position as number);
     result.push({
       ...(typeof sourceQuestionId === "string" ? { sourceQuestionId } : {}),
-      prompt: prompt.trim(), options: options as string[], answerKey,
+      type: "multiple_choice", prompt: prompt.trim(), options: options as DraftOption[], answerKey,
       explanation, weight, position: position as number
     });
   }
@@ -117,13 +126,13 @@ adminRoutes.post(
       const optionsJson = JSON.stringify(question.options);
       if (!question.sourceQuestionId) {
         statements.push(c.env.DB.prepare(
-          "INSERT INTO questions (id,lesson_id,prompt,options_json,answer_key,explanation,position) VALUES (?,?,?,?,?,?,?)"
-        ).bind(questionId, lessonId, question.prompt, optionsJson, question.answerKey, question.explanation, question.position));
+          "INSERT INTO questions (id,lesson_id,type,prompt,options_json,answer_key,explanation,position) VALUES (?,?,?,?,?,?,?,?)"
+        ).bind(questionId, lessonId, question.type, question.prompt, optionsJson, question.answerKey, question.explanation, question.position));
       }
       statements.push(c.env.DB.prepare(
-        "INSERT INTO question_versions (id,lesson_version_id,source_question_id,prompt,options_json,answer_key,explanation,weight,position) " +
-        "VALUES (?,?,?,?,?,?,?,?,?)"
-      ).bind(crypto.randomUUID(), versionId, questionId, question.prompt, optionsJson,
+        "INSERT INTO question_versions (id,lesson_version_id,source_question_id,question_type,prompt,options_json,answer_key,explanation,weight,position) " +
+        "VALUES (?,?,?,?,?,?,?,?,?,?)"
+      ).bind(crypto.randomUUID(), versionId, questionId, question.type, question.prompt, optionsJson,
         question.answerKey, question.explanation, question.weight, question.position));
     }
 
