@@ -94,6 +94,69 @@ learning.post("/lessons/:lessonId/attempts", requireSession, async (c) => {
   }, 201);
 });
 
+learning.get("/attempts/:attemptId", requireSession, async (c) => {
+  const attemptId = c.req.param("attemptId");
+  const attempt = await c.env.DB.prepare(
+    `SELECT id, lesson_id, lesson_version, status, score, started_at, completed_at
+     FROM lesson_attempts
+     WHERE id = ? AND user_id = ?
+     LIMIT 1`,
+  ).bind(attemptId, c.get("userId")).first<{
+    id: string;
+    lesson_id: string;
+    lesson_version: number;
+    status: string;
+    score: number | null;
+    started_at: string;
+    completed_at: string | null;
+  }>();
+
+  if (!attempt) throw new AppError("NOT_FOUND", "Attempt was not found.", 404);
+
+  const result = await c.env.DB.prepare(
+    `SELECT q.question_id, q.question_type, q.prompt, q.options_json, q.position,
+            aa.submitted_answer, aa.is_correct
+     FROM attempt_questions q
+     LEFT JOIN attempt_answers aa
+       ON aa.attempt_id = q.attempt_id AND aa.question_id = q.question_id
+     WHERE q.attempt_id = ?
+     ORDER BY q.position ASC`,
+  ).bind(attemptId).all<{
+    question_id: string;
+    question_type: string;
+    prompt: string;
+    options_json: string;
+    position: number;
+    submitted_answer: string | null;
+    is_correct: number | null;
+  }>();
+
+  const questions = result.results.map((question) => {
+    let options: unknown;
+    try {
+      options = JSON.parse(question.options_json);
+    } catch {
+      throw new AppError("INTERNAL_ERROR", "Attempt content is invalid.", 500);
+    }
+    return {
+      id: question.question_id,
+      type: question.question_type,
+      prompt: question.prompt,
+      options,
+      position: question.position,
+      submittedAnswer: question.submitted_answer,
+      isCorrect: attempt.status === "completed" && question.is_correct !== null
+        ? question.is_correct === 1
+        : null,
+    };
+  });
+
+  return c.json({
+    data: { ...attempt, questions },
+    meta: { requestId: c.get("requestId") },
+  });
+});
+
 learning.post("/attempts/:attemptId/answers", requireSession, async (c) => {
   let rawBody: unknown;
   try {
