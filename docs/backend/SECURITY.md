@@ -8,7 +8,7 @@
 - Telegram initData is authentication evidence only after server-side HMAC verification and freshness checks.
 - D1 is authoritative for identity, session state, content publication, assessment results, and progress.
 - Queue messages, uploaded files, and external AI output must be treated as untrusted inputs.
-- Public content DTOs must not contain answer keys, staff-only metadata, or unpublished records.
+- Public pre-answer content DTOs must not contain answer keys, answer explanations, staff-only metadata, or unpublished records.
 
 ## Authentication requirements
 
