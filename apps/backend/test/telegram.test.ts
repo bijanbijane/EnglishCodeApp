@@ -5,7 +5,7 @@ import { telegramInitDataFingerprint, verifyTelegramInitData } from "../src/modu
 async function signedInitData(botToken: string, fields: Record<string, string>) {
   const data = Object.entries(fields).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([key, value]) => `${key}=${value}`).join("\n");
-  const secret = await hmacSha256(new TextEncoder().encode(botToken), "WebAppData");
+  const secret = await hmacSha256(new TextEncoder().encode("WebAppData"), botToken);
   const hash = bytesToHex(await hmacSha256(secret, data));
   return new URLSearchParams({ ...fields, hash }).toString();
 }
