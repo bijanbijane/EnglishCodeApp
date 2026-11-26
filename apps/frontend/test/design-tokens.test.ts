@@ -47,3 +47,10 @@ test("all screen color values are sourced from the centralized palette", () => {
   assert.equal(styles.includes("#"), false, "Raw hexadecimal colors must live in tokens.css, not screen styles.");
   assert.ok(tokens.includes("--ec-palette-") && tokens.includes("#"), "Palette primitives must be defined in tokens.css.");
 });
+
+test("reduced-motion preferences disable non-essential motion and smooth scrolling", () => {
+  assert.match(styles, /@media\s*\(prefers-reduced-motion:\s*reduce\)/);
+  assert.match(styles, /scroll-behavior:\s*auto/);
+  assert.match(styles, /animation-duration:\s*0\.01ms\s*!important/);
+  assert.match(styles, /transition-duration:\s*0\.01ms\s*!important/);
+});
