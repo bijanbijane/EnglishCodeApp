@@ -5,6 +5,8 @@
 - Only raw Telegram Mini App `initData` is accepted as authentication evidence.
 - HMAC-SHA-256 verification follows Telegram's documented Web Apps algorithm.
 - Duplicate query keys, missing/invalid hash, malformed user data, expired auth_date, and implausibly future auth_date are rejected.
+- Each accepted initData hash is recorded in D1 with a unique constraint and cannot be consumed twice during its freshness window.
+- Expired replay records are cleaned during authentication; a scheduled cleanup can replace this when traffic grows.
 - Telegram bot token is an environment secret; never store it in Git or return it to the client.
 - The backend issues a cryptographically random opaque bearer token. Only its SHA-256 hash is stored in D1.
 - Sessions expire and can be revoked. Current default TTL is 7 days, bounded by a 5-minute minimum and 30-day maximum.
@@ -20,6 +22,8 @@
 ## Input and error handling
 
 - JSON payloads are parsed at the route boundary.
+- Telegram initData input is bounded to 8192 characters.
+- Authentication lifetime configuration is validated and rejected when outside allowed bounds.
 - User-supplied identifiers and answer IDs have length bounds.
 - API errors use stable codes and do not expose SQL, secret values, stack traces, or internal configuration.
 - A request ID is returned in the response headers and structured error body.
