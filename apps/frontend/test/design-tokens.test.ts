@@ -32,7 +32,7 @@ test("screen styles consume the extended semantic palette instead of repeated li
     "--ec-color-border-subtle", "--ec-color-brand-accent", "--ec-color-brand-accent-strong",
     "--ec-color-brand-deep", "--ec-color-brand-mid", "--ec-color-brand-tint",
     "--ec-color-brand-soft", "--ec-color-brand-hover-border", "--ec-color-brand-action",
-    "--ec-color-mint-accent", "--ec-color-success-accent", "--ec-color-surface",
+    "--ec-color-mint-accent", "--ec-color-success-accent", "--ec-color-surface", "--ec-color-focus-soft", "--ec-shadow-brand-accent",
   ]) {
     assert.ok(tokens.includes(token), `Missing ${token}`);
     assert.ok(styles.includes(`var(${token})`), `Styles do not consume ${token}`);
