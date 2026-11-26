@@ -23,6 +23,6 @@ test("malformed percent encoding fails closed to home", () => {
   assert.deepEqual(routeFromHash("#/lessons/%E0%A4%A"), { name: "home" });
 });
 
-test("query fragments are not accepted as part of a lesson ID", () => {
-  assert.deepEqual(routeFromHash("#/lessons/lesson-1?debug=true"), { name: "home" });
+test("query suffixes do not alter the lesson route", () => {
+  assert.deepEqual(routeFromHash("#/lessons/lesson-1?debug=true"), { name: "lesson", lessonId: "lesson-1" });
 });
