@@ -13,6 +13,8 @@
 ## Implemented in this baseline
 
 - Worker entrypoint and typed runtime bindings
+- Telegram initData HMAC verifier with timestamp, duplicate-parameter, and signature checks
+- Opaque bearer-token generation/hash, active-session lookup, revocation middleware, logout, and authenticated `/me` profile route (session issuance/login is not yet implemented)
 - Request correlation and baseline security response headers
 - Structured error envelope and not-found handling
 - `GET /api/v1/health` (liveness; no dependency call)
@@ -50,7 +52,7 @@ See [API contract](../../docs/backend/API.md), [architecture](../../docs/backend
 
 ## Not implemented yet
 
-Telegram login endpoint, replay persistence and atomic session issuance, session middleware/lifecycle, authenticated profile, attempts, answer submission, server-side grading, progress writes, rate limiting, content authoring, admin RBAC, R2, Queues, AI adapters, retention/export/delete, and operational observability. The Telegram initData HMAC verifier and its test vectors are present, but no login is accepted until the replay/session flow is implemented and verified.
+Telegram login endpoint, replay persistence and atomic session issuance, attempts, answer submission, server-side grading, progress writes, rate limiting, content authoring, admin RBAC, R2, Queues, AI adapters, retention/export/delete, and operational observability. The session middleware, logout, and `/me` route are present but cannot be used until the login/replay flow is implemented.
 
 These are explicit follow-up gates, not implied by the current scaffold.
 
