@@ -80,7 +80,7 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 - [x] Add product specification, architecture, backend contract and acceptance checklist.
 - [x] Add Telegram host adapter and official WebApp script.
 - [x] Add hash-based route contract.
-- [ ] Add automated tests for route parsing, API envelopes and DTO validation.
+- [x] Add native Node route-contract tests for home/profile/progress/lesson parsing, encoding and malformed hashes.\n- [ ] Add automated tests for API envelopes and DTO validation; route test execution remains pending CI/runtime evidence.
 - [ ] Resolve CI failure evidence and establish reproducible install/typecheck/build.
 
 ### Phase B — Core learning journey
@@ -119,7 +119,7 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 ## Current verification status
 
 - Source changes are committed to the working branch.
-- The latest inspected CI run is [#368](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45808429279), run ID `45808429279`, on the preceding head `ba23e7f99dbd7320c1611a3b9c8a3c9bc076db8e`; both `validate-backend` and `validate-frontend` failed within approximately two seconds.
+- The latest inspected CI run is [#427](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45808946164), run ID `45808946164`, on head `22f2452a8be4d4becf1e6f7efdca3a37ee739583`; both `validate-backend` and `validate-frontend` failed within approximately two seconds.
 - GitHub job metadata returned no steps or logs URL; direct job-log retrieval returned 404 `BlobNotFound`. Check-run metadata contains one annotation per job but no readable message. Root cause is unknown. The CI workflow was adjusted to install monorepo dependencies from the repository root; that did not clear the failure.
 - No local `npm install`, typecheck, build, automated test, browser test or Telegram-device test has been executed in this work session.
 - Therefore implementation status is **source-implemented, not runtime-verified**.
