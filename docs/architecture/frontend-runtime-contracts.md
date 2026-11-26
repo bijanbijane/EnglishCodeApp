@@ -20,14 +20,15 @@ The composition layer must not own question grading, score calculation, progress
 
 | Route | Access | Required behavior |
 | --- | --- | --- |
-| `#/` | Public | Catalog, search, loading/error/empty states |
+| `#/` | Public | Dashboard and next learning action |
+| `#/learn` | Public | Learning library, search, loading/error/empty states |
 | `#/lessons/:lessonId` | Public content; authenticated attempt | Direct links, missing lesson state, no client-side answer key |
 | `#/progress` | Authenticated | Server-backed progress only; signed-out state otherwise |
 | `#/profile` | Public shell; authenticated details/actions | Profile fetch, session status and logout |
 
 Unknown routes resolve to home. Invalid percent-encoding resolves safely to home. Lesson IDs are URI-encoded when generating links. Route parsing is a pure function and has direct unit tests.
 
-The desired product information architecture contains Home, Learn, Practice, Review and Profile. Only the routes listed above are currently implemented. Do not expose Review, Practice or skill destinations as active navigation until the relevant backend contract and real screen exist.
+The desired product information architecture contains Home, Learn, Practice, Review and Profile. Home, Learn, Lesson, Progress and Profile are currently implemented. Do not expose Review, Practice or skill destinations as active navigation until the relevant backend contract and real screen exist.
 
 ## 2. Feature module contract
 
