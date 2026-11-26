@@ -4,11 +4,12 @@ import type { Lesson, LessonListState } from "../model/lesson.types";
 
 type LearningLibraryProps = {
   state: LessonListState;
+  onBack: () => void;
   onRetry: () => void;
   onSelect: (lesson: Lesson) => void;
 };
 
-export function LearningLibrary({ state, onRetry, onSelect }: LearningLibraryProps) {
+export function LearningLibrary({ state, onBack, onRetry, onSelect }: LearningLibraryProps) {
   const [search, setSearch] = useState("");
   const lessons = state.status === "ready" ? state.lessons : [];
   const visibleLessons = useMemo(() => {
@@ -21,7 +22,7 @@ export function LearningLibrary({ state, onRetry, onSelect }: LearningLibraryPro
 
   return (
     <section className="learning-library" aria-labelledby="learning-library-title">
-      <button className="back-link" type="button" onClick={() => window.location.hash = "#/"}>
+      <button className="back-link" type="button" onClick={onBack}>
         ← بازگشت به خانه
       </button>
       <header className="learning-library__header">
