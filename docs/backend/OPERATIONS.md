@@ -3,9 +3,11 @@
 ## Environments
 
 - Local development uses Wrangler local mode and an isolated D1 database.
-- Staging must have its own Worker name, D1 database, secrets and exact origin allowlist.
-- Production bindings and secrets must never be copied into local or preview environments.
-- Current Wrangler config contains a local placeholder D1 ID; no deploy target or production resource is provisioned.
+- The explicit Wrangler `dev` environment targets Worker `englishcode-backend-dev` and D1 `englishcodeapp-dev`; it has its own D1 binding and environment variables.
+- Production bindings and secrets must never be copied into local or development environments.
+- The development D1 was inspected on 2026-11-26 and had no application tables. No remote migration or seed was applied.
+- The existing Cloudflare Worker is a bootstrap-only health/readiness placeholder. It is not the source application deployment.
+- The guarded deployment commands and release sequence are documented in [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## Local workflow
 
