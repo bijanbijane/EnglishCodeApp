@@ -1,74 +1,62 @@
 # Backend — Cloudflare Worker
 
-## مسئولیت
+**Current state:** executable foundation and public content-read API are committed on `main`. This is not production-ready.
 
-بک‌اند مرجع نهایی قواعد کسب‌وکار و داده‌های معتبر EnglishCodeApp است. پیاده‌سازی اولیه به‌صورت یک **Modular Monolith** روی Cloudflare Workers طراحی می‌شود. Hono گزینهٔ پایه برای routing است، اما سازگاری نسخهٔ انتخابی آن با runtime و bindings باید در نمونهٔ اجرایی آزموده شود.
+## Runtime
 
-## نقطهٔ ورود و handlerها
+- Cloudflare Workers + TypeScript
+- Hono HTTP routing
+- D1 as the initial relational source of truth
+- One modular monolith; no microservices
+- API prefix: `/api/v1`
 
-ساختار هدف یک Worker است که در نقطهٔ ورود خود handlerهای لازم را ارائه می‌دهد:
+## Implemented in this baseline
 
-- HTTP: API و webhookهای موردنیاز
-- Queue: مصرف jobهای پس‌زمینه، در صورت فعال بودن Queue
+- Worker entrypoint and typed runtime bindings
+- Request correlation and baseline security response headers
+- Structured error envelope and not-found handling
+- `GET /api/v1/health` (liveness; no dependency call)
+- `GET /api/v1/ready` (D1 readiness probe)
+- `GET /api/v1/courses`
+- `GET /api/v1/courses/:courseId/lessons`
+- `GET /api/v1/lessons/:lessonId` (never selects or returns `answer_key`)
+- Initial D1 schema and synthetic local seed data
+- Backend typecheck/test scripts and a dedicated GitHub Actions workflow
 
-این جداسازی در کد و ماژول‌ها انجام می‌شود؛ در شروع برای هر قسمت Worker مستقل ایجاد نمی‌کنیم. جدا کردن deployableها تنها با شواهد بار، نیاز ایزولاسیون یا محدودیت عملیاتی توجیه می‌شود.
+## Local setup
 
-## ساختار هدف
+Run from this directory:
 
-~~~text
-src/
-├── index.ts
-├── app.ts
-├── routes/
-│   ├── api/
-│   └── webhooks/
-├── modules/
-│   ├── auth/
-│   ├── users/
-│   ├── learning/
-│   ├── content/
-│   ├── assessment/
-│   ├── progress/
-│   ├── vocabulary/
-│   ├── telegram/
-│   ├── ai/
-│   ├── media/
-│   └── administration/
-├── middleware/
-├── platform/
-│   ├── d1/
-│   ├── r2/
-│   ├── queues/
-│   └── ai/
-└── shared/
-~~~
+```bash
+npm install
+npm run typecheck
+npm test
+npm run db:migrate:local
+npm run db:seed:local
+npm run dev
+```
 
-## الگوی هر ماژول دامنه
+Wrangler uses a local D1 database for these commands. The configured database ID is a local placeholder, not a provisioned remote database.
 
-در صورت نیاز، هر ماژول می‌تواند این لایه‌ها را داشته باشد:
+## API behavior
 
-1. domain: قواعد و مدل‌های مستقل از Cloudflare
-2. application: use caseها و orchestration
-3. ports: قرارداد repositoryها و سرویس‌های بیرونی
-4. infrastructure: پیاده‌سازی portها با D1، R2 یا API خارجی
-5. http: handler و schemaهای ورودی/خروجی
+- Success: `{ "data": ..., "meta": { "requestId": "..." } }`
+- Error: `{ "error": { "code": "...", "message": "...", "requestId": "..." } }`
+- CORS is intentionally not enabled until exact client origins and deployment topology are agreed.
+- Public content queries filter to published records only.
+- The public question DTO omits `answer_key`.
 
-برای ماژول کوچک، ایجاد همهٔ این پوشه‌ها اجباری نیست؛ از abstraction بدون نیاز واقعی جلوگیری می‌شود.
+See [API contract](../../docs/backend/API.md) and [architecture](../../docs/backend/ARCHITECTURE.md).
 
-## قواعد
+## Not implemented yet
 
-- route فقط درخواست را parse، validate و به use case هدایت می‌کند.
-- منطق دامنه نباید به D1Database، R2Bucket یا ساختار پیام Queue وابسته باشد.
-- دسترسی مستقیم به bindingها فقط از adapterهای زیر platform/ مجاز است.
-- ورودی‌ها در مرز API اعتبارسنجی می‌شوند؛ مجوز دسترسی در سرور بررسی می‌شود.
-- خطاها پاسخ ساختاریافته و بدون افشای secret یا اطلاعات داخلی دارند.
-- webhookها و jobها باید در برابر تحویل تکراری idempotent باشند.
-- عملیات مهم پیش از ارسال پیام Queue در D1 به‌شکل پایدار ثبت می‌شوند؛ Queue منبع حقیقت نیست.
+Telegram initData authentication, session lifecycle, authenticated profile, attempts, answer submission, server-side grading, progress writes, rate limiting, content authoring, admin RBAC, R2, Queues, AI adapters, retention/export/delete, and operational observability.
 
-## امنیت تلگرام
+These are explicit follow-up gates, not implied by the current scaffold.
 
-بک‌اند باید initData خام را طبق الگوریتم رسمی Telegram با HMAC-SHA-256 اعتبارسنجی کند و auth_date را از نظر تازگی بررسی کند. سپس هویت کاربر داخلی را ایجاد/بازیابی کند. token ربات فقط در Worker Secret نگهداری می‌شود. دادهٔ تأییدنشده نباید وارد session یا مجوز شود.
+## Safety
 
-## وضعیت
-
-این سند طرح مسئولیت‌ها و ساختار را مشخص می‌کند. Worker، routeها، bindings و تست‌های اجرایی هنوز ساخته یا deploy نشده‌اند.
+- Do not run remote migrations or deploy this Worker as part of local development.
+- No production database, Worker secret, paid service, or Cloudflare resource has been provisioned.
+- The `deploy` command is intentionally absent until a separately approved staging configuration exists.
+- Never commit bot tokens, session tokens, real user data, or production environment files.
