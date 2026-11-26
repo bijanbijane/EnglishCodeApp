@@ -45,3 +45,14 @@ The public lesson catalog can be integrated independently. Protected attempt rou
 ## Quality gates
 
 Every feature should include typed API contracts, loading/empty/error states, accessible interactions and tests for meaningful behavior. Build and typecheck must pass before a change is considered verified.
+
+
+## Current implementation progress
+
+- Selectable lesson catalog with client-side search.
+- Lesson preview screen loading the public question list from `GET /api/v1/lessons/:lessonId/questions`.
+- Question option selection is presentation-only; answer submission is deliberately not enabled until the secure session contract is resolved.
+- Telegram host adapter isolates raw initData, host detection, viewport/safe-area metadata and BackButton/viewport subscription cleanup.
+- Implementation sequence and platform boundary are documented in [frontend-implementation-plan.md](../../docs/architecture/frontend-implementation-plan.md) and [frontend-platform-adapter.md](../../docs/architecture/frontend-platform-adapter.md).
+
+The current branch has not been runtime-verified. Typecheck, production build, browser testing and Telegram-client testing remain outstanding. Do not interpret the preview UI as a completed authenticated lesson player.
