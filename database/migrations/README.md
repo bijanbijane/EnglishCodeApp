@@ -1,31 +1,37 @@
 # Database Migrations
 
-تمام تغییرات D1 باید از migrationهای SQL نسخه‌بندی‌شده عبور کنند.
-
-## Migrationهای موجود در شاخهٔ backend-domain-foundation
+تمام تغییرات D1 باید از migrationهای SQL نسخه‌بندی‌شده عبور کنند. هیچ migration اعمال‌شده‌ای بازنویسی نمی‌شود.
 
 | Version | File | Purpose |
 |---|---|---|
-| 0001 | `0001_initial.sql` | کاربران، دوره‌ها، درس‌ها، سؤال‌ها، تلاش‌ها و پاسخ‌ها |
-| 0002 | `0002_backend_foundation.sql` | نشست‌ها، پیشرفت، قید یکتایی پاسخ و ایجاد جدول/index مربوط به Telegram replay |
-| 0003 | `0003_telegram_auth_replay.sql` | تعریف تکراری و idempotent جدول/index مربوط به replay که در 0002 نیز وجود دارد؛ برای حفظ تاریخچه فعلاً حذف یا بازنویسی نشده است |
+| 0001 | 0001_initial.sql | users, courses, lessons, questions, attempts, answers |
+| 0002 | 0002_backend_foundation.sql | sessions, replay table/index, answer uniqueness, progress |
+| 0003 | 0003_telegram_auth_replay.sql | تکرار idempotent تعریف replay table/index از 0002؛ برای حفظ تاریخچه نگه داشته شده |
+| 0004 | 0004_provider_neutral_identity.sql | نگاشت provider-neutral هویت و backfill شناسه‌های Telegram موجود |
+| 0005 | 0005_vocabulary_review.sql | واژگان، وضعیت واژگان کاربر، رخدادهای مرور و کنترل revision |
 
-## نکتهٔ مهم دربارهٔ 0002 و 0003
+## Migration history note
 
-در سورس فعلی، migration شمارهٔ 0002 خودش `telegram_auth_replays` و index انقضا را ایجاد می‌کند. migration شمارهٔ 0003 همان اشیا را دوباره با `IF NOT EXISTS` تعریف می‌کند. این تکرار در اجرای عادی SQLite باعث ساخت دوبارهٔ جدول نمی‌شود، اما تاریخچهٔ migration را مبهم و غیرضروری کرده است.
+Migration 0002 خودش telegram_auth_replays و index انقضا را ایجاد می‌کند؛ migration 0003 همان اشیا را دوباره با IF NOT EXISTS تعریف می‌کند. این تکرار در SQLite/D1 ساخت دوباره ایجاد نمی‌کند، اما تاریخچه را غیرضروری و مبهم می‌کند. تا زمانی که تاریخچهٔ اجرا در تمام محیط‌ها روشن نشده، هیچ‌یک را حذف یا بازنویسی نکنید.
 
-تا وقتی وضعیت تمام دیتابیس‌های local/test و هر محیط مشترک روشن نشده، migration اعمال‌شده را بازنویسی نکنید. ابتدا تاریخچهٔ واقعی migration هر محیط را بررسی کنید؛ اگر اصلاح ساختاری لازم بود، آن را با یک migration جدید و forward-only انجام دهید. هیچ migration عملیاتی در این شاخه مجاز نشده است.
+## 0004 — Provider-neutral identity
 
-## قواعد اجرا
+جدول user_identities شناسهٔ داخلی user را از شناسهٔ ارائه‌دهنده جدا می‌کند. داده‌های Telegram موجود بدون تغییر users.id به این جدول backfill می‌شوند. قید unique(provider, provider_subject) مانع اتصال یک هویت خارجی به دو حساب می‌شود؛ unique(user_id, provider) فعلاً حداکثر یک هویت از هر provider را برای هر کاربر مجاز می‌کند.
 
-- هر migration یک تغییر محدود و قابل بازبینی داشته باشد.
-- migration اعمال‌شده در تاریخچه بازنویسی نشود؛ اصلاح بعدی migration جدید می‌خواهد.
-- قبل از اجرا، روی دیتابیس محلی و دادهٔ آزمایشی اجرا و بررسی شود.
-- برای تغییرات بزرگ، rollout سازگار با نسخهٔ قبلی برنامه طراحی شود.
-- عملیات destructive مثل حذف یا تغییر نوع ستون، نیازمند بررسی مسیر داده و rollback/recovery است.
-- اجرای migration روی محیط عملیاتی باید مرحلهٔ مستقل با backup/recovery plan و تأیید مالک پروژه باشد.
-- نسخهٔ migration اعمال‌شده باید قابل تشخیص و ممیزی باشد.
+## 0005 — Vocabulary and review
 
-## وضعیت اجرا
+- vocabulary_items: محتوای واژگان منتشرشده در یک جفت زبان.
+- user_vocabulary: وضعیت یادگیری و زمان مرور بعدی برای هر کاربر/واژه.
+- vocabulary_review_events: تاریخچهٔ append-only مرور با idempotency key یکتا برای هر کاربر.
+- revision در user_vocabulary برای جلوگیری از overwrite شدن دو مرور هم‌زمان اضافه شده است.
 
-فایل‌های SQL در Git ثبت شده‌اند. اجرای آن‌ها روی D1 محلی و هر حساب Cloudflare هنوز انجام نشده است. Migrationها را به ترتیب روی دیتابیس local/test اجرا و سپس integration tests را اجرا کنید؛ هیچ migration عملیاتی در این شاخه مجاز نیست.
+## Execution policy
+
+- ابتدا تمام migrationها را روی Local D1 خالی اجرا کنید.
+- سپس مسیر ارتقا از schema قبلی را نیز تست کنید.
+- بررسی کنید foreign_keys فعال‌اند و تمام unique/check/indexها اعمال شده‌اند.
+- fixtureها فقط synthetic باشند.
+- برای هر migration، شواهد اجرا، schema diff و recovery note ثبت شود.
+- اجرای production فقط پس از backup/restore drill و تأیید مستقل مالک مجاز است.
+
+هیچ migration در این شاخه روی Cloudflare remote یا production اجرا نشده است.
