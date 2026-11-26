@@ -48,6 +48,54 @@ These are source-level ports only. They have not been executed in this session;
 compatibility and runtime behavior remain unverified until the full workspace
 checks pass.
 
+## Additional changes ported from backend architecture V3
+
+The following V3 backend capabilities and artifacts have now been ported into this
+integration branch:
+
+- Provider-neutral identity service and Telegram identity mapping.
+- Vocabulary enrollment/list/due-review API and deterministic review scheduler.
+- Version-pinned learning attempts, immutable lesson/question versions and
+  assessment policy version references.
+- Migrations 0004, 0005 and 0006, plus migration documentation.
+- Identity, learning API and review scheduler tests.
+- Backend V3 architecture, threat model, domain-module map and delivery roadmap.
+- V3 CI workflow diagnostics and request-ID correction (application request ID
+  is now generated independently of Cloudflare Ray ID).
+- Frontend architecture ADRs and Telegram Mini App host/architecture specifications.
+
+The frontend audit and Telegram learning-experience branches contain the same
+six changed paths according to GitHub compare. Their useful architecture
+documents have been ported once. The implementation base remains
+`feat/frontend-modular-foundation`.
+
+## Branch disposition after current review
+
+- `feat/backend-domain-foundation`: its content is already contained in the
+  integration base; no additional files are needed.
+- `docs/backend-architecture-v2`: superseded by the V3 architecture set; its
+  legacy architecture/implementation-plan documents are not copied wholesale.
+- `feat/backend-foundation`: older, divergent backend layout and Wrangler
+  configuration; do not merge wholesale because it conflicts with the selected
+  Hono modular structure and V3 modules.
+- `feat/minimal-app-foundation`: old minimal UI/backend slice; superseded by
+  the selected modular frontend and current backend API.
+- `fix/backend-p0-correctness`: P0 auth/session/learning changes and regression
+  tests were ported, then reconciled with V3 identity and versioned-learning
+  implementation.
+- `feat/frontend-architecture-audit` and
+  `feat/telegram-learning-experience`: shared frontend architecture documents
+  and decisions were ported once.
+
+## CI evidence
+
+A GitHub Actions run associated with commit
+`116353e542d8ee637f26d022ac03b11a00598f70` completed with conclusion
+`failure`. The connector returned no step summaries or downloadable logs, so
+the cause is not yet established. This is a failed check, not a passing
+validation. The PR must remain Draft until a diagnostic run provides actionable
+evidence and the complete validation suite passes.
+
 ## Validation gates
 
 - [ ] Refresh all branch heads and compare each branch with this integration branch.
