@@ -44,7 +44,20 @@ npm run db:seed:local
 npm run dev
 ```
 
-Wrangler uses a local D1 database for these commands. The configured database ID is a local placeholder, not a provisioned remote database.
+Wrangler uses a local D1 database for the `:local` commands. The development Worker is configured as `englishcode-backend-dev` and binds to the provisioned `englishcodeapp-dev` D1 database. The remote development database has migrations `0001`–`0010` applied. The versioned demo seed has been applied and verified: one published course, one published lesson version, and two question versions. Production resources are not configured here.
+
+## Development Worker deployment
+
+The repository configuration targets the existing development Worker and D1 database only.
+
+```bash
+npm run typecheck
+npm test
+npm run deploy:dry-run
+npm run deploy:dev
+```
+
+Use `npm run db:migrate:dev` only when a new migration is pending, and `npm run db:seed:dev` only for the idempotent development demo seed. These commands target remote development D1; never substitute a production database name. Before deployment, configure the `TELEGRAM_BOT_TOKEN` Worker secret through a protected Cloudflare secret workflow. The secret value must never be committed or placed in a `VITE_` variable.
 
 ## API behavior
 
