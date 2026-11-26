@@ -1,60 +1,60 @@
 # Backend Data Model
 
-**Canonical schema:** versioned SQL under `database/migrations/`.  
-**Initial store:** Cloudflare D1 / SQLite.
+**Canonical schema:** forward-only SQL migrations under `database/migrations/`.  
+**Store:** Cloudflare D1 / SQLite.  
+**Current migration sequence on main:** `0001`–`0008`.
 
-## Identity
+## Identity and sessions
 
-### users
-Internal application account. Stable ID independent of Telegram or any future login provider.
+| Table | Purpose | Key invariants |
+|---|---|---|
+| `users` | Internal application account | Stable internal UUID; provider-independent |
+| `external_identities` | Provider subject mapping | Unique `(provider, provider_user_id)`; Telegram ID stored as text |
+| `sessions` | Bearer session lifecycle | Only token hash stored; expiry and revocation checked |
+| `telegram_auth_replays` | Single-use Telegram launch data | SHA-256 fingerprint unique; no raw initData |
+| `auth_rate_limits` | Login abuse control | HMAC-derived IP bucket; fixed UTC minute; no raw IP |
 
-### external_identities
-Maps a provider subject to an internal user. Unique constraint on `(provider, provider_user_id)`. Telegram username is mutable and must not be used as the identity key.
+## Catalog and versioned content
 
-### sessions
-Opaque session lifecycle. Persist token hash only, with expiry and revocation timestamps. Index user and expiry for bounded cleanup and account session views.
+| Table | Purpose | Key invariants |
+|---|---|---|
+| `courses` | Course catalog | Public reads filter to published |
+| `lessons` | Stable lesson identity and current publication pointer | `current_published_version_id` must reference a published version belonging to the same lesson |
+| `lesson_versions` | Immutable published lesson snapshots | New versions start as drafts; published rows cannot be updated/deleted |
+| `questions` | Stable source question identity | Answer key is private server-side data |
+| `question_versions` | Versioned question content | Prompt/options/answer key/weight immutable once parent lesson version is published |
+| `assessment_policy_versions` | Versioned scoring policy configuration | Policy versions immutable |
 
-## Learning catalog
-
-### courses
-Provider-neutral learning course. Only `published` records are visible to public catalog routes.
-
-### lessons
-Belongs to a course and has stable slug, ordering, level, and version. Published-content immutability and content version snapshots must be enforced before content authoring is introduced.
-
-### questions
-Belongs to a lesson. `answer_key` is private server-side assessment data. Public DTOs must select an explicit allowlist and must never serialize this column.
+Existing lessons/questions are backfilled into a first version. Historical attempts retain their `attempt_questions` snapshots; old attempt snapshots are not rewritten to guess historical source content.
 
 ## Assessment and progress
 
-### lesson_attempts
-Owned by one user and pinned to one lesson. State transitions must be explicit; only in-progress attempts accept answers. Future schema must pin content version and assessment policy version.
+| Table | Purpose | Key invariants |
+|---|---|---|
+| `lesson_attempts` | User-owned attempt | Pins `lesson_version_id` and `assessment_policy_version_id`; state transition is conditional |
+| `attempt_questions` | Immutable per-attempt question snapshot | Includes question version reference when available, prompt/options/answer key/order/weight |
+| `attempt_answers` | Accepted user answer | Unique `(attempt_id, question_id)`; server grades |
+| `user_progress` | Read projection | Updated only by the winning completion transition |
 
-### attempt_answers
-Unique on `(attempt_id, question_id)`. A duplicate submission must have deterministic semantics: return the prior result for an identical idempotent request or return a conflict for a different answer. Never silently overwrite an accepted answer.
+The current progress table is a mutable projection. A later migration should add immutable attempt-result and progress-event facts plus a deterministic projection rebuild, after the Local D1 transaction path is verified.
 
-### user_progress
-Unique on `(user_id, lesson_id)`. Completion count and best score must be updated atomically with the winning attempt completion; retries must not double-count progress.
+## Retention and operational cleanup
 
-## Planned operational tables
-
-Add only with a tested use case and migration:
-- telegram_auth_replays: unique canonical fingerprint and expiry; no raw initData.
-- idempotency_keys: request scope, owner, key, request hash, response/result reference and expiry.
-- outbox_jobs: durable job state written before Queue enqueue; consumer idempotency.
-- audit_events: minimal, append-oriented staff/security events with retention policy.
-- ai_usage: provider, model, quota/cost units and purpose; no private prompt content by default.
+- Telegram replay fingerprints are removed after expiry in bounded batches.
+- Rate-limit buckets older than 48 hours are removed in bounded batches.
+- Unrevoked expired sessions are retained for at least seven days after expiry.
+- Revoked sessions are retained for at least 30 days after revocation.
+- Cleanup runs daily in Worker Cron only after deployment; no production cron is active.
 
 ## Schema invariants
 
-- Migration files are immutable after application.
-- All foreign keys and uniqueness constraints are enforced in D1.
-- Use parameterized SQL only.
-- UTC timestamps are stored in ISO-8601 form.
-- Large numeric provider IDs are stored as text.
-- Binary media belongs in private R2 objects; D1 stores metadata and object keys only.
-- Seeds and fixtures contain synthetic data only.
+- Parameterized SQL only.
+- Foreign keys, unique indexes and CHECK constraints enforce durable invariants.
+- UTC ISO-8601 timestamps.
+- Synthetic fixtures only.
+- Binary media belongs in private R2 objects; D1 stores metadata/object keys only.
+- Migrations are never rewritten after being applied to a shared database.
 
-## Migration history warning
+## Branch history warning
 
-The current main branch starts with `0001_initial.sql`. Older backend branches contain different migration histories. Before connecting any shared database, inspect its applied migration ledger and reconcile the history. Never renumber or rewrite a migration already applied to a shared database; use a forward-only migration instead.
+Older feature branches contain a different schema history, including a different initial migration and versioned-learning migration sequence. They are not drop-in compatible with current main. Port code only after mapping every table/constraint and creating forward-only migrations. Do not merge their old numbered migrations into the current sequence.
