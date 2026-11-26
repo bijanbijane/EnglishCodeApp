@@ -63,3 +63,15 @@ Every feature should include typed API contracts, loading/empty/error states, ac
 - Implementation sequence and platform boundary are documented in [frontend-implementation-plan.md](../../docs/architecture/frontend-implementation-plan.md) and [frontend-platform-adapter.md](../../docs/architecture/frontend-platform-adapter.md).
 
 The current branch has not been runtime-verified. Typecheck, production build, browser testing and Telegram-client testing remain outstanding. The authenticated lesson flow is source-implemented but has not yet been runtime-verified in Telegram.
+
+## Validation commands
+
+Run these from `apps/frontend`:
+
+- `npm run typecheck` — TypeScript project check.
+- `npm test` — dependency-free route contract tests (Node.js 22 with TypeScript type stripping).
+- `npm run build` — production TypeScript and Vite build.
+
+The route tests cover hash serialization, direct links, encoded lesson IDs and invalid-route fallback. Passing source configuration does not mean these commands have been executed; consult CI evidence and the acceptance checklist.
+
+Architecture detail: [Frontend Runtime Contracts](../../docs/architecture/frontend-runtime-contracts.md).
