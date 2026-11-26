@@ -23,7 +23,6 @@ export type QuestionRow = {
   type: string;
   prompt: string;
   options_json: string;
-  explanation: string | null;
   position: number;
 };
 
@@ -55,7 +54,7 @@ export const contentRepository = {
 
   async listLessonQuestions(db: D1Database, lessonId: string): Promise<QuestionRow[]> {
     const result = await db.prepare(
-      `SELECT id, type, prompt, options_json, explanation, position
+      `SELECT id, type, prompt, options_json, position
        FROM questions WHERE lesson_id = ? ORDER BY position ASC`,
     ).bind(lessonId).all<QuestionRow>();
     return result.results;
