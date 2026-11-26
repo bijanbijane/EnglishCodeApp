@@ -54,7 +54,12 @@ app.use("/api/v1/*", cors({
 }));
 
 app.get("/api/v1/health", (c) =>
-  c.json({ data: { status: "ok" }, meta: { requestId: c.get("requestId") } }),
+  c.json({
+    status: "ok",
+    service: "englishcode-backend",
+    data: { status: "ok" },
+    meta: { requestId: c.get("requestId") },
+  }),
 );
 
 app.get("/api/v1/ready", async (c) => {

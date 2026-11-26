@@ -6,6 +6,8 @@ describe("backend HTTP foundation", () => {
     const response = await app.request("/api/v1/health", {}, {} as never);
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
+      status: "ok",
+      service: "englishcode-backend",
       data: { status: "ok" },
     });
     expect(response.headers.get("X-Request-Id")).toBeTruthy();
