@@ -17,6 +17,7 @@ test("accepts a valid started attempt", () => {
 test("rejects incomplete or unknown attempt responses", () => {
   assert.throws(() => parseAttemptResponse({ attemptId: "", status: "started" }));
   assert.throws(() => parseAttemptResponse({ attemptId: "attempt-1", status: "pending" }));
+  assert.throws(() => parseAttemptResponse({ attemptId: "attempt-1", status: "completed" }));
 });
 
 test("accepts server-confirmed answer feedback", () => {
