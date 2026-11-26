@@ -224,6 +224,8 @@ def main() -> None:
         # RBAC, append-only audit, no-self-review and publish state machine.
         db.execute("INSERT INTO users (id,display_name) VALUES (?,?)", ("reviewer-1", "Reviewer"))
         db.execute("INSERT INTO users (id,display_name) VALUES (?,?)", ("admin-1", "Admin"))
+        db.execute("INSERT INTO users (id,display_name) VALUES (?,?)", ("reviewer-2", "Reviewer 2"))
+        db.execute("INSERT INTO users (id,display_name) VALUES (?,?)", ("admin-2", "Admin 2"))
         db.execute(
             "INSERT INTO user_roles (id,user_id,role,granted_by) VALUES (?,?,?,?)",
             ("role-author", user_id, "content_author", None),
