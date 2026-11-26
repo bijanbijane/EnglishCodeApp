@@ -4,6 +4,7 @@ import { AppError, errorBody } from "./shared/errors";
 import { authRoutes } from "./modules/auth/routes";
 import { learningRoutes } from "./modules/learning/routes";
 import { userRoutes } from "./modules/users/routes";
+import { vocabularyRoutes } from "./modules/vocabulary/routes";
 
 export const app = new Hono<AppBindings>();
 
@@ -36,6 +37,7 @@ app.get("/api/v1/ready", async (c) => {
 app.route("/api/v1/auth", authRoutes);
 app.route("/api/v1", learningRoutes);
 app.route("/api/v1", userRoutes);
+app.route("/api/v1", vocabularyRoutes);
 
 app.notFound((c) => c.json(errorBody("NOT_FOUND", "Route not found.", c.get("requestId")), 404));
 app.onError((error, c) => {
