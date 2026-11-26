@@ -34,9 +34,9 @@ Navigation uses a small hash-route adapter in `app/navigation/routes.ts`. It sup
 
 | Module | Owns | Current implementation |
 | --- | --- | --- |
-| `app` | Bootstrap, route parsing, navigation, feature composition | Home, lesson, progress and profile routes |
+| `app` | Bootstrap, route parsing, navigation, feature composition | Home, Learn, lesson, progress and profile routes |
 | `identity` | Telegram login, session lifecycle, profile, logout | SecureStorage bootstrap, profile endpoint, logout |
-| `lessons` | Catalog, question retrieval, attempt lifecycle UI | Searchable catalog and server-backed lesson player |
+| `lessons` | Catalog, question retrieval, attempt lifecycle UI | Dedicated learning library, pure search filter, and server-backed lesson player |
 | `progress` | Learner progress views and API DTOs | Server-backed per-lesson history |
 | `shared/api` | HTTP transport, error normalization, auth header option | Implemented; contract tests outstanding |
 | `services/platform` | Telegram/browser detection, SecureStorage, theme, safe-area, BackButton | Source-implemented; device verification outstanding |
@@ -92,6 +92,10 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 - [ ] Resolve CI failure evidence and establish reproducible install/typecheck/build.
 
 ### Phase B — Core learning journey
+- [x] Separate the Home dashboard from the Learn library screen.
+- [x] Add the canonical `#/learn` route, mobile navigation state and return path from lesson player.
+- [x] Extract lesson search into a pure feature-model function; search covers title, CEFR level and description.
+- [x] Add route and lesson-search unit cases for the dedicated Learn screen.
 - [x] Public lesson catalog with search, loading, error/retry and empty states.
 - [x] Public question retrieval and structured option rendering.
 - [x] Telegram SecureStorage session bootstrap.
@@ -149,3 +153,18 @@ PR #4 remains open and Draft. Do not merge, deploy, run production migrations, m
 These are source-level changes only; runtime verification remains pending until a successful CI or local test/build run is available.
 
 - Strict API transport now rejects bare success payloads and requires the backend `{ data: ... }` envelope; malformed response shapes raise a typed `ApiContractError`.
+
+
+## Learning library screen — 2026-11-26
+
+- Home is now a dashboard rather than a page that embeds the full lesson catalogue.
+- The dedicated `#/learn` screen owns the searchable published-lesson library and has explicit loading, empty, no-search-results, error and retry behavior through the existing lesson catalogue component.
+- Search is isolated in `features/lessons/model/lesson-search.ts`; it matches title, CEFR level and optional description and has dependency-free Node unit coverage.
+- Route parsing/serialization tests cover `#/learn` and query suffixes. The lesson player returns to Learn, while Home and other secondary screens retain their own back behavior.
+- Practice and Review remain deliberately inactive because the inspected backend currently has no review scheduling or separate practice-center contracts. Existing lesson attempts are the working practice flow; duplicate menu entries would misrepresent functionality.
+
+### Progress accounting
+
+- Architecture design: **100% documented** (module boundaries, route/state ownership, Telegram adapter, API/security contracts, accessibility, resilience and acceptance criteria are recorded).
+- Implementation checklist: **25/42 source tasks (59.5%)** after recording the new Learn screen work. This is source-level completion, not a runtime pass rate.
+- Runtime/release verification: **not yet verified**. Do not count written tests as passing tests until a green CI or local execution report exists.
