@@ -221,6 +221,125 @@ def main() -> None:
         ).fetchone()
         assert progress["completed_count"] == 1, "duplicate completion must not double-count progress"
 
+        # RBAC, append-only audit, no-self-review and publish state machine.
+        db.execute("INSERT INTO users (id,display_name) VALUES (?,?)", ("reviewer-1", "Reviewer"))
+        db.execute("INSERT INTO users (id,display_name) VALUES (?,?)", ("admin-1", "Admin"))
+        db.execute(
+            "INSERT INTO user_roles (id,user_id,role,granted_by) VALUES (?,?,?,?)",
+            ("role-author", user_id, "content_author", None),
+        )
+        db.execute(
+            "INSERT INTO user_roles (id,user_id,role,granted_by) VALUES (?,?,?,?)",
+            ("role-reviewer", "reviewer-1", "content_reviewer", None),
+        )
+        db.execute(
+            "INSERT INTO user_roles (id,user_id,role,granted_by) VALUES (?,?,?,?)",
+            ("role-admin", "admin-1", "admin", None),
+        )
+        try:
+            db.execute(
+                "INSERT INTO user_roles (id,user_id,role,granted_by) VALUES (?,?,?,?)",
+                ("role-author-duplicate", user_id, "content_author", None),
+            )
+            raise AssertionError("duplicate active role grant must fail")
+        except sqlite3.IntegrityError:
+            db.rollback()
+
+        draft_version_id = lesson_id + ":v2"
+        db.execute(
+            """INSERT INTO lesson_versions
+                 (id,lesson_id,version,title,description,level,position,status,created_by_user_id)
+               VALUES (?,?,2,?,?, 'A2',1,'draft',?)""",
+            (draft_version_id, lesson_id, "Greetings v2", "Draft version", user_id),
+        )
+        db.execute(
+            """INSERT INTO question_versions
+                 (id,lesson_version_id,source_question_id,question_type,prompt,options_json,answer_key,explanation,weight,position)
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            ("question-greetings-001:v2", draft_version_id, "question-greetings-001",
+             "multiple_choice", "New prompt", '[{"id":"a","text":"A"},{"id":"b","text":"B"}]',
+             "a", "", 2, 1),
+        )
+        db.execute(
+            """INSERT INTO content_review_requests
+                 (id,lesson_version_id,author_user_id,status)
+               VALUES ('review-1',?,?, 'pending')""",
+            (draft_version_id, user_id),
+        )
+        db.commit()
+
+        try:
+            db.execute(
+                """UPDATE content_review_requests
+                   SET status='approved',reviewed_by_user_id=?,reviewed_at=?
+                   WHERE id='review-1'""",
+                (user_id, now),
+            )
+            raise AssertionError("an author must not review their own content")
+        except sqlite3.IntegrityError:
+            db.rollback()
+
+        reviewer_time = "2026-11-26T15:03:00.000Z"
+        db.execute(
+            """UPDATE content_review_requests
+               SET status='approved',reviewed_by_user_id=?,reviewed_at=?,reason_code='approved'
+               WHERE id='review-1' AND status='pending' AND author_user_id<>?""",
+            ("reviewer-1", reviewer_time, "reviewer-1"),
+        )
+        db.execute(
+            """INSERT INTO content_review_events (id,request_id,actor_user_id,event_type,reason_code)
+               SELECT 'review-event-approved','review-1','reviewer-1','approved','approved'
+               WHERE changes()=1"""
+        )
+        db.commit()
+
+        publish_time = "2026-11-26T15:04:00.000Z"
+        publish_results = run_batch(db, [
+            (
+                """UPDATE lesson_versions SET status='published',published_at=?
+                   WHERE id=? AND lesson_id=? AND status='draft'
+                     AND EXISTS (SELECT 1 FROM content_review_requests WHERE id='review-1' AND status='approved')""",
+                (publish_time, draft_version_id, lesson_id),
+            ),
+            (
+                """UPDATE lessons SET status='published',current_published_version_id=?
+                   WHERE id=? AND changes()=1
+                     AND EXISTS (SELECT 1 FROM lesson_versions WHERE id=? AND status='published')""",
+                (draft_version_id, lesson_id, draft_version_id),
+            ),
+            (
+                """UPDATE content_review_requests SET status='published'
+                   WHERE id='review-1' AND status='approved' AND changes()=1""",
+                (),
+            ),
+            (
+                """INSERT INTO content_review_events (id,request_id,actor_user_id,event_type)
+                   SELECT 'review-event-published','review-1','admin-1','published' WHERE changes()=1""",
+                (),
+            ),
+            (
+                """INSERT INTO admin_audit_events
+                     (id,actor_user_id,action,resource_type,resource_id,request_id,metadata_json)
+                   SELECT 'audit-publish','admin-1','content.version.published','lesson_version',?,
+                          'request-publish-0001','{"version":2,"status":"published"}'
+                   WHERE changes()=1""",
+                (draft_version_id,),
+            ),
+        ])
+        assert [result.rowcount for result in publish_results] == [1, 1, 1, 1, 1]
+        assert db.execute(
+            "SELECT current_published_version_id FROM lessons WHERE id=?",
+            (lesson_id,),
+        ).fetchone()[0] == draft_version_id
+
+        try:
+            db.execute(
+                "UPDATE admin_audit_events SET action='tampered' WHERE id='audit-publish'"
+            )
+            raise AssertionError("admin audit events must be append-only")
+        except sqlite3.IntegrityError:
+            db.rollback()
+
         # Ownership predicate must prevent another user from reading this attempt.
         foreign_attempt = db.execute(
             "SELECT id FROM lesson_attempts WHERE id = ? AND user_id = ?",
