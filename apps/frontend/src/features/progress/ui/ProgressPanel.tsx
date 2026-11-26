@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getMyProgress, type LessonProgress } from "../api/progress.api";
 import type { ProgressState } from "../model/progress.types";
+import type { Lesson } from "../../lessons/model/lesson.types";
 
-type ProgressPanelProps = { isAuthenticated: boolean; onBack: () => void; onOpenLessons: () => void };
+type ProgressPanelProps = { isAuthenticated: boolean; lessons: Lesson[]; onBack: () => void; onOpenLessons: () => void };
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -21,7 +22,7 @@ function ProgressRow({ row, title }: { row: LessonProgress; title: string }) {
   );
 }
 
-export function ProgressPanel({ isAuthenticated, onBack, onOpenLessons }: ProgressPanelProps) {
+export function ProgressPanel({ isAuthenticated, lessons, onBack, onOpenLessons }: ProgressPanelProps) {
   const [state, setState] = useState<ProgressState>({ status: "loading" });
   const [retry, setRetry] = useState(0);
   const load = useCallback(async () => {
