@@ -89,6 +89,7 @@ A retry must not create duplicate attempts or submissions. Mutating actions disa
 - Never persist bearer credentials in localStorage, sessionStorage, URL, analytics, logs or error messages.
 - Protected requests attach `Authorization: Bearer` through shared transport.
 - A 401 clears local session state and returns the UI to a recoverable state. The user may need to reopen the Mini App to obtain fresh initData.
+- The backend consumes each Telegram initData fingerprint once. A replay response (`TELEGRAM_INIT_DATA_REPLAYED`) is not retried with the same payload; the UI instructs the user to close and reopen the Mini App for fresh initData.
 - Logout revokes the backend session before clearing local storage. A network failure must not be represented as a successful remote logout.
 - Browser mode remains public-preview-only until the backend defines and implements a secure HttpOnly cookie/session contract.
 - A Telegram client without the required SecureStorage capability remains public-preview-only.
@@ -144,7 +145,7 @@ Every event subscription must have a matching cleanup. Platform APIs are optiona
 | E2E | Telegram-like launch, public catalog, authenticated learning, progress and logout |
 | Release | Typecheck, tests, production build, CI evidence and device verification |
 
-The current frontend has dependency-free Node 22 TypeScript-stripping suites for route serialization, lesson-question payload validation and attempt-response validation. These are contract unit tests, not a substitute for component, API integration or E2E tests.
+The current frontend has dependency-free Node 22 TypeScript-stripping suites for route serialization, lesson-question payload validation, attempt-response validation and attempt/question identity matching. These are contract unit tests, not a substitute for component, API integration or E2E tests.
 
 ## 11. Explicit non-goals until contracts exist
 
