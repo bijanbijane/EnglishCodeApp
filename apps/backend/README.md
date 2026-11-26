@@ -46,7 +46,7 @@ Wrangler uses a local D1 database for these commands. The configured database ID
 - Public content queries filter to published records only.
 - The public question DTO omits `answer_key`.
 
-See [API contract](../../docs/backend/API.md) and [architecture](../../docs/backend/ARCHITECTURE.md).
+See [API contract](../../docs/backend/API.md), [architecture](../../docs/backend/ARCHITECTURE.md), [data model](../../docs/backend/DATA-MODEL.md), [security](../../docs/backend/SECURITY.md), and [operations](../../docs/backend/OPERATIONS.md).
 
 ## Not implemented yet
 
