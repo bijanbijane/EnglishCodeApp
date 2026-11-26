@@ -65,7 +65,7 @@ Local secrets belong in ignored `.dev.vars`; use a dummy bot token for integrati
 ## Verification evidence (2026-11-26)
 - `npm ci`: passed.
 - `npm run typecheck`: passed (frontend + backend).
-- `npm test`: 12 test files, 45 tests passed.
+- `npm test`: 13 test files, 49 tests passed.
 - `npm run build:frontend`: passed.
 - All nine migrations applied in order to a fresh isolated Wrangler Local D1 database.
 - Migration 0008 upgrade/backfill verified on a second Local D1 database with a synthetic completed attempt and deliberately stale progress row; result, event and rebuilt count were all correct.

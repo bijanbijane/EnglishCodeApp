@@ -11,7 +11,7 @@
 |---|---|
 | `npm ci --no-audit --no-fund` | Passed |
 | `npm run typecheck` | Passed; frontend and backend |
-| `npm test` | Passed; 12 files / 45 tests on latest run |
+| `npm test` | Passed; 13 files / 49 tests on latest run |
 | `npm run build:frontend` | Passed |
 | `git diff --check` | Passed |
 
@@ -66,7 +66,7 @@ The review race was serialized in this local runtime; this does not prove the st
 
 - Wrangler Local D1 is a local emulator/runtime path, not Cloudflare remote D1.
 - No production migration, secret, deployment or Cloudflare resource mutation was performed.
-- No cross-user authorization matrix, load/abuse test, browser Telegram WebView matrix or backup/restore drill has been completed.
+- Initial cross-user checks now cover attempt metadata/result/answer/completion/history and author ownership of drafts; the full endpoint/role matrix, load/abuse test, browser Telegram WebView matrix and backup/restore drill remain incomplete.
 - GitHub Actions jobs still fail before exposing step details/logs. The same checks have been run locally; hosted runner failure remains separately unresolved.
 - The temporary local seed and request scripts are under ignored `tmp/`; they are not part of the application source.
 
@@ -74,7 +74,7 @@ The review race was serialized in this local runtime; this does not prove the st
 
 1. Obtain hosted GitHub Actions evidence; the lockfile and `npm ci` workflow are already committed on the feature branch.
 2. Add a deterministic test for stale review revision and same-key concurrent replay.
-3. Add cross-user ownership tests for every attempt endpoint.
+3. Expand the initial ownership suite to every content, review, vocabulary and admin endpoint.
 4. Implement content authoring/review/publish only after admin RBAC and append-only audit.
 5. Add account deletion/export and retention rules before media collection.
 

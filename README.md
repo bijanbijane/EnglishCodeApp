@@ -63,7 +63,7 @@ Migration 0003 تکرار idempotent تعریف replay table/index موجود د
 در ۲۶ نوامبر ۲۰۲۶:
 - `npm ci` موفق.
 - TypeScript typecheck موفق برای frontend و backend.
-- ۴۵ تست بک‌اند موفق (۱۲ فایل تست).
+- ۴۹ تست بک‌اند موفق (۱۳ فایل تست).
 - frontend production build موفق.
 - هر ۹ migration روی یک Local D1 ایزوله و خالی اجرا شد.
 - گردش کامل ساخت draft، ارسال به reviewer، جلوگیری از self-review، تأیید reviewer و انتشار توسط admin روی Worker + Local D1 اجرا شد.

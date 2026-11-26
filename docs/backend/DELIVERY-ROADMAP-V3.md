@@ -5,7 +5,7 @@ Status labels: implemented in source, SQL-smoke-tested, Local D1 verified, CI ve
 ## G0 — Reproducible build and P0 correctness
 - [ ] Hosted GitHub Actions exposes logs/steps; current jobs fail before steps are reported.
 - [x] Root lockfile committed and `npm ci` passes locally; hosted CI evidence remains blocked by empty job steps/logs.
-- [x] Typecheck, backend tests (45/45) and frontend build pass on the same local checkout.
+- [x] Typecheck, backend tests (49/49) and frontend build pass on the same local checkout.
 - [x] Independent fixed Telegram HMAC vector included and Telegram tests pass locally.
 - [x] Local D1 migrations from empty database (0001..0009), including isolated result backfill and content workflow tests.
 - [x] Local D1 upgrade/backfill path from 0001 legacy data through 0006; 0008 result/event backfill from synthetic completed attempts verified on a separate Local D1 database.
@@ -38,7 +38,8 @@ Status labels: implemented in source, SQL-smoke-tested, Local D1 verified, CI ve
 - [x] Backfill from completed attempts and progress projection rebuild verified on isolated Local D1.
 - [x] Projection rebuild service added with atomic per-user D1 batch.
 - [ ] Admin-only invocation, audit trail and scheduled reconciliation runbook.
-- [ ] Cross-user result/attempt authorization matrix.
+- [x] Initial cross-user checks for attempt metadata/result/answer/completion/history and author draft ownership.
+- [ ] Complete ownership matrix across every content, review, vocabulary and admin endpoint.
 - [ ] Explicit pass/retry/manual-review policy beyond the initial percentage policy.
 
 ## G4 — Vocabulary and spaced repetition
@@ -48,7 +49,7 @@ Status labels: implemented in source, SQL-smoke-tested, Local D1 verified, CI ve
 - [x] Due review query indexed by user/state/due_at.
 - [x] Idempotent review submission and optimistic revision.
 - [x] Local D1 enrollment, same-key replay and changed-payload idempotency rejection.
-- [x] Unit tests passed as part of the 45-test backend suite.
+- [x] Unit tests passed as part of the 49-test backend suite.
 - [ ] Deterministically force stale review revision conflict and add review time-boundary tests.
 - [ ] Vocabulary authoring/import and curated content pipeline.
 

@@ -100,7 +100,7 @@ Analytics:
 
 ## Module implementation order
 
-1. Obtain hosted GitHub Actions runner evidence; local typecheck, 45 tests, build and Local D1 gates are green.
+1. Obtain hosted GitHub Actions runner evidence; local typecheck, 49 tests, build and Local D1 gates are green.
 2. Complete deterministic stale-review concurrency and cross-user ownership matrices.
 3. Implement role bootstrap/revocation as a controlled owner-only operation and wire audit writer into privileged service commands.
 4. Extend the implemented content draft/review/publish API with ETag/If-Match, bulk authoring, rejection revision workflow and stronger concurrency tests.

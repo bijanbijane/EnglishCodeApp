@@ -125,4 +125,19 @@ describe("admin content workflow", () => {
     expect(await response.json()).toMatchObject({ error: { code: "CONTENT_NOT_APPROVED" } });
     expect(fake.batches).toHaveLength(0);
   });
+
+  it("prevents an author from submitting another author's draft", async () => {
+    const fake = contentDb({
+      userId: "author-1",
+      role: true,
+      version: { id: "version-2", status: "draft", created_by_user_id: "different-author" }
+    });
+    const response = await app.request("/api/v1/admin/content/lessons/lesson-1/versions/version-2/submit-review", {
+      method: "POST",
+      headers: { authorization: "Bearer " + token }
+    }, { DB: fake.db });
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ error: { code: "FORBIDDEN" } });
+    expect(fake.batches).toHaveLength(0);
+  });
 });
