@@ -3,12 +3,13 @@
 ## Implemented in this branch (source presence, not production readiness)
 - Hono/TypeScript Worker-compatible modular monolith, versioned API, request IDs, structured errors, health/readiness.
 - Telegram Mini App HMAC verification, duplicate-key/freshness checks, replay fingerprint and opaque hashed bearer sessions.
+- Independent fixed Telegram HMAC test vector added, generated with Python stdlib; test execution remains pending.
 - Provider-neutral user_identities mapping for verified Telegram identities.
 - Basic learning routes with attempts pinned to immutable lesson and assessment policy versions.
 - Conditional answer writes and weighted completion score against the pinned question version.
 - Public question DTO preserves the question array shape and excludes answer keys.
 - Vocabulary enrollment/list/due queue and idempotent spaced-repetition review API with optimistic concurrency.
-- Deterministic scheduler v1 and unit tests.
+- Deterministic scheduler v1, identity tests and public question DTO test added.
 - Migration files 0001..0006.
 
 ## API
@@ -48,7 +49,9 @@ Migration 0002 already creates replay table/index; 0003 repeats those IF NOT EXI
 Migrations have not been applied to Cloudflare remote or production. Seed data must be synthetic and local/test only.
 
 ## Verification boundary
-Existing replay/identity route tests use mocked D1; scheduler and domain tests are pure unit tests. SQL migration 0006 was syntax/backfill-smoke-tested in SQLite memory, including the weighted-score expression and immutability trigger. This is not Cloudflare Local D1 verification. Full TypeScript typecheck, complete test suite and frontend build still need green evidence.
+Existing replay/identity route tests use mocked D1; scheduler and domain tests are pure unit tests. SQL migrations 0004..0006 and weighted scoring/review conditional statements received SQLite in-memory syntax/behavior smoke tests. This is not Cloudflare Local D1 verification. Full TypeScript typecheck, complete test suite and frontend build still need green evidence.
+
+The hosted Actions jobs on this private repository currently terminate within seconds before exposing any step summaries or logs. The workflow was updated with named diagnostic steps; a local fallback is available via bash scripts/validate-workspace.sh. A committed package-lock.json and npm ci remain required for reproducible CI.
 
 ## Not yet implemented
 Content authoring/review/publishing API, account linking/merge, four skill-specific assessment modules, media/R2, Queues/outbox, AI/STT/TTS, entitlements, RBAC/admin audit, analytics, retention/deletion/export and production deployment.
