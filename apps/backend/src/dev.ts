@@ -8,19 +8,21 @@ const demoLessons = [
   { id: "lesson-simple-present", title: "The simple present", level: "A1", position: 3 }
 ];
 
-// Local-only fixture. The Worker entrypoint never uses this in production.
-const demoDatabase: D1Database = {
+// Local-only fixture: read-only lesson preview, never imported by the Worker entrypoint.
+const demoDatabase = {
   prepare(_query: string): D1PreparedStatement {
-    return {
-      all: async <T>() => ({ results: demoLessons as T[] })
+    const statement = {
+      bind() { return statement; },
+      first: async <T>() => null as T | null,
+      all: async <T>() => ({ results: demoLessons as T[] }),
+      run: async () => ({ success: true, meta: { changes: 0 } })
     };
-  }
-};
+    return statement;
+  },
+  batch: async () => []
+} as unknown as D1Database;
 
 const port = Number(process.env.PORT ?? 8787);
-serve({
-  fetch: (request) => app.fetch(request, { DB: demoDatabase }),
-  port
-}, (info) => {
-  console.log(`EnglishCodeApp API listening on http://localhost:${info.port} (demo data)`);
+serve({ fetch: (request) => app.fetch(request, { DB: demoDatabase }), port }, (info) => {
+  console.log(`EnglishCodeApp API listening on http://localhost:${info.port} (read-only demo data)`);
 });
