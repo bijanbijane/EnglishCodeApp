@@ -234,3 +234,8 @@ button:focus-visible, a:focus-visible { outline: 3px solid #8ba4ff; outline-offs
   .progress-summary strong { font-size:20px; }
   .progress-row { padding:15px; }
 }
+
+.overview-card--action { width:100%; text-align:right; font:inherit; cursor:pointer; transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease; }
+.overview-card--action:hover { transform:translateY(-2px); border-color:#d6def8; box-shadow:0 8px 22px #23365b0c; }
+.overview-card--action:focus-visible { outline:3px solid #8ba4ff; outline-offset:3px; }
+.overview-card--action > span:last-child { min-width:0; }
