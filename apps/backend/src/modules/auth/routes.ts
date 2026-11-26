@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { AppBindings } from "../../env";
 import { AppError, errorBody } from "../../shared/errors";
 import { requireAuth } from "./middleware";
-import { createSession, revokeSession } from "./session";
+import { createTelegramSession, revokeSession } from "./session";
 import { telegramInitDataFingerprint, verifyTelegramInitData } from "./telegram";
 
 export const authRoutes = new Hono<AppBindings>();
@@ -37,34 +37,22 @@ authRoutes.post("/telegram", async (c) => {
     const fingerprint = await telegramInitDataFingerprint(body.initData);
 
     const displayName = [verified.user.firstName, verified.user.lastName].filter(Boolean).join(" ").slice(0, 257);
-    await c.env.DB.prepare(`INSERT INTO users (id,telegram_user_id,display_name) VALUES (?,?,?)
-      ON CONFLICT(telegram_user_id) DO UPDATE SET display_name=excluded.display_name`)
+    await c.env.DB.prepare("INSERT INTO users (id,telegram_user_id,display_name) VALUES (?,?,?) " +
+      "ON CONFLICT(telegram_user_id) DO UPDATE SET display_name=excluded.display_name")
       .bind(crypto.randomUUID(), verified.user.id, displayName).run();
     const user = await c.env.DB.prepare("SELECT id,display_name FROM users WHERE telegram_user_id=? LIMIT 1")
       .bind(verified.user.id).first<{ id: string; display_name: string | null }>();
     if (!user) throw new AppError("USER_CREATE_FAILED", "Could not create the user account.", 503);
 
-    // Persist a session first so transient session failures do not consume initData.
-    const session = await createSession(c.env.DB, user.id, ttlSeconds);
-    try {
-      const now = new Date();
-      await c.env.DB.prepare("DELETE FROM telegram_auth_replays WHERE expires_at <= ?")
-        .bind(now.toISOString()).run();
-      const replay = await c.env.DB.prepare(
-        "INSERT OR IGNORE INTO telegram_auth_replays (init_data_hash,expires_at,created_at) VALUES (?,?,?)"
-      ).bind(
-        fingerprint,
-        new Date((verified.authDate + maxAgeSeconds) * 1000).toISOString(),
-        now.toISOString()
-      ).run();
-      if ((replay.meta?.changes ?? 0) !== 1) {
-        await revokeSession(c.env.DB, session.token).catch(() => undefined);
-        throw new AppError("TELEGRAM_INIT_DATA_REPLAYED", "This Telegram sign-in payload has already been used.", 409);
-      }
-    } catch (error) {
-      if (error instanceof AppError) throw error;
-      await revokeSession(c.env.DB, session.token).catch(() => undefined);
-      throw error;
+    const session = await createTelegramSession(
+      c.env.DB,
+      user.id,
+      ttlSeconds,
+      fingerprint,
+      new Date((verified.authDate + maxAgeSeconds) * 1000).toISOString()
+    );
+    if (session.replayed) {
+      throw new AppError("TELEGRAM_INIT_DATA_REPLAYED", "This Telegram sign-in payload has already been used.", 409);
     }
 
     return c.json({ data: {
