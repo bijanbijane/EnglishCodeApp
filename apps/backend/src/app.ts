@@ -9,6 +9,16 @@ import learningRoutes from "./modules/learning/routes";
 
 const app = new Hono<AppEnv>();
 
+app.use("*", async (c, next) => {
+  const requestId = crypto.randomUUID();
+  c.set("requestId", requestId);
+  await next();
+  c.header("X-Request-Id", requestId);
+  c.header("X-Content-Type-Options", "nosniff");
+  c.header("Referrer-Policy", "no-referrer");
+  c.header("X-Frame-Options", "DENY");
+});
+
 app.use("/api/v1/*", cors({
   origin: (origin, context) => {
     const allowed = new Set(
@@ -24,16 +34,6 @@ app.use("/api/v1/*", cors({
   exposeHeaders: ["X-Request-Id", "Retry-After"],
   maxAge: 600,
 }));
-
-app.use("*", async (c, next) => {
-  const requestId = crypto.randomUUID();
-  c.set("requestId", requestId);
-  await next();
-  c.header("X-Request-Id", requestId);
-  c.header("X-Content-Type-Options", "nosniff");
-  c.header("Referrer-Policy", "no-referrer");
-  c.header("X-Frame-Options", "DENY");
-});
 
 app.get("/api/v1/health", (c) =>
   c.json({ data: { status: "ok" }, meta: { requestId: c.get("requestId") } }),
