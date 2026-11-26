@@ -9,8 +9,8 @@
 - Backend: Hono با Worker-compatible entrypoint و ساختار Modular Monolith.
 - Auth: اعتبارسنجی Telegram Mini App initData، کنترل تازگی و جلوگیری از replay، سپس صدور نشست داخلی.
 - Learning: دریافت درس/سؤال، شروع تلاش، ثبت پاسخ، نمره‌دهی سمت سرور و ذخیرهٔ پیشرفت.
-- Database: migration اولیه و migration نشست/جلوگیری از replay/پیشرفت.
-- Tests: تست API پایه و تست‌های منطق دامنه و امضای Telegram در مخزن؛ نتیجهٔ اجرا باید از CI تأیید شود.
+- Database: migrationهای نسخه‌بندی‌شده برای نشست، پیشرفت، یکتایی پاسخ و جلوگیری از replay.
+- Tests: تست API پایه و تست‌های منطق دامنه، امضای Telegram و replay در مخزن؛ نتیجهٔ اجرا باید از CI تأیید شود.
 
 این شاخه هنوز production-ready نیست. D1 واقعی، bot secret، rate limiting، سیاست نگهداری داده، تست end-to-end با D1 و استقرار عملیاتی تنظیم نشده‌اند.
 
@@ -18,7 +18,7 @@
 
 نیازمندی: Node.js 22 یا جدیدتر.
 
-```
+```bash
 npm install
 npm run dev:backend
 npm run dev:frontend
@@ -28,7 +28,7 @@ npm run dev:frontend
 
 ## بررسی‌ها
 
-```
+```bash
 npm run typecheck
 npm test
 npm run build:frontend
@@ -43,6 +43,7 @@ npm run build:frontend
 Migrationها به ترتیب:
 1. `database/migrations/0001_initial.sql`
 2. `database/migrations/0002_backend_foundation.sql`
+3. `database/migrations/0003_telegram_auth_replay.sql`
 
 Seed فقط برای محیط local/test است: `database/seeds/0001_demo.sql`. این migrationها در حساب Cloudflare یا production اجرا نشده‌اند.
 
