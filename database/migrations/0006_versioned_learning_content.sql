@@ -141,3 +141,23 @@ BEFORE DELETE ON assessment_policy_versions
 BEGIN
   SELECT RAISE(ABORT,'assessment policy versions cannot be deleted');
 END;
+
+CREATE TRIGGER IF NOT EXISTS trg_lesson_versions_insert_as_draft
+BEFORE INSERT ON lesson_versions
+WHEN NEW.status='published'
+BEGIN
+  SELECT RAISE(ABORT,'new lesson versions must be created as drafts');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_lessons_published_pointer_insert_valid
+BEFORE INSERT ON lessons
+WHEN NEW.current_published_version_id IS NOT NULL
+ AND NOT EXISTS (
+   SELECT 1 FROM lesson_versions
+   WHERE id=NEW.current_published_version_id
+     AND lesson_id=NEW.id
+     AND status='published'
+ )
+BEGIN
+  SELECT RAISE(ABORT,'current published version must belong to lesson and be published');
+END;
