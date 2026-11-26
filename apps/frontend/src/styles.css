@@ -158,3 +158,29 @@ button:focus-visible, a:focus-visible { outline: 3px solid #8ba4ff; outline-offs
   .workspace-progress div { grid-column:1/-1; }
   .question-card { padding:17px; }
 }
+
+/* Authenticated lesson flow */
+.session-banner { display:flex; align-items:flex-start; gap:10px; margin:-20px 0 28px; padding:12px 15px; border:1px solid #e5eaf5; border-radius:12px; color:#64718b; background:#fff; font-size:11px; line-height:1.9; }
+.session-banner__dot { flex:0 0 7px; width:7px; height:7px; margin-top:7px; border-radius:50%; background:#7c8bc1; }
+.attempt-intro { display:flex; align-items:center; justify-content:space-between; gap:18px; margin:0 0 18px; padding:18px 20px; border:1px solid #dfe7fb; border-radius:15px; background:#f6f8ff; }
+.attempt-intro strong { display:block; margin-bottom:5px; color:#2d3b61; font-size:13px; }
+.attempt-intro p { margin:0; color:#78839a; font-size:10px; line-height:1.8; }
+.session-notice { max-width:360px; color:#7b6a4b; font-size:10px; line-height:1.8; }
+.question-actions { display:flex; justify-content:flex-start; margin-top:14px; }
+.button:disabled { opacity:.5; cursor:not-allowed; }
+.answer-feedback { margin-top:14px; padding:12px 14px; border-radius:10px; font-size:11px; line-height:1.9; }
+.answer-feedback strong { display:block; margin-bottom:3px; }
+.answer-feedback p { margin:0; }
+.answer-feedback--correct { color:#246f56; background:#edf8f2; border:1px solid #d8efe4; }
+.answer-feedback--incorrect { color:#8a4e54; background:#fff3f3; border:1px solid #f2dddd; }
+.inline-error { margin:10px 0; color:#a64f57; font-size:11px; line-height:1.8; }
+.attempt-footer { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:18px; padding:17px 19px; border:1px solid var(--line); border-radius:14px; background:#fff; color:#7d879c; font-size:11px; }
+.completion-panel { display:grid; justify-items:center; gap:8px; margin-top:18px; padding:26px; border:1px solid #d9eee4; border-radius:17px; color:#276b53; background:#f1faf5; text-align:center; }
+.completion-panel__label { font-size:11px; }
+.completion-panel strong { font-size:36px; line-height:1.2; }
+.completion-panel p { margin:0; color:#6c8a7e; font-size:10px; }
+@media (max-width:760px) {
+  .session-banner { margin-top:-12px; }
+  .attempt-intro,.attempt-footer { align-items:stretch; flex-direction:column; }
+  .attempt-intro .button,.attempt-footer .button { width:100%; }
+}
