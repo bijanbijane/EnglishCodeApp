@@ -85,7 +85,8 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 - [x] Add Telegram host adapter and official WebApp script.
 - [x] Add hash-based route contract.
 - [x] Add native Node route-contract tests for home/profile/progress/lesson parsing, encoding and malformed hashes.
-- [ ] Add API envelope tests; question and attempt DTO validators now have pure contract unit tests, but execution remains pending CI/runtime evidence.
+- [x] Add pure contract unit tests for strict API envelopes, question payloads and attempt responses.
+- [ ] Obtain successful execution evidence for typecheck, all contract tests and production build.
 - [ ] Resolve CI failure evidence and establish reproducible install/typecheck/build.
 
 ### Phase B — Core learning journey
@@ -144,3 +145,5 @@ PR #4 remains open and Draft. Do not merge, deploy, run production migrations, m
 - Logout requires explicit server confirmation before local credentials are cleared (401 is treated as already revoked).
 
 These are source-level changes only; runtime verification remains pending until a successful CI or local test/build run is available.
+
+- Strict API transport now rejects bare success payloads and requires the backend `{ data: ... }` envelope; malformed response shapes raise a typed `ApiContractError`.
