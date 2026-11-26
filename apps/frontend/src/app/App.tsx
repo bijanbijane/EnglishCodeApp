@@ -3,6 +3,7 @@ import { getLessons } from "../features/lessons/api/lessons.api";
 import { LessonCatalog } from "../features/lessons/ui/LessonCatalog";
 import { LessonWorkspace } from "../features/lessons/ui/LessonWorkspace";
 import type { Lesson, LessonListState } from "../features/lessons/model/lesson.types";
+import { initializeTelegramHost, setTelegramBackAction } from "../services/platform/telegram";
 
 export default function App() {
   const [lessonState, setLessonState] = useState<LessonListState>({ status: "loading" });
@@ -19,7 +20,12 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => { initializeTelegramHost(); }, []);
   useEffect(() => { void loadLessons(); }, [loadLessons]);
+  useEffect(() => {
+    if (!selectedLesson) return;
+    return setTelegramBackAction(() => setSelectedLesson(null));
+  }, [selectedLesson]);
 
   const lessons = lessonState.status === "ready" ? lessonState.lessons : [];
   const visibleLessons = useMemo(() => {
