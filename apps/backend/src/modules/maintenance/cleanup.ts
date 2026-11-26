@@ -21,6 +21,16 @@ export async function cleanupExpiredAuthState(
        )`,
     ).bind(nowIso),
     db.prepare(
+      `DELETE FROM auth_rate_limits
+       WHERE bucket_key IN (
+         SELECT bucket_key
+         FROM auth_rate_limits
+         WHERE updated_at < ?
+         ORDER BY updated_at ASC
+         LIMIT ${BATCH_LIMIT}
+       )`,
+    ).bind(new Date(now.getTime() - 2 * DAY_MS).toISOString()),
+    db.prepare(
       `DELETE FROM sessions
        WHERE id IN (
          SELECT id
