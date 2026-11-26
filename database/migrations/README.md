@@ -2,17 +2,13 @@
 
 تمام تغییرات D1 باید از migrationهای SQL نسخه‌بندی‌شده عبور کنند.
 
-## قرارداد نام‌گذاری
+## Migrationهای موجود در شاخهٔ backend-domain-foundation
 
-~~~text
-0001_initial_identity.sql
-0002_learning_content.sql
-0003_assessment_attempts.sql
-0004_progress_and_vocabulary.sql
-0005_async_jobs_and_audit.sql
-~~~
-
-نام‌ها نمونه‌اند و تا زمان ایجاد migration واقعی رزرو محسوب نمی‌شوند.
+| Version | File | Purpose |
+|---|---|---|
+| 0001 | `0001_initial.sql` | کاربران، دوره‌ها، درس‌ها، سؤال‌ها، تلاش‌ها و پاسخ‌ها |
+| 0002 | `0002_backend_foundation.sql` | نشست‌ها، پیشرفت و قید یکتایی پاسخ هر سؤال در هر تلاش |
+| 0003 | `0003_telegram_auth_replay.sql` | fingerprint یکتای initData و زمان انقضای آن برای جلوگیری از replay |
 
 ## قواعد اجرا
 
@@ -23,3 +19,7 @@
 - عملیات destructive مثل حذف یا تغییر نوع ستون، نیازمند بررسی مسیر داده و rollback/recovery است.
 - اجرای migration روی محیط عملیاتی باید مرحلهٔ مستقل با backup/recovery plan و تأیید مالک پروژه باشد.
 - نسخهٔ migration اعمال‌شده باید قابل تشخیص و ممیزی باشد.
+
+## وضعیت اجرا
+
+فایل‌های SQL در Git ثبت شده‌اند. اجرای آن‌ها روی D1 محلی و هر حساب Cloudflare هنوز انجام نشده است. Migrationها را به ترتیب روی دیتابیس local/test اجرا و سپس integration tests را اجرا کنید؛ هیچ migration عملیاتی در این شاخه مجاز نشده است.
