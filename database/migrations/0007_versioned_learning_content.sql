@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS assessment_policy_versions (
 -- Preserve the current source content as its first explicit version.
 INSERT OR IGNORE INTO lesson_versions
   (id,lesson_id,version,title,description,level,position,status,created_at,published_at)
-SELECT l.id || ':v' || l.version,l.id,l.version,l.title,l.description,l.level,l.position,l.status,
+SELECT l.id || ':v' || l.version,l.id,l.version,l.title,l.description,COALESCE(l.level,'A1'),l.position,l.status,
        CURRENT_TIMESTAMP,CASE WHEN l.status='published' THEN CURRENT_TIMESTAMP ELSE NULL END
 FROM lessons l;
 
@@ -55,7 +55,7 @@ FROM lessons l;
 INSERT OR IGNORE INTO lesson_versions
   (id,lesson_id,version,title,description,level,position,status,created_at,published_at)
 SELECT DISTINCT a.lesson_id || ':v' || a.lesson_version,l.id,a.lesson_version,
-       l.title,l.description,l.level,l.position,'archived',CURRENT_TIMESTAMP,NULL
+       l.title,l.description,COALESCE(l.level,'A1'),l.position,'archived',CURRENT_TIMESTAMP,NULL
 FROM lesson_attempts a
 JOIN lessons l ON l.id=a.lesson_id
 WHERE a.lesson_version <> l.version;
@@ -63,19 +63,12 @@ WHERE a.lesson_version <> l.version;
 INSERT OR IGNORE INTO question_versions
   (id,lesson_version_id,source_question_id,question_type,prompt,options_json,answer_key,explanation,weight,position)
 SELECT q.id || ':v' || l.version,l.id || ':v' || l.version,q.id,q.type,q.prompt,
-       q.options_json,q.answer_key,q.explanation,1,q.position
+       q.options_json,q.answer_key,COALESCE(q.explanation,''),1,q.position
 FROM questions q
 JOIN lessons l ON l.id=q.lesson_id;
 
-INSERT OR IGNORE INTO question_versions
-  (id,lesson_version_id,source_question_id,question_type,prompt,options_json,answer_key,explanation,weight,position)
-SELECT DISTINCT aq.question_id || ':v' || a.lesson_version,
-       a.lesson_id || ':v' || a.lesson_version,aq.question_id,aq.question_type,
-       aq.prompt,aq.options_json,aq.answer_key,'',1,aq.position
-FROM attempt_questions aq
-JOIN lesson_attempts a ON a.id=aq.attempt_id
-JOIN lessons l ON l.id=a.lesson_id
-WHERE a.lesson_version <> l.version;
+-- Existing attempts keep their own attempt_questions snapshots. Only link them
+-- to a version row when a matching immutable published question version exists.
 
 INSERT OR IGNORE INTO assessment_policy_versions (id,policy_key,version,config_json)
 VALUES (
@@ -106,12 +99,21 @@ ALTER TABLE attempt_questions
   ADD COLUMN question_version_id TEXT REFERENCES question_versions(id);
 
 UPDATE attempt_questions
-SET question_version_id = question_id || ':v' || (
-  SELECT a.lesson_version
-  FROM lesson_attempts a
+SET question_version_id = (
+  SELECT qv.id
+  FROM question_versions qv
+  JOIN lesson_attempts a ON a.lesson_version_id=qv.lesson_version_id
   WHERE a.id=attempt_questions.attempt_id
+    AND qv.source_question_id=attempt_questions.question_id
+  LIMIT 1
 )
-WHERE question_version_id IS NULL;
+WHERE question_version_id IS NULL
+  AND EXISTS (
+    SELECT 1 FROM question_versions qv
+    JOIN lesson_attempts a ON a.lesson_version_id=qv.lesson_version_id
+    WHERE a.id=attempt_questions.attempt_id
+      AND qv.source_question_id=attempt_questions.question_id
+  );
 
 CREATE INDEX IF NOT EXISTS idx_attempts_lesson_version_policy
   ON lesson_attempts(lesson_version_id,assessment_policy_version_id);
