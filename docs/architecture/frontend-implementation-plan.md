@@ -89,8 +89,9 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 - [x] Add hash-based route contract.
 - [x] Add native Node route-contract tests for home/profile/progress/lesson parsing, encoding and malformed hashes.
 - [x] Add pure contract unit tests for strict API envelopes, question payloads, attempt responses, profile DTOs, progress DTOs and lesson search.
-- [ ] Obtain successful execution evidence for typecheck, all contract tests and production build.
-- [ ] Resolve CI failure evidence and establish reproducible install/typecheck/build.
+- [x] Execute frontend typecheck, all frontend contract tests and Vite production build locally; record the successful results (2026-11-26).
+- [x] Add the root workspace lockfile and verify a clean `npm ci` installation locally.
+- [ ] Resolve hosted CI failure evidence and establish green cross-workspace typecheck/build.
 
 ### Phase B — Core learning journey
 - [x] Separate the Home dashboard from the Learn library screen.
@@ -109,6 +110,7 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 
 ### Phase C — Account and progress
 - [x] Profile screen using `GET /api/v1/me`.
+- [x] Add an explicit retry action for recoverable profile-fetch failures without clearing the authenticated session.
 - [x] Server-backed logout and local session invalidation handling.
 - [x] Progress screen using `GET /api/v1/me/progress`.
 - [x] Display best score, completion count and last completion date.
@@ -130,13 +132,23 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 - [ ] Add Playwright E2E for the critical learning journey.
 - [ ] Verify performance on representative low-end devices and constrained networks.
 
-## Current verification status
+## Current verification status — 2026-11-26
 
-- Source changes are committed to the working branch.
-- The latest inspected CI run is [#544](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45811963276), run ID `45811963276`, on head `c41805aa34a0a8c225b34c41587e772fc81f349a`; both frontend and backend jobs failed.
-- GitHub job metadata for run #544 returned empty step arrays and no logs URL. Earlier direct log retrieval returned 404 `BlobNotFound`; the latest run likewise exposes no step details. Root cause is unknown and cannot be attributed to source code from available evidence.
-- No local `npm install`, typecheck, build, automated test, browser test or Telegram-device test has been executed in this work session.
-- Therefore implementation status is **source-implemented, not runtime-verified**.
+- `npm ci --no-audit --no-fund`: successful from the root workspace lockfile; npm reported that install scripts for `esbuild` and `fsevents` were not approved in this local npm environment. The frontend build nevertheless completed successfully.
+- `npm run typecheck --workspace @englishcode/frontend`: passed.
+- `npm test --workspace @englishcode/frontend`: **39/39 tests passed**, including API envelope, profile/progress DTO, lesson/attempt contract, lesson search and route suites.
+- `npm run build --workspace @englishcode/frontend`: passed; Vite emitted 266.85 KB JavaScript (80.89 KB gzip) and 19.65 KB CSS (4.71 KB gzip).
+- `git diff --check`: passed.
+- Full-workspace typecheck remains blocked by the backend base currently used by this PR: missing Node `process` types and a WebCrypto `BufferSource` typing mismatch. Backend tests on that base also have 2 failures: the no-D1 response returns 500 instead of 503, and the Telegram login fixture returns 401 instead of 200. These are backend dependency failures, not frontend failures; do not silently patch backend code from this frontend task.
+- Hosted CI is still failing on the backend job; the frontend must be rechecked on the latest pushed head. No successful Telegram-device, browser E2E, or full learning-journey integration run is claimed.
+- Therefore frontend local typecheck, contract tests and production build are verified; cross-workspace and release verification remain incomplete.
+
+## Progress accounting — 2026-11-26
+
+- Architecture design: **100% documented**; module boundaries, route/state ownership, platform adapter, API/security contracts and acceptance criteria are recorded.
+- Implementation-plan checklist: **31/47 items (66.0%) checked**. This is checklist coverage, not release readiness or a production-completion percentage.
+- Frontend local gates: clean `npm ci`, typecheck, **39/39 tests**, production build and `git diff --check` passed.
+- Remaining release gates: backend base typecheck/tests, hosted CI, component/integration/E2E coverage, Telegram iOS/Android verification, accessibility and performance audits.
 
 ## Release controls
 

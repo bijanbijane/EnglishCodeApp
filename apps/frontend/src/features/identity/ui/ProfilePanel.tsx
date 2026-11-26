@@ -13,15 +13,17 @@ type ProfilePanelProps = {
 export function ProfilePanel({ isAuthenticated, isTelegramHost, signingOut, error, onSignOut, onBack }: ProfilePanelProps) {
   const [profile, setProfile] = useState<LearnerProfile | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileRetry, setProfileRetry] = useState(0);
   useEffect(() => {
     let active = true;
     setProfileError(null);
     if (!isAuthenticated) { setProfile(null); return () => { active = false; }; }
+    setProfile(null);
     void getMyProfile().then((value) => { if (active) setProfile(value); }).catch((reason: unknown) => {
       if (active) setProfileError(reason instanceof Error ? reason.message : "دریافت اطلاعات حساب ناموفق بود.");
     });
     return () => { active = false; };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, profileRetry]);
 
   return (
     <section className="profile-panel" aria-labelledby="profile-title">
@@ -43,7 +45,8 @@ export function ProfilePanel({ isAuthenticated, isTelegramHost, signingOut, erro
               : "در مرورگر مستقل، فهرست و محتوای عمومی درس‌ها قابل مشاهده است. ورود و ثبت پیشرفت تا زمان پشتیبانی نشست امن سمت سرور غیرفعال است."}</p>
         </div>
       </article>
-      {(error || profileError) && <p className="inline-error" role="alert">{error || profileError}</p>}
+      {profileError && <div className="inline-error" role="alert"><p>{profileError}</p><button className="button button--secondary" type="button" onClick={() => setProfileRetry((value) => value + 1)}>تلاش دوباره برای دریافت پروفایل</button></div>}
+      {error && <p className="inline-error" role="alert">{error}</p>}
       {isAuthenticated && <div className="profile-actions"><button className="button button--secondary" type="button" disabled={signingOut} onClick={onSignOut}>{signingOut ? "در حال خروج…" : "خروج از حساب"}</button></div>}
       <aside className="profile-privacy"><strong>نحوهٔ نگه‌داری نشست</strong><p>توکن ورود در localStorage یا sessionStorage مرورگر ذخیره نمی‌شود. در Mini App، در صورت پشتیبانی نسخهٔ تلگرام، توکن فقط در SecureStorage نگه‌داری می‌شود.</p></aside>
     </section>

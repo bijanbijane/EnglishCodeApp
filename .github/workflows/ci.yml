@@ -14,7 +14,7 @@ jobs:
         with:
           node-version: 22
       - name: Install monorepo dependencies
-        run: npm install
+        run: npm ci
       - name: Backend typecheck
         run: npm run typecheck
         working-directory: apps/backend
@@ -30,7 +30,7 @@ jobs:
         with:
           node-version: 22
       - name: Install monorepo dependencies
-        run: npm install
+        run: npm ci
       - name: Frontend typecheck
         run: npm run typecheck
         working-directory: apps/frontend
