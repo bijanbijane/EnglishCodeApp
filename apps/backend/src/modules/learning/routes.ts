@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { AppBindings } from "../../env";
 import { errorBody } from "../../shared/errors";
 import { requireAuth } from "../auth/middleware";
+import { calculateLessonScore, gradeAnswer } from "./domain";
 
 export const learningRoutes = new Hono<AppBindings>();
 
@@ -60,7 +61,7 @@ learningRoutes.post("/attempts/:attemptId/answers", requireAuth, async (c) => {
 
   await c.env.DB.prepare(`INSERT OR IGNORE INTO attempt_answers (id,attempt_id,question_id,submitted_answer,is_correct)
     VALUES (?,?,?,?,?)`).bind(crypto.randomUUID(), attempt.id, question.id, body.answerId,
-      body.answerId === question.answer_key ? 1 : 0).run();
+      gradeAnswer(body.answerId, question.answer_key) ? 1 : 0).run();
   const saved = await c.env.DB.prepare("SELECT submitted_answer,is_correct FROM attempt_answers WHERE attempt_id=? AND question_id=? LIMIT 1")
     .bind(attempt.id, question.id).first<{ submitted_answer: string; is_correct: number }>();
   return c.json({ data: {
@@ -84,7 +85,7 @@ learningRoutes.post("/attempts/:attemptId/complete", requireAuth, async (c) => {
   ]);
   const total = Number(questionCount?.count ?? 0);
   if (total < 1) return c.json(errorBody("LESSON_HAS_NO_QUESTIONS", "This lesson has no questions yet.", c.get("requestId")), 409);
-  const score = Math.round((Number(correctCount?.count ?? 0) / total) * 100);
+  const score = calculateLessonScore(Number(correctCount?.count ?? 0), total);
   const completedAt = new Date().toISOString();
   await c.env.DB.batch([
     c.env.DB.prepare("UPDATE lesson_attempts SET status='completed',score=?,completed_at=? WHERE id=? AND user_id=? AND status='started'")
