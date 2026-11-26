@@ -7,6 +7,8 @@ export interface Env {
 
 export type AppVariables = {
   requestId: string;
+  userId: string;
+  sessionId: string;
 };
 
 export type AppEnv = {
