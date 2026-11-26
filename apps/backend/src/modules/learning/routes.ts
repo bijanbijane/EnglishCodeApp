@@ -305,9 +305,10 @@ learning.post("/attempts/:attemptId/complete", requireSession, async (c) => {
 learning.get("/me/progress", requireSession, async (c) => {
   const result = await c.env.DB.prepare(
     `SELECT p.lesson_id, p.best_score, p.completed_count, p.last_completed_at,
-            l.title AS lesson_title, l.course_id
+            COALESCE(lv.title, l.title) AS lesson_title, l.course_id
      FROM user_progress p
      JOIN lessons l ON l.id = p.lesson_id
+     LEFT JOIN lesson_versions lv ON lv.id = l.current_published_version_id
      WHERE p.user_id = ?
      ORDER BY p.last_completed_at DESC, p.lesson_id ASC`,
   ).bind(c.get("userId")).all();
