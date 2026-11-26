@@ -4,6 +4,8 @@ import {
   parseAttemptResponse,
   parseAnswerSubmissionResult,
   parseLessonCompletionResult,
+  assertAnswerMatchesRequest,
+  assertCompletionMatchesAttempt,
   type LessonAttempt,
   type AnswerSubmissionResult,
   type LessonCompletionResult,
@@ -47,7 +49,7 @@ export async function completeLessonAttempt(attemptId: string): Promise<LessonCo
     const result = parseLessonCompletionResult(await apiPost<unknown>(
       "/api/v1/attempts/" + encodeURIComponent(attemptId) + "/complete", {}, { accessToken },
     ));
-    if (result.attemptId !== attemptId) throw new Error("نتیجهٔ دریافتی متعلق به تلاش جاری نیست.");
+    assertCompletionMatchesAttempt(result, attemptId);
     return result;
   });
 }
