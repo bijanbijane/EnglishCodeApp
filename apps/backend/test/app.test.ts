@@ -40,14 +40,14 @@ describe("EnglishCodeApp API", () => {
     console.error = (...args: unknown[]) => { logged = args.map(String).join(" "); };
     try {
       const failingApp = app;
-      const response = await failingApp.request("/api/v1/ready", {}, {
+      const response = await failingApp.request("/api/v1/lessons", {}, {
         DB: {
           prepare: () => ({
-            first: async () => { throw new Error("private SQL fragment and bound value"); }
+            all: async () => { throw new Error("private SQL fragment and bound value"); }
           })
         } as unknown as D1Database
       });
-      expect(response.status).toBe(503);
+      expect(response.status).toBe(500);
       expect(await response.text()).not.toContain("private SQL fragment");
       expect(logged).not.toContain("private SQL fragment");
     } finally {
