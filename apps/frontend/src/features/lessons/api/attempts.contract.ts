@@ -32,3 +32,13 @@ export function parseLessonCompletionResult(value: unknown): LessonCompletionRes
   }
   return { attemptId: row.attemptId, status: "completed", score: row.score };
 }
+
+export function assertAnswerMatchesRequest(result: AnswerSubmissionResult, questionId: string, answerId: string): void {
+  if (result.questionId !== questionId || result.answerId !== answerId) {
+    throw new Error("بازخورد سرور با پرسش و گزینهٔ ارسال‌شده مطابقت ندارد.");
+  }
+}
+
+export function assertCompletionMatchesAttempt(result: LessonCompletionResult, attemptId: string): void {
+  if (result.attemptId !== attemptId) throw new Error("نتیجهٔ دریافتی متعلق به تلاش جاری نیست.");
+}
