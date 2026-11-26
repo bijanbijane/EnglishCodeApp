@@ -172,4 +172,4 @@ These are source-level changes only; runtime verification remains pending until 
 - Runtime/release verification: **not yet verified**. Do not count written tests as passing tests until a green CI or local execution report exists.
 
 
-- The latest inspected CI run is [#638](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45813981392) on head `4c9c5f8366eb07d2f5f412f1b22ae50428fd2cd7`; both frontend and backend jobs failed. GitHub exposes empty step arrays and no logs URL, so no typecheck/test/build output or failure cause can be determined. No full local install, typecheck, repository test run or production build has been executed.
+- The latest inspected CI run is [#646](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45814263792) on head `42d1101b3269bec04795b1e7f1ff5f12076cf2cd`; both frontend and backend jobs failed. GitHub exposes empty step arrays and no logs URL, so no typecheck/test/build output or failure cause can be determined. The current branch head `25104bfcb10bcad44d296c5d026f3ae900334cbe` has no newer run in the inspected list. No full local install, typecheck, repository test run or production build has been executed.
