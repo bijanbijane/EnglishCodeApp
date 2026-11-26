@@ -293,6 +293,24 @@ def main() -> None:
         )
         db.commit()
 
+        # A competing reviewer must lose the conditional state transition.
+        competing_decision = db.execute(
+            """UPDATE content_review_requests
+               SET status='rejected',reviewed_by_user_id=?,reviewed_at=?,reason_code='incorrect_answer'
+               WHERE id='review-1' AND status='pending' AND author_user_id<>?""",
+            ("reviewer-2", "2026-11-26T15:03:01.000Z", "reviewer-2"),
+        )
+        assert competing_decision.rowcount == 0, "only one reviewer may transition a pending request"
+        db.execute(
+            """INSERT INTO content_review_events (id,request_id,actor_user_id,event_type,reason_code)
+               SELECT 'review-event-competing','review-1','reviewer-2','rejected','incorrect_answer'
+               WHERE changes()=1"""
+        )
+        db.commit()
+        assert db.execute(
+            "SELECT COUNT(*) FROM content_review_events WHERE request_id='review-1' AND event_type IN ('approved','rejected')"
+        ).fetchone()[0] == 1, "losing reviewer must not append a decision event"
+
         publish_time = "2026-11-26T15:04:00.000Z"
         publish_results = run_batch(db, [
             (
@@ -331,6 +349,48 @@ def main() -> None:
             "SELECT current_published_version_id FROM lessons WHERE id=?",
             (lesson_id,),
         ).fetchone()[0] == draft_version_id
+
+        # A duplicate concurrent publish must not repeat state changes, events or audit rows.
+        duplicate_publish_results = run_batch(db, [
+            (
+                """UPDATE lesson_versions SET status='published',published_at=?
+                   WHERE id=? AND lesson_id=? AND status='draft'
+                     AND EXISTS (SELECT 1 FROM content_review_requests WHERE id='review-1' AND status='approved')""",
+                ("2026-11-26T15:04:01.000Z", draft_version_id, lesson_id),
+            ),
+            (
+                """UPDATE lessons SET status='published',current_published_version_id=?
+                   WHERE id=? AND changes()=1
+                     AND EXISTS (SELECT 1 FROM lesson_versions WHERE id=? AND status='published')""",
+                (draft_version_id, lesson_id, draft_version_id),
+            ),
+            (
+                """UPDATE content_review_requests SET status='published'
+                   WHERE id='review-1' AND status='approved' AND changes()=1""",
+                (),
+            ),
+            (
+                """INSERT INTO content_review_events (id,request_id,actor_user_id,event_type)
+                   SELECT 'review-event-published-duplicate','review-1','admin-2','published' WHERE changes()=1""",
+                (),
+            ),
+            (
+                """INSERT INTO admin_audit_events
+                     (id,actor_user_id,action,resource_type,resource_id,request_id,metadata_json)
+                   SELECT 'audit-publish-duplicate','admin-2','content.version.published','lesson_version',?,
+                          'request-publish-0002','{"version":2,"status":"published"}'
+                   WHERE changes()=1""",
+                (draft_version_id,),
+            ),
+        ])
+        assert [result.rowcount for result in duplicate_publish_results] == [0, 0, 0, 0, 0]
+        assert db.execute(
+            "SELECT COUNT(*) FROM content_review_events WHERE request_id='review-1' AND event_type='published'"
+        ).fetchone()[0] == 1
+        assert db.execute(
+            "SELECT COUNT(*) FROM admin_audit_events WHERE resource_id=? AND action='content.version.published'",
+            (draft_version_id,),
+        ).fetchone()[0] == 1
 
         try:
             db.execute(
