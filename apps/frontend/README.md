@@ -1,25 +1,29 @@
-# Frontend — Current state and architecture
+# Frontend — Telegram Mini App first
 
-React 19 + Vite + TypeScript. The current branch contains a minimal Persian RTL lesson-catalog screen only.
+React 19 + Vite + TypeScript. EnglishCodeApp's primary client is a Telegram Mini App, with browser-only development fallback.
 
 ## Verified in the current branch
 
 - React StrictMode entrypoint.
-- RTL landing/catalog shell.
+- Persian RTL lesson catalog.
 - GET `/api/v1/lessons` with loading, empty, error and retry states.
 - Vite development proxy from `/api` to `http://localhost:8787`.
 
-## Not implemented in this branch
+## Not implemented yet
 
-- Lesson question screen and attempt lifecycle.
-- Answer submission and server-calculated result.
-- Authentication/session client and Telegram WebApp bridge.
-- Profile and persisted progress screens.
+- Telegram WebApp script/bootstrap and host capability adapter.
+- Telegram initData authentication and SecureStorage session restore.
+- Telegram theme, safe-area, viewport, BackButton and MainButton integration.
+- Lesson question screen and backend attempt lifecycle.
+- Answer submission, server-calculated result, profile and progress.
 - Runtime API response validation, abort/timeout handling and error boundary.
-- Frontend unit/component/E2E test suite.
-- Production API routing configuration and Telegram theme/safe-area integration.
+- Frontend unit/component/E2E tests and production API routing.
 
-PR #1's earlier lesson detail/answer UI calls legacy endpoints (`GET /lessons/:id` and `POST /lessons/:id/check`). Those do not match the backend foundation contract. Do not copy that UI unchanged; implement against `docs/backend/API.md`.
+## Architecture documents
+
+- [Telegram Mini App architecture](../../docs/frontend/telegram-mini-app-architecture.md) — authoritative host-platform design and authentication lifecycle.
+- [Frontend architecture audit and roadmap](../../docs/frontend/architecture-and-roadmap.md)
+- [ADR-0003](../../docs/decisions/ADR-0003-frontend-architecture.md)
 
 ## Run locally
 
@@ -31,15 +35,13 @@ npm run dev:backend
 npm run dev:frontend
 ```
 
-Open http://localhost:5173. The Vite proxy is development-only. The production target is same-origin `/api/v1` routing through the selected Worker/static-assets configuration. No production routing has been configured.
+Open http://localhost:5173. The Vite proxy is development-only. Production routing to the Worker is not configured.
 
-## Architecture and roadmap
+## Security boundaries
 
-See [Frontend architecture audit and roadmap](../../docs/frontend/architecture-and-roadmap.md) and [ADR-0003](../../docs/decisions/ADR-0003-frontend-architecture.md).
-
-## Important security boundaries
-
-- Send only raw `Telegram.WebApp.initData` to backend authentication; never trust `initDataUnsafe`.
+- Supported authenticated launch surfaces: Main Mini App and bot menu button.
+- Keyboard-button and inline-mode launch are not supported for the authenticated experience because Telegram documents empty initData for these launch modes.
+- Send raw `Telegram.WebApp.initData` only to backend authentication; never trust `initDataUnsafe`.
+- Prefer Telegram SecureStorage for the opaque session token when available; no silent localStorage fallback.
 - Never place bot token or server secrets in frontend source or Vite environment variables.
 - Backend remains authoritative for identity, attempt ownership, correctness, score and progress.
-- Do not persist session tokens in localStorage by default. Session persistence must follow the approved auth decision.
