@@ -110,7 +110,7 @@ A future resume feature requires a backend endpoint and a stable attempt-state c
 
 Only `services/platform` may access `window.Telegram.WebApp`. It owns capability detection and subscriptions for viewport, safe areas, theme and BackButton.
 
-Every event subscription must have a matching cleanup. Platform APIs are optional and feature-detected. Browser behavior must remain usable when Telegram globals are absent. Telegram-specific state must not leak into feature domain types.
+The root app calls Telegram `ready()` once per mounted application lifecycle, independently of API loading/session state, and guards React StrictMode effect replay. Layout/event subscriptions are attached and cleaned up separately. Every event subscription must have a matching cleanup. Platform APIs are optional and feature-detected. Browser behavior must remain usable when Telegram globals are absent. Telegram-specific state must not leak into feature domain types.
 
 ## 8. Localization, layout and accessibility
 
