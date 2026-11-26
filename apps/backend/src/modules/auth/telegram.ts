@@ -40,7 +40,7 @@ export async function verifyTelegramInitData(
 
   const checkString = entries.filter(([key]) => key !== "hash")
     .map(([key, value]) => `${key}=${value}`).join("\n");
-  const secret = await hmacSha256(new TextEncoder().encode(options.botToken), "WebAppData");
+  const secret = await hmacSha256(new TextEncoder().encode("WebAppData"), options.botToken);
   const expectedHash = bytesToHex(await hmacSha256(secret, checkString));
   if (!constantTimeHexEqual(expectedHash, receivedHash.toLowerCase())) {
     throw new AppError("INVALID_TELEGRAM_SIGNATURE", "Telegram signature is invalid.", 401);
