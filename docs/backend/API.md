@@ -60,3 +60,29 @@ Review decisions, publication, draft creation and audit writes are executed in t
 
 ## Not implemented
 No public role-grant/bootstrap API, audit query API, account linking/merge, payments, subscriptions, AI tutor, media upload, Queue consumer, account deletion workflow or production deployment. Protected content author/reviewer/admin routes exist, but the workflow still needs idempotent command keys and a role-management process.
+
+
+## Admin read APIs — backend continuation
+
+### Reviewer queue
+
+`GET /api/v1/admin/content/reviews?status=pending&limit=20&cursor=...`
+
+- Authentication: Bearer session + `content_reviewer` role.
+- Supported statuses: `pending`, `approved`, `rejected`, `published`.
+- Page size: 1–50; default 20.
+- Stable keyset order: `submitted_at ASC, id ASC`.
+- Response includes `data` and `meta.nextCursor`; pass the cursor unchanged to continue the same filtered query.
+- Invalid cursor, status or limit returns `400 INVALID_REVIEW_QUERY`.
+
+### Audit event feed
+
+`GET /api/v1/admin/audit?limit=25&action=content.version.published&resourceType=lesson_version&cursor=...`
+
+- Authentication: Bearer session + `admin` role. Reviewers and authors do not receive audit access.
+- Page size: 1–50; default 25.
+- Optional exact-match filters: `action` and `resourceType`.
+- Stable keyset order: `created_at DESC, id DESC`.
+- Only minimal audit identifiers and allowlisted metadata are returned; user submissions, credentials, network addresses and free-form content are not part of this API.
+- Response includes `data` and `meta.nextCursor`.
+- Invalid filters, cursor or limit returns `400 INVALID_AUDIT_QUERY`.
