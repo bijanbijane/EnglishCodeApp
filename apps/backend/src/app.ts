@@ -18,6 +18,7 @@ app.use("*", async (c, next) => {
   try {
     await next();
   } finally {
+    c.header("Cache-Control", "no-store");
     c.header("X-Request-Id", requestId);
     c.header("X-Content-Type-Options", "nosniff");
     c.header("Referrer-Policy", "no-referrer");
