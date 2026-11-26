@@ -67,18 +67,21 @@ learning.post("/lessons/:lessonId/attempts", requireSession, async (c) => {
   const attemptId = crypto.randomUUID();
   const results = await c.env.DB.batch([
     c.env.DB.prepare(
-      `INSERT INTO lesson_attempts (id, user_id, lesson_id, lesson_version, status)
-       SELECT ?, ?, id, version, 'in_progress'
-       FROM lessons
-       WHERE id = ? AND status = 'published'
-         AND EXISTS (SELECT 1 FROM questions WHERE lesson_id = lessons.id)`,
+      `INSERT INTO lesson_attempts
+         (id, user_id, lesson_id, lesson_version, lesson_version_id, assessment_policy_version_id, status)
+       SELECT ?, ?, l.id, lv.version, lv.id, ap.id, 'in_progress'
+       FROM lessons l
+       JOIN lesson_versions lv ON lv.id = l.current_published_version_id
+       JOIN assessment_policy_versions ap ON ap.id = 'percentage-v1'
+       WHERE l.id = ? AND l.status = 'published' AND lv.status = 'published'
+         AND EXISTS (SELECT 1 FROM question_versions WHERE lesson_version_id = lv.id)`,
     ).bind(attemptId, c.get("userId"), c.req.param("lessonId")),
     c.env.DB.prepare(
       `INSERT INTO attempt_questions
-         (attempt_id, question_id, question_type, prompt, options_json, answer_key, position)
-       SELECT ?, q.id, q.type, q.prompt, q.options_json, q.answer_key, q.position
-       FROM questions q
-       JOIN lesson_attempts a ON a.lesson_id = q.lesson_id
+         (attempt_id, question_id, question_version_id, question_type, prompt, options_json, answer_key, position, question_weight)
+       SELECT ?, q.source_question_id, q.id, q.question_type, q.prompt, q.options_json, q.answer_key, q.position, q.weight
+       FROM question_versions q
+       JOIN lesson_attempts a ON a.lesson_version_id = q.lesson_version_id
        WHERE a.id = ? AND a.user_id = ? AND a.status = 'in_progress'
          AND changes() = 1`,
     ).bind(attemptId, attemptId, c.get("userId")),
@@ -97,7 +100,7 @@ learning.post("/lessons/:lessonId/attempts", requireSession, async (c) => {
 learning.get("/attempts/:attemptId", requireSession, async (c) => {
   const attemptId = c.req.param("attemptId");
   const attempt = await c.env.DB.prepare(
-    `SELECT id, lesson_id, lesson_version, status, score, started_at, completed_at
+    `SELECT id, lesson_id, lesson_version, lesson_version_id, assessment_policy_version_id, status, score, started_at, completed_at
      FROM lesson_attempts
      WHERE id = ? AND user_id = ?
      LIMIT 1`,
@@ -105,6 +108,8 @@ learning.get("/attempts/:attemptId", requireSession, async (c) => {
     id: string;
     lesson_id: string;
     lesson_version: number;
+    lesson_version_id: string;
+    assessment_policy_version_id: string;
     status: string;
     score: number | null;
     started_at: string;
@@ -253,8 +258,8 @@ learning.post("/attempts/:attemptId/complete", requireSession, async (c) => {
        SET status = 'completed',
            score = COALESCE((
              SELECT CAST(ROUND(
-               100.0 * SUM(CASE WHEN aa.is_correct = 1 THEN 1 ELSE 0 END) /
-               NULLIF(COUNT(q.question_id), 0)
+               100.0 * SUM(CASE WHEN aa.is_correct = 1 THEN q.question_weight ELSE 0 END) /
+               NULLIF(SUM(q.question_weight), 0)
              ) AS INTEGER)
              FROM attempt_questions q
              LEFT JOIN attempt_answers aa
