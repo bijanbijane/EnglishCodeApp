@@ -5,7 +5,7 @@
 
 ## Source of truth
 
-The complete product and experience requirements are in [Frontend Product & Experience Specification](./frontend-product-spec.md). This file records technical architecture and implementation boundaries. If a UI implementation decision conflicts with the product specification, record the conflict and resolve it rather than silently diverging.
+The complete product and experience requirements are in [Frontend Product & Experience Specification](./frontend-product-spec.md). This file records technical architecture and implementation boundaries. If a UI implementation decision conflicts with the product specification, record the conflict and resolve it rather than silently diverging. The detailed runtime behavior, feature boundaries, session rules, API handling and test strategy are specified in [Frontend Runtime Contracts](./frontend-runtime-contracts.md).
 
 ## Decision
 
