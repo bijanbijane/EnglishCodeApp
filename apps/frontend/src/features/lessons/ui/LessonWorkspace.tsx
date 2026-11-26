@@ -182,7 +182,7 @@ export function LessonWorkspace({ lesson, onBack, canStartAttempt, sessionMessag
         </div>
       </header>
 
-      {state.status === "loading" && <div className="state-panel" role="status"><span className="loader" /> در حال دریافت تمرین‌ها…</div>}
+      {state.status === "loading" && <div className="state-panel" role="status" aria-live="polite"><span className="loader" aria-hidden="true" /> در حال دریافت تمرین‌ها…</div>}
       {state.status === "error" && <div className="state-panel state-panel--error" role="alert"><div><strong>تمرین‌ها بارگذاری نشدند.</strong><p>{state.message}</p></div><button className="button button--secondary" type="button" onClick={() => setReloadCount((count) => count + 1)}>تلاش دوباره</button></div>}
       {state.status === "ready" && state.questions.length === 0 && <div className="state-panel"><strong>برای این درس هنوز تمرینی ثبت نشده است.</strong><p>محتوای تمرین پس از انتشار در این بخش نمایش داده می‌شود.</p></div>}
       {state.status === "ready" && state.questions.length > 0 && (
