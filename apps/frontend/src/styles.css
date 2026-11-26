@@ -1,16 +1,20 @@
+@import "./styles/tokens.css";
+
 :root {
-  font-family: Tahoma, Arial, sans-serif;
-  color: #17233c;
-  background: #f6f8fc;
+  font-family: var(--ec-font-family-ui);
+  color: var(--ec-color-text);
+  background: var(--ec-color-canvas);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   font-optical-sizing: auto;
-  font-weight: 400;
-  --ink: #17233c;
-  --muted: #7e879b;
-  --line: #e8ecf3;
-  --blue: #3659d9;
-  --blue-dark: #203b9b;
+  font-weight: var(--ec-weight-normal);
+
+  /* Backward-compatible aliases; feature styles migrate incrementally. */
+  --ink: var(--ec-color-text);
+  --muted: var(--ec-color-text-muted);
+  --line: var(--ec-color-border);
+  --blue: var(--ec-color-primary);
+  --blue-dark: var(--ec-color-primary-strong);
   --mint: #b9f0d8;
 }
 * { box-sizing: border-box; }
@@ -18,8 +22,8 @@ html { min-width: 320px; scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, a { font: inherit; }
 a { color: inherit; }
-button:focus-visible, a:focus-visible { outline: 3px solid #8ba4ff; outline-offset: 3px; }
-.app-shell { width: min(1120px, 100%); margin: 0 auto; padding: 26px 30px 32px; }
+button:focus-visible, a:focus-visible { outline: var(--ec-focus-width) solid var(--ec-color-focus); outline-offset: var(--ec-focus-offset); }
+.app-shell { width: min(var(--ec-content-wide), 100%); margin: 0 auto; padding: 26px 30px 32px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; min-height: 46px; }
 .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; direction: ltr; }
 .brand-mark { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 13px; color: white; background: linear-gradient(145deg, #4b6df0, #2846b5); font: 800 21px/1 Arial, sans-serif; box-shadow: 0 7px 18px #3659d933; }
@@ -73,7 +77,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #8ba4ff; outline-offs
 .lesson-card h3 { margin: 7px 0 4px; color: #26324b; font-size: 14px; font-weight: 700; }
 .lesson-card p { margin: 0; color: #8b94a7; font-size: 10px; line-height: 1.8; }
 .lesson-card__arrow { color: #8193df; font-size: 20px; }
-.state-panel { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 104px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; color: #65718a; background: #fff; font-size: 12px; }
+.state-panel { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 104px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; color: #65718a; background: var(--ec-color-surface); font-size: 12px; }
 .state-panel strong { color: #34415c; font-size: 13px; }
 .state-panel p { margin: 6px 0 0; color: #8992a5; line-height: 1.8; }
 .state-panel--error { border-color: #f0d9dc; background: #fffafb; }

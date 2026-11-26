@@ -110,3 +110,8 @@ Practice and Review remain intentionally absent from active navigation until the
 ## Duplicate-action safeguard — 2026-11-26
 
 The lesson UI now uses single-flight guards for answer submission, attempt creation and completion. Local tests verify that concurrent invocations do not start a second action and that a failed action releases the guard for retry. Backend idempotency and end-to-end verification are still required.
+
+
+## Design-token foundation — 2026-11-26
+
+A centralized token layer now defines semantic color roles, typography, spacing, radii/elevations, breakpoint/content-width references, motion, focus and touch-target sizing. Global typography, canvas, focus treatment and content width consume these variables. The complete acceptance item remains unchecked because legacy one-off colors and spacing values still exist in feature styles and require staged migration plus visual/contrast review.

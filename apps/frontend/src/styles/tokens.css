@@ -1,0 +1,89 @@
+/*
+ * EnglishCodeApp semantic design tokens.
+ * Breakpoint values are reference tokens: CSS media conditions cannot use
+ * runtime custom properties, so the matching literals stay in styles.css.
+ */
+:root {
+  /* Color roles */
+  --ec-color-canvas: #f6f8fc;
+  --ec-color-surface: #ffffff;
+  --ec-color-surface-elevated: #ffffff;
+  --ec-color-text: #17233c;
+  --ec-color-text-muted: #7e879b;
+  --ec-color-text-subtle: #929bad;
+  --ec-color-border: #e8ecf3;
+  --ec-color-border-strong: #d9e0ed;
+  --ec-color-primary: #3659d9;
+  --ec-color-primary-strong: #203b9b;
+  --ec-color-primary-soft: #eef1ff;
+  --ec-color-success: #218d69;
+  --ec-color-success-soft: #edf8f2;
+  --ec-color-warning: #916a2e;
+  --ec-color-warning-soft: #fff8e9;
+  --ec-color-danger: #a64f57;
+  --ec-color-danger-soft: #fff3f3;
+  --ec-color-focus: #8ba4ff;
+  --ec-color-on-primary: #ffffff;
+
+  /* Typography */
+  --ec-font-family-ui: Tahoma, Arial, sans-serif;
+  --ec-font-family-latin: Arial, sans-serif;
+  --ec-font-family-editorial: Georgia, serif;
+  --ec-font-size-2xs: 9px;
+  --ec-font-size-xs: 10px;
+  --ec-font-size-sm: 11px;
+  --ec-font-size-md: 12px;
+  --ec-font-size-lg: 14px;
+  --ec-font-size-xl: 18px;
+  --ec-font-size-2xl: 20px;
+  --ec-line-height-tight: 1.2;
+  --ec-line-height-normal: 1.6;
+  --ec-line-height-relaxed: 1.9;
+  --ec-weight-normal: 400;
+  --ec-weight-medium: 500;
+  --ec-weight-semibold: 700;
+  --ec-weight-bold: 800;
+
+  /* Spacing: 4px base unit */
+  --ec-space-1: 4px;
+  --ec-space-2: 8px;
+  --ec-space-3: 12px;
+  --ec-space-4: 16px;
+  --ec-space-5: 20px;
+  --ec-space-6: 24px;
+  --ec-space-8: 32px;
+  --ec-space-10: 40px;
+  --ec-space-12: 48px;
+
+  /* Shape and elevation */
+  --ec-radius-sm: 6px;
+  --ec-radius-md: 10px;
+  --ec-radius-lg: 14px;
+  --ec-radius-xl: 18px;
+  --ec-radius-2xl: 24px;
+  --ec-radius-pill: 999px;
+  --ec-elevation-1: 0 5px 18px #23365b0a;
+  --ec-elevation-2: 0 9px 30px #24365b18;
+  --ec-elevation-3: 0 14px 34px #17233c20;
+
+  /* Responsive reference values and content widths */
+  --ec-breakpoint-narrow: 420px;
+  --ec-breakpoint-compact: 560px;
+  --ec-breakpoint-mobile: 760px;
+  --ec-breakpoint-desktop: 1120px;
+  --ec-content-reading: 850px;
+  --ec-content-wide: 1120px;
+
+  /* Motion */
+  --ec-motion-fast: 120ms;
+  --ec-motion-normal: 180ms;
+  --ec-motion-slow: 240ms;
+  --ec-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ec-motion-easing-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Accessibility and controls */
+  --ec-focus-width: 3px;
+  --ec-focus-offset: 3px;
+  --ec-focus-shadow: 0 0 0 3px #8ba4ff20;
+  --ec-touch-target-min: 44px;
+}

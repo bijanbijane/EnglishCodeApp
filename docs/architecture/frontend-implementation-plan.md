@@ -85,6 +85,7 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 - [x] Add recoverable Telegram session bootstrap retry and ignore stale lesson/progress responses.
 - [x] Introduce shared API transport and feature-owned API adapters.
 - [x] Add product specification, architecture, backend contract and acceptance checklist.
+- [x] Establish the centralized semantic design-token foundation for color roles, typography, spacing, shape/elevation, responsive references, motion, focus and touch targets; legacy component literals remain under gradual migration.
 - [x] Add Telegram host adapter and official WebApp script.
 - [x] Add hash-based route contract.
 - [x] Add native Node route-contract tests for home/profile/progress/lesson parsing, encoding and malformed hashes.
@@ -193,3 +194,10 @@ These are source-level changes only; runtime verification remains pending until 
 - Added a shared single-flight guard and applied it to answer submission, attempt creation and lesson completion. Rapid repeated activations from one mounted UI owner no longer start overlapping requests.
 - Added two deterministic Node tests covering concurrent invocation suppression and lock release after a failed request.
 - This is a client-side interaction safeguard only. It does not replace backend idempotency, persisted attempt recovery or integration tests; those acceptance items remain open.
+
+
+## Semantic design-token foundation — 2026-11-26
+
+- Added `src/styles/tokens.css` with semantic color roles, type scale/families/weights/line heights, a 4px spacing scale, radii, elevations, responsive reference values/content widths, motion timings/easing, focus treatment and minimum touch target size.
+- Imported the token layer before global styles and mapped the root palette, typography, focus ring and content width to semantic variables. Existing feature-specific literal colors/spacing have not all been migrated; acceptance for complete token centralization remains open until that migration and visual review are complete.
+- Added static contract tests for required token groups and stylesheet consumption.
