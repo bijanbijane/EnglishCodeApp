@@ -79,7 +79,7 @@ The UI must distinguish:
 - unauthenticated or expired session;
 - unavailable capability (for example Telegram SecureStorage unsupported).
 
-A retry must not create duplicate attempts or submissions. Mutating actions disable their initiating control while pending. The server remains responsible for idempotency and duplicate-answer policy.
+A retry must not create duplicate attempts or submissions. Mutating actions disable their initiating control while pending. The backend currently uses first-answer-wins semantics (`INSERT OR IGNORE`): a repeated submission can return the previously stored `answerId`, even if the retry supplied another choice. The UI must display the server-recorded choice and feedback, not assume the response echoes the latest request.
 
 ## 5. Authentication and host contract
 
