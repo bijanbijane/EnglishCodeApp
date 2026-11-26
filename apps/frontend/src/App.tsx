@@ -151,9 +151,13 @@ function App() {
     setBusy(true); setError("");
     try {
       const result = await api.complete(attempt.id);
-      setScore(result.score); setScreen("result");
-      const latestProgress = await api.progress();
-      setProgress(latestProgress);
+      setScore(result.score);
+      setScreen("result");
+      try {
+        setProgress(await api.progress());
+      } catch {
+        setNotice("Lesson completed. Progress details will refresh when you return.");
+      }
     } catch (e) { setError(e instanceof Error ? e.message : "Could not complete the lesson."); }
     finally { setBusy(false); }
   };
