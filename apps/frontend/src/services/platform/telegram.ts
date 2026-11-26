@@ -1,5 +1,11 @@
 export type TelegramInsets = { top: number; right: number; bottom: number; left: number };
 
+type TelegramSecureStorage = {
+  setItem: (key: string, value: string, callback?: (error: string | null, success?: boolean) => void) => TelegramSecureStorage;
+  getItem: (key: string, callback: (error: string | null, value: string | null, canRestore?: boolean) => void) => TelegramSecureStorage;
+  removeItem: (key: string, callback?: (error: string | null, success?: boolean) => void) => TelegramSecureStorage;
+};
+
 type TelegramBackButton = {
   show: () => void;
   hide: () => void;
@@ -19,6 +25,8 @@ type TelegramWebApp = {
   safeAreaInset?: TelegramInsets;
   contentSafeAreaInset?: TelegramInsets;
   BackButton?: TelegramBackButton;
+  SecureStorage?: TelegramSecureStorage;
+  isVersionAtLeast?: (version: string) => boolean;
   ready: () => void;
   expand?: () => void;
   onEvent?: (event: string, handler: () => void) => void;
@@ -100,4 +108,41 @@ export function setTelegramBackAction(onBack: () => void): () => void {
     backButton.offClick(onBack);
     backButton.hide();
   };
+}
+
+const SECURE_STORAGE_MIN_VERSION = "9.0";
+
+function getSecureStorage(): TelegramSecureStorage {
+  const webApp = typeof window === "undefined" ? undefined : window.Telegram?.WebApp;
+  if (!webApp?.SecureStorage || !webApp.isVersionAtLeast?.(SECURE_STORAGE_MIN_VERSION)) {
+    throw new Error("نسخهٔ تلگرام یا دستگاه فعلی از SecureStorage پشتیبانی نمی‌کند.");
+  }
+  return webApp.SecureStorage;
+}
+
+export function getTelegramSecureItem(key: string): Promise<string | null> {
+  return new Promise((resolve, reject) => {
+    getSecureStorage().getItem(key, (error, value) => {
+      if (error) reject(new Error("خواندن نشست امن از تلگرام ناموفق بود."));
+      else resolve(value);
+    });
+  });
+}
+
+export function setTelegramSecureItem(key: string, value: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    getSecureStorage().setItem(key, value, (error, success) => {
+      if (error || success === false) reject(new Error("ذخیرهٔ نشست امن در تلگرام ناموفق بود."));
+      else resolve();
+    });
+  });
+}
+
+export function removeTelegramSecureItem(key: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    getSecureStorage().removeItem(key, (error, success) => {
+      if (error || success === false) reject(new Error("پاک‌کردن نشست امن تلگرام ناموفق بود."));
+      else resolve();
+    });
+  });
 }
