@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { AppEnv } from "./env";
 import { AppError } from "./shared/errors";
+import contentRoutes from "./modules/content/routes";
 
 const app = new Hono<AppEnv>();
 
@@ -39,6 +40,8 @@ app.get("/api/v1/ready", async (c) => {
   }
 });
 
+app.route("/api/v1", contentRoutes);
+
 app.notFound((c) =>
   c.json(
     {
@@ -63,7 +66,6 @@ app.onError((error, c) => {
     );
   }
 
-  // Do not serialize stack traces, SQL details, or secrets into API responses.
   return c.json(
     {
       error: {
