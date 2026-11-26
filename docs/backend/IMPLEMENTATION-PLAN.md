@@ -29,7 +29,7 @@
 - [ ] Prove replay/session atomicity with real Local D1 concurrent requests.
 - [ ] Prove exactly one winner under concurrent identical initData.
 - [ ] Test session expiry, revocation, and malformed bearer tokens against Local D1.
-- [ ] Add rate limiting, body-size enforcement, and origin policy.
+- [x] Add per-IP Telegram login rate limiting (30/minute), body-size limit, and Retry-After response.\n- [ ] Define and enforce the exact production origin policy before enabling browser cross-origin access.
 
 ## B2 — Learning write path
 
@@ -52,7 +52,7 @@
 ## B4 — Privacy, reliability, and operations
 
 - [ ] Account export, deletion, retention, and backup deletion behavior.
-- [ ] Structured non-sensitive logs, metrics, alerting, and request correlation.
+- [x] Add bounded daily cleanup for expired replay fingerprints, stale sessions, and old rate-limit buckets.\n- [ ] Structured non-sensitive logs, metrics, alerting, and request correlation.
 - [ ] Backup/restore drill and incident runbook.
 - [ ] Security tests for every user-owned resource and every admin action.
 - [ ] Load test D1 query patterns and record latency/error baselines.
