@@ -1,54 +1,56 @@
 # Backend Delivery Roadmap v3
 
-A checkmark means only the stated evidence exists; a feature is not production-ready merely because source files exist.
+Status labels: implemented in source, SQL-smoke-tested, Local D1 verified, CI verified, production approved. These are separate evidence levels.
 
-## Gate G0 — Reproducible build and P0 correctness
-- [ ] Repair GitHub Actions so the job exposes logs and steps.
-- [ ] Replace package-lock mutation/install with deterministic npm ci after confirming workspace lockfile.
-- [ ] Green root typecheck, backend unit tests and frontend build on one commit.
-- [ ] Independent Telegram HMAC known-good vector.
-- [ ] Local D1 migrations from empty database.
+## G0 — Reproducible build and P0 correctness
+- [ ] GitHub Actions exposes logs/steps; current jobs fail before steps are reported.
+- [ ] Commit a reproducible root lockfile and use npm ci.
+- [ ] Green typecheck, backend tests and frontend build on one commit.
+- [x] Independent fixed Telegram HMAC vector added (not yet executed in CI).
+- [ ] Local D1 migrations from empty database and upgrade path.
 - [ ] Local D1 duplicate-login race: at most one valid session.
 - [ ] Local D1 conflicting answer and completion race tests.
-- [ ] Verify D1 batch changes()/conditional write behavior.
-- [ ] Verify all SQL statements and foreign keys on D1 runtime.
+- [ ] Verify D1 batch changes()/conditional write behavior on Workers D1.
 
-## Gate G1 — Identity decoupling
-- [ ] Add provider-neutral user_identities table with unique(provider, provider_subject).
-- [ ] Backfill Telegram identities from users.telegram_user_id using forward-only migration.
-- [ ] Keep compatibility reads/writes until migration is verified.
-- [ ] Add identity repository and tests for duplicate provider linking.
+## G1 — Identity decoupling
+- [x] Provider-neutral user_identities table and uniqueness constraints added in migration 0004.
+- [x] Existing Telegram identities backfilled without changing users.id.
+- [x] Verified Telegram login writes provider mapping; identity service and unit tests added.
+- [ ] Local D1 migration/backfill verification.
 - [ ] Account linking only with fresh proof of both identities; audited merge workflow later.
 
-## Gate G2 — Versioned learning content
-- [ ] Add lesson/question immutable version tables and publication pointer.
-- [ ] Existing lesson/question data migrated to version 1.
-- [ ] Attempts pin lesson_version and assessment_policy_version.
-- [ ] Published version cannot be edited; new version required.
-- [ ] DTO allowlists and version consistency contract tests.
+## G2 — Versioned learning content
+- [x] lesson_versions and question_versions tables added; existing content backfilled as v1.
+- [x] Attempts pin lesson_version and assessment_policy_version.
+- [x] Published version immutability triggers and publication pointer validation added.
+- [x] Public question DTO test added; array response shape preserved and answer key omitted.
+- [ ] Local D1 migration and route tests.
+- [ ] Content authoring/review/publish API with RBAC and audit.
 
-## Gate G3 — Assessment and progress integrity
-- [ ] Explicit assessment policy version and deterministic scoring.
-- [ ] Attempt state machine: created, in_progress, completed, expired, abandoned.
-- [ ] Transactional answer/complete behavior with idempotency keys.
-- [ ] Immutable attempt result and progress event facts.
-- [ ] Rebuildable per-user progress projection and reconciliation command.
+## G3 — Assessment and progress integrity
+- [x] Fixed percentage assessment policy version seeded.
+- [x] Score query uses weights from pinned question version.
+- [x] Conditional completion/progress write implemented in source.
+- [ ] Local D1 concurrency and replay tests.
+- [ ] Immutable result facts, progress event facts and rebuild/reconciliation command.
+- [ ] Explicit pass/retry/manual-review policy beyond the initial percentage policy.
 
-## Gate G4 — Vocabulary and spaced repetition
-- [ ] Canonical vocabulary item and language-pair model.
-- [ ] Per-user vocabulary state and append-only review events.
-- [ ] Pure scheduler module with versioned algorithm and injected clock.
-- [ ] Due review query indexed by user/due_at.
-- [ ] Idempotent review submission and tests for timezone/day boundaries.
+## G4 — Vocabulary and spaced repetition
+- [x] Canonical vocabulary and language-pair model.
+- [x] Per-user vocabulary state and append-only review events.
+- [x] Pure scheduler v1 with deterministic unit tests.
+- [x] Due review query indexed by user/state/due_at.
+- [x] Idempotent review submission and optimistic revision.
+- [ ] Execute unit tests and add Local D1 concurrency/time-boundary tests.
+- [ ] Vocabulary authoring/import and curated content pipeline.
 
-## Gate G5 — Four skills and content production
-- [ ] Listening and reading content version references.
+## G5 — Four skills and content production
+- [ ] Listening and reading content references.
 - [ ] Writing submissions and rubric version.
 - [ ] Speaking flow only after consent and media policy.
 - [ ] Admin content draft/review/publish with RBAC and audit.
-- [ ] No public admin route before permission matrix and security tests.
 
-## Gate G6 — Media, audio and AI
+## G6 — Media, audio and AI
 - [ ] Private R2 and upload-intent policy.
 - [ ] Magic-byte, file size, duration and codec checks.
 - [ ] Durable outbox and Queue consumer idempotency.
@@ -56,7 +58,7 @@ A checkmark means only the stated evidence exists; a feature is not production-r
 - [ ] Consent, retention, deletion and provider data-processing review.
 - [ ] AI/STT/TTS adapters behind interfaces; no paid provider without owner approval.
 
-## Gate G7 — Operations and beta
+## G7 — Operations and beta
 - [ ] Exact origin allowlist and rate limits.
 - [ ] Structured redacted logs and metrics.
 - [ ] Backup and restore drill.
@@ -68,9 +70,9 @@ A checkmark means only the stated evidence exists; a feature is not production-r
 - [ ] Explicit owner approval for production migration/deployment.
 
 ## Execution rules
-1. Work on a feature branch from latest approved code head.
-2. Keep PRs Draft until the associated gate passes.
+1. Work on feature branch from latest approved code head.
+2. Keep PR Draft until associated gate passes.
 3. No speculative paid services, production mutations, merge or deployment without approval.
-4. When a tool limitation blocks a task, use a lower-risk alternative (e.g. local deterministic harness, SQLite syntax smoke test) but label its evidentiary limits.
+4. If a tool limitation blocks a task, use a lower-risk alternative and label its evidentiary limits.
 5. Never report a test as passed unless command output or CI result is available.
-6. Fix root causes, not only symptoms; add regression tests for every defect.
+6. Fix root causes, not symptoms; add regression tests for every defect.
