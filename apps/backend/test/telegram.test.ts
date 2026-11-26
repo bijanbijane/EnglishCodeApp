@@ -5,17 +5,28 @@ import { telegramInitDataFingerprint, verifyTelegramInitData } from "../src/modu
 async function signedInitData(botToken: string, fields: Record<string, string>) {
   const data = Object.entries(fields).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
     .map(([key, value]) => `${key}=${value}`).join("\n");
-  const secret = await hmacSha256(new TextEncoder().encode("WebAppData"), botToken);
+  // Match Telegram's documented derivation: HMAC(key=bot token, data="WebAppData").
+  const secret = await hmacSha256(new TextEncoder().encode(botToken), "WebAppData");
   const hash = bytesToHex(await hmacSha256(secret, data));
   return new URLSearchParams({ ...fields, hash }).toString();
 }
 describe("Telegram initData verification", () => {
   const botToken = "test-bot-token";
   const now = 1_800_000_000;
-  it("accepts a valid signature", async () => {
+  it("accepts a valid signature using Telegram's HMAC key/data order", async () => {
     const raw = await signedInitData(botToken, { auth_date: String(now), user: JSON.stringify({ id: 123, first_name: "Test" }) });
     const result = await verifyTelegramInitData(raw, { botToken, nowSeconds: now });
     expect(result.user.id).toBe("123");
+  });
+  it("rejects a signature derived with the reversed HMAC key/data order", async () => {
+    const fields = { auth_date: String(now), user: JSON.stringify({ id: 123, first_name: "Test" }) };
+    const data = Object.entries(fields).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+      .map(([key, value]) => `${key}=${value}`).join("\n");
+    const reversedSecret = await hmacSha256(new TextEncoder().encode("WebAppData"), botToken);
+    const reversedHash = bytesToHex(await hmacSha256(reversedSecret, data));
+    const raw = new URLSearchParams({ ...fields, hash: reversedHash }).toString();
+    await expect(verifyTelegramInitData(raw, { botToken, nowSeconds: now }))
+      .rejects.toMatchObject({ code: "INVALID_TELEGRAM_SIGNATURE" });
   });
   it("rejects a modified payload", async () => {
     const raw = await signedInitData(botToken, { auth_date: String(now), user: JSON.stringify({ id: 123, first_name: "Test" }) });
@@ -24,6 +35,11 @@ describe("Telegram initData verification", () => {
   });
   it("rejects expired data", async () => {
     const raw = await signedInitData(botToken, { auth_date: String(now - 7200), user: JSON.stringify({ id: 123, first_name: "Test" }) });
+    await expect(verifyTelegramInitData(raw, { botToken, nowSeconds: now, maxAgeSeconds: 3600 }))
+      .rejects.toMatchObject({ code: "TELEGRAM_AUTH_EXPIRED" });
+  });
+  it("rejects data at the exact maximum-age boundary", async () => {
+    const raw = await signedInitData(botToken, { auth_date: String(now - 3600), user: JSON.stringify({ id: 123, first_name: "Test" }) });
     await expect(verifyTelegramInitData(raw, { botToken, nowSeconds: now, maxAgeSeconds: 3600 }))
       .rejects.toMatchObject({ code: "TELEGRAM_AUTH_EXPIRED" });
   });
