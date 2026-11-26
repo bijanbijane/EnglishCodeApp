@@ -27,6 +27,11 @@ test("empty lesson catalog is announced as a polite status update", () => {
   assert.match(catalog, /if \(lessons\.length === 0\) return <div className=\"state-panel\" role=\"status\" aria-live=\"polite\">/);
 });
 
+test("lesson route loading and missing-lesson states are announced", () => {
+  assert.match(app, /className="state-panel" role="status" aria-live="polite"><span className="loader" aria-hidden="true" \/> در حال بارگذاری درس/);
+  assert.match(app, /className="state-panel" role="status" aria-live="polite"><strong>این درس در فهرست فعلی وجود ندارد/);
+});
+
 test("mobile navigation exposes the active route with aria-current", () => {
   assert.match(app, /aria-current=\{route\.name === "home" \? "page" : undefined\}/);
   assert.match(app, /aria-current=\{route\.name === "learn" \|\| route\.name === "lesson" \? "page" : undefined\}/);
