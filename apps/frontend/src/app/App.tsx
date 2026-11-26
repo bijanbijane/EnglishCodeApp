@@ -14,6 +14,7 @@ export default function App() {
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const [sessionState, setSessionState] = useState<SessionBootstrapResult | { status: "checking" }>({ status: "checking" });
   const lessonRequestId = useRef(0);
+  const hostInitialized = useRef(false);
 
   const navigateTo = useCallback((next: AppRoute) => {
     const leavingActiveLesson = route.name === "lesson" && (next.name !== "lesson" || next.lessonId !== route.lessonId);
@@ -78,7 +79,10 @@ export default function App() {
   }, [activeAttempt, route]);
 
   useEffect(() => {
-    initializeTelegramHost();
+    if (!hostInitialized.current) {
+      initializeTelegramHost();
+      hostInitialized.current = true;
+    }
     return bindTelegramLayoutMetrics();
   }, []);
 
