@@ -57,7 +57,8 @@ Every feature should include typed API contracts, loading/empty/error states, ac
 - Completion and final score are requested from the backend; the client does not calculate correctness or score.
 - Browser mode and Telegram clients without SecureStorage remain public-preview-only.
 - Telegram host adapter isolates raw initData, host detection, SecureStorage, viewport/safe-area/theme metadata and BackButton lifecycle.
-- Profile screen exposes session status and server-backed logout.
+- Profile screen exposes backend-verified display name, session status and server-backed logout.
+- Progress screen reads per-lesson best score, completion count and last completion date from the authenticated `/api/v1/me/progress` endpoint.
 - Hash navigation supports home, profile and direct lesson links, including browser back/forward and Telegram BackButton.
 - Implementation sequence and platform boundary are documented in [frontend-implementation-plan.md](../../docs/architecture/frontend-implementation-plan.md) and [frontend-platform-adapter.md](../../docs/architecture/frontend-platform-adapter.md).
 
