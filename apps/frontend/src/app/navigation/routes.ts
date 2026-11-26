@@ -22,6 +22,6 @@ export function routeFromHash(hash: string): AppRoute {
 export function hashFromRoute(route: AppRoute): string {
   if (route.name === "profile") return "#/profile";
   if (route.name === "progress") return "#/progress";
-  if (route.name === "lesson") return "#/lessons/" + encodeURIComponent(route.lessonId);
+  if (route.name === "lesson") return route.lessonId.trim() ? "#/lessons/" + encodeURIComponent(route.lessonId) : "#/";
   return "#/";
 }
