@@ -25,7 +25,7 @@
 - [x] Opaque session token generation and SHA-256 hashing.
 - [x] Active-session middleware, logout, and authenticated profile endpoint.
 - [x] Replay fingerprint table migration and ADR design.
-- [ ] Implement login endpoint and atomic replay/session D1 batch.
+- [x] Implement Telegram login endpoint with signed initData validation, D1 replay insert, and conditional session issuance in one batch.\n- [ ] Prove replay/session atomicity with real Local D1 concurrent requests.
 - [ ] Prove exactly one winner under concurrent identical initData.
 - [ ] Test session expiry, revocation, and malformed bearer tokens against Local D1.
 - [ ] Add rate limiting, body-size enforcement, and origin policy.
@@ -68,3 +68,16 @@
 2. GitHub returned no visible status checks for the current commits; the workflow is configured but not verified green.
 3. Login is intentionally incomplete until D1 replay/session atomicity is proven.
 4. The initial migration history on main must be reconciled before any shared database is attached.
+
+
+## Newly implemented after the previous checkpoint
+
+- [x] Telegram login route at `POST /api/v1/auth/telegram`; request body and content type bounded/validated.
+- [x] D1 batch inserts/locates Telegram identity, records replay fingerprint, and inserts session only when the immediately preceding replay insert changed one row.
+- [x] Login returns the canonical internal user ID and a 256-bit opaque bearer token; only its SHA-256 hash is stored.
+- [x] Added route tests with dynamically generated, fresh Telegram HMAC initData.
+- [x] Added `attempt_questions` migration 0004 to preserve question content per attempt.
+- [x] Attempt creation snapshots all question content in a D1 batch; answer and scoring queries now read the snapshot.
+- [x] Added owner-scoped `GET /api/v1/attempts/:attemptId` without answer-key disclosure.
+- [ ] Validate D1 `batch()`/SQLite `changes()` semantics using actual Local D1 and concurrent requests.
+- [ ] CI currently reports failure before allocating a runner (job has no steps and runner_id=0); investigate repository/org Actions availability or billing. Do not interpret this as a code test failure or success.
