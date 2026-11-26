@@ -1,6 +1,6 @@
 # Backend — Cloudflare Worker
 
-**Current state:** executable Worker foundation, Telegram authentication, learning APIs, and public content-read API are committed on `main`. Runtime validation is pending; this is not production-ready.
+**Current state:** Worker foundation, Telegram authentication, versioned learning APIs, D1-backed admin content governance and audit reads are committed on `main`. Runtime validation is pending; this is not production-ready.
 
 ## Runtime
 
