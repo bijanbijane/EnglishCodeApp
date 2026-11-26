@@ -65,7 +65,7 @@ Do not add a global store or server-state cache for the current screen count. Re
 All feature requests use the shared HTTP client. Feature adapters:
 1. use versioned backend paths;
 2. pass bearer credentials only to protected endpoints;
-3. unwrap the documented `{ data: ... }` success envelope through shared transport;
+3. require and unwrap the documented `{ data: ... }` success envelope through shared transport; bare or malformed success payloads fail with a typed contract error;
 4. parse `unknown` into explicit feature DTOs at runtime;
 5. reject malformed data rather than silently inventing defaults;
 6. surface normalized errors without exposing raw server internals.
@@ -145,7 +145,7 @@ Every event subscription must have a matching cleanup. Platform APIs are optiona
 | E2E | Telegram-like launch, public catalog, authenticated learning, progress and logout |
 | Release | Typecheck, tests, production build, CI evidence and device verification |
 
-The current frontend has dependency-free Node 22 TypeScript-stripping suites for route serialization, lesson-question payload validation, attempt-response validation and attempt/question identity matching. These are contract unit tests, not a substitute for component, API integration or E2E tests.
+The current frontend has dependency-free Node 22 TypeScript-stripping suites for route serialization, strict API envelope validation, lesson-question payload validation, attempt-response validation and attempt/question identity matching. These are contract unit tests, not a substitute for component, API integration or E2E tests.
 
 ## 11. Explicit non-goals until contracts exist
 
