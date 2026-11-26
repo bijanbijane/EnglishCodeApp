@@ -8,7 +8,9 @@
     "enabled": true
   },
   "triggers": {
-    "crons": ["17 3 * * *"]
+    "crons": [
+      "17 3 * * *"
+    ]
   },
   "d1_databases": [
     {
@@ -17,5 +19,31 @@
       "database_id": "00000000-0000-0000-0000-000000000000",
       "migrations_dir": "../../database/migrations"
     }
-  ]
+  ],
+  "env": {
+    "development": {
+      "name": "englishcode-backend-dev",
+      "workers_dev": true,
+      "observability": {
+        "enabled": true
+      },
+      "vars": {
+        "APP_ENV": "development",
+        "ALLOWED_ORIGINS": ""
+      },
+      "triggers": {
+        "crons": [
+          "17 3 * * *"
+        ]
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "englishcodeapp-dev",
+          "database_id": "0e36d435-fcfa-48a9-bc2c-8b14894a39f3",
+          "migrations_dir": "../../database/migrations"
+        }
+      ]
+    }
+  }
 }
