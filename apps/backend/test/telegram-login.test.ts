@@ -2,12 +2,43 @@ import { describe, expect, it, vi } from "vitest";
 import app from "../src/app";
 
 const botToken = "123456:TEST_BOT_TOKEN";
-const initData = new URLSearchParams({
-  auth_date: "1735689600",
-  query_id: "AAEAAE",
-  user: JSON.stringify({ id: 123456789, first_name: "Test", username: "test_user" }),
-  hash: "14281dde18173991a31213ec6e803f3c7b9723946be1c5a59f1a318f049f16b8",
-}).toString();
+
+async function makeValidInitData(): Promise<string> {
+  const authDate = String(Math.floor(Date.now() / 1000));
+  const params = new URLSearchParams({
+    auth_date: authDate,
+    query_id: "AAEAAE",
+    user: JSON.stringify({ id: 123456789, first_name: "Test", username: "test_user" }),
+  });
+  const encoder = new TextEncoder();
+  const botKey = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(botToken),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const secret = await crypto.subtle.sign("HMAC", botKey, encoder.encode("WebAppData"));
+  const secretKey = await crypto.subtle.importKey(
+    "raw",
+    secret,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const dataCheckString = Array.from(params.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}=${value}`)
+    .join("\n");
+  const signature = new Uint8Array(
+    await crypto.subtle.sign("HMAC", secretKey, encoder.encode(dataCheckString)),
+  );
+  params.set(
+    "hash",
+    Array.from(signature, (byte) => byte.toString(16).padStart(2, "0")).join(""),
+  );
+  return params.toString();
+}
 
 function makeDatabase(replayInserted = 1) {
   const batch = vi.fn().mockResolvedValue([
@@ -28,6 +59,7 @@ function makeDatabase(replayInserted = 1) {
 
 describe("Telegram login endpoint", () => {
   it("issues an opaque bearer token only when replay and session inserts succeed", async () => {
+    const initData = await makeValidInitData();
     const DB = makeDatabase(1);
     const response = await app.request(
       "/api/v1/auth/telegram",
@@ -52,6 +84,7 @@ describe("Telegram login endpoint", () => {
   });
 
   it("rejects a replay when the unique replay insert does not win", async () => {
+    const initData = await makeValidInitData();
     const DB = makeDatabase(0);
     const response = await app.request(
       "/api/v1/auth/telegram",
@@ -70,6 +103,7 @@ describe("Telegram login endpoint", () => {
   });
 
   it("does not accept a login if the bot token is not configured", async () => {
+    const initData = await makeValidInitData();
     const DB = makeDatabase();
     const response = await app.request(
       "/api/v1/auth/telegram",
@@ -86,6 +120,7 @@ describe("Telegram login endpoint", () => {
   });
 
   it("rejects invalid initData without touching the database", async () => {
+    const initData = await makeValidInitData();
     const DB = makeDatabase();
     const response = await app.request(
       "/api/v1/auth/telegram",
