@@ -55,3 +55,15 @@ CREATE TABLE IF NOT EXISTS vocabulary_review_events (
 
 CREATE INDEX IF NOT EXISTS idx_vocabulary_review_history
   ON vocabulary_review_events(user_id,item_id,reviewed_at DESC);
+
+CREATE TRIGGER IF NOT EXISTS trg_vocabulary_review_events_no_update
+BEFORE UPDATE ON vocabulary_review_events
+BEGIN
+  SELECT RAISE(ABORT,'vocabulary review events are append-only');
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_vocabulary_review_events_no_delete
+BEFORE DELETE ON vocabulary_review_events
+BEGIN
+  SELECT RAISE(ABORT,'vocabulary review events cannot be deleted');
+END;
