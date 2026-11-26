@@ -41,6 +41,9 @@
   --ec-color-mint-accent: #a8e9d0;
   --ec-color-success-accent: #3eb78b;
 
+  --ec-shadow-brand-accent: #3659d933;
+  --ec-color-focus-soft: #8ba4ff20;
+
   /* Typography */
   --ec-font-family-ui: Tahoma, Arial, sans-serif;
   --ec-font-family-latin: Arial, sans-serif;
