@@ -4,11 +4,13 @@ import { LessonCatalog } from "../features/lessons/ui/LessonCatalog";
 import { LessonWorkspace } from "../features/lessons/ui/LessonWorkspace";
 import type { Lesson, LessonListState } from "../features/lessons/model/lesson.types";
 import { initializeTelegramHost, setTelegramBackAction } from "../services/platform/telegram";
+import { bootstrapTelegramSession, type SessionBootstrapResult } from "../features/identity/api/auth.api";
 
 export default function App() {
   const [lessonState, setLessonState] = useState<LessonListState>({ status: "loading" });
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [search, setSearch] = useState("");
+  const [sessionState, setSessionState] = useState<SessionBootstrapResult | { status: "checking" }>({ status: "checking" });
 
   const loadLessons = useCallback(async () => {
     setLessonState({ status: "loading" });
@@ -21,6 +23,11 @@ export default function App() {
   }, []);
 
   useEffect(() => { initializeTelegramHost(); }, []);
+  useEffect(() => {
+    let active = true;
+    void bootstrapTelegramSession().then((result) => { if (active) setSessionState(result); });
+    return () => { active = false; };
+  }, []);
   useEffect(() => { void loadLessons(); }, [loadLessons]);
   useEffect(() => {
     if (!selectedLesson) return;
@@ -28,6 +35,17 @@ export default function App() {
   }, [selectedLesson]);
 
   const lessons = lessonState.status === "ready" ? lessonState.lessons : [];
+  const canStartAttempt = sessionState.status === "authenticated";
+  const sessionMessage = sessionState.status === "checking"
+    ? "در حال بررسی نشست امن…"
+    : sessionState.status === "browser-preview"
+      ? "در مرورگر مستقل فعلاً فقط پیش‌نمایش عمومی فعال است؛ برای ثبت تمرین از Mini App تلگرام استفاده کن."
+      : sessionState.status === "missing-init-data"
+        ? "برای ورود معتبر، Mini App را از دکمهٔ منو یا صفحهٔ اصلی ربات باز کن."
+        : sessionState.status === "secure-storage-unavailable"
+          ? sessionState.message
+          : sessionState.status === "error" ? sessionState.message : undefined;
+
   const visibleLessons = useMemo(() => {
     const term = search.trim().toLocaleLowerCase();
     if (!term) return lessons;
@@ -48,7 +66,7 @@ export default function App() {
       </header>
 
       {selectedLesson ? (
-        <LessonWorkspace lesson={selectedLesson} onBack={() => setSelectedLesson(null)} />
+        <LessonWorkspace key={selectedLesson.id} lesson={selectedLesson} onBack={() => setSelectedLesson(null)} canStartAttempt={canStartAttempt} sessionMessage={sessionMessage} />
       ) : (
         <>
           <section className="welcome-panel" id="home">
@@ -67,6 +85,8 @@ export default function App() {
               <span className="floating-word floating-word--three">grow</span>
             </div>
           </section>
+
+          {sessionMessage && <div className="session-banner" role="status"><span className="session-banner__dot" />{sessionMessage}</div>}
 
           <section className="learning-overview" aria-label="نمای کلی یادگیری">
             <div className="section-heading"><div><p className="eyebrow">LEARNING OVERVIEW</p><h2>فضای یادگیری تو</h2></div><span className="section-caption">اطلاعات حساب پس از اتصال پروفایل نمایش داده می‌شود</span></div>
