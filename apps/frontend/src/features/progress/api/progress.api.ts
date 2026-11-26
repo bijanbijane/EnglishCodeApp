@@ -25,8 +25,9 @@ function parseProgress(value: unknown): LessonProgress {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("ساختار یکی از سوابق پیشرفت معتبر نیست.");
   const row = value as Record<string, unknown>;
   if (typeof row.lesson_id !== "string" || typeof row.best_score !== "number" ||
-      typeof row.completed_count !== "number" ||
-      !(row.last_completed_at === null || typeof row.last_completed_at === "string")) {
+      typeof row.completed_count !== "number" || !Number.isInteger(row.completed_count) || row.completed_count < 0 ||
+      !Number.isInteger(row.best_score) || row.best_score < 0 || row.best_score > 100 ||
+      !(row.last_completed_at === null || (typeof row.last_completed_at === "string" && Number.isFinite(Date.parse(row.last_completed_at))))) {
     throw new Error("اطلاعات یکی از سوابق پیشرفت ناقص است.");
   }
   return {
