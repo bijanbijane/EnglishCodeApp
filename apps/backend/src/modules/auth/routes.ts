@@ -5,6 +5,7 @@ import { requireSession } from "./middleware";
 import { sessionRepository } from "./repository";
 import { createSessionToken, hashSessionToken } from "./session";
 import { validateTelegramInitData, TelegramInitDataError } from "./telegram";
+import { consumeTelegramLoginLimit, hashRateLimitKey, TELEGRAM_LOGIN_LIMIT_PER_MINUTE } from "./rate-limit";
 
 const auth = new Hono<AppEnv>();
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -46,6 +47,14 @@ auth.post("/auth/telegram", async (c) => {
   const rawBody = await c.req.text();
   if (rawBody.length > 20_000) {
     throw new AppError("VALIDATION_ERROR", "The request body is too large.", 400);
+  }
+
+  const clientIp = c.req.header("CF-Connecting-IP") ?? "local-unknown";
+  const rateLimitKey = await hashRateLimitKey(clientIp, c.env.TELEGRAM_BOT_TOKEN);
+  const requestCount = await consumeTelegramLoginLimit(c.env.DB, rateLimitKey);
+  if (requestCount > TELEGRAM_LOGIN_LIMIT_PER_MINUTE) {
+    c.header("Retry-After", "60");
+    throw new AppError("RATE_LIMITED", "Too many login attempts. Try again shortly.", 429);
   }
 
   let parsedBody: unknown;
