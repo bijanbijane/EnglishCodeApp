@@ -34,13 +34,16 @@ export async function verifyTelegramInitData(
   const now = options.nowSeconds ?? Math.floor(Date.now() / 1000);
   const maxAge = options.maxAgeSeconds ?? 3600;
   const futureSkew = options.futureSkewSeconds ?? 30;
-  if (!Number.isInteger(authDate) || authDate <= 0 || authDate > now + futureSkew || now - authDate > maxAge) {
+  if (!Number.isInteger(authDate) || authDate <= 0 || authDate > now + futureSkew || now - authDate >= maxAge) {
     throw new AppError("TELEGRAM_AUTH_EXPIRED", "Telegram authentication data has expired.", 401);
   }
 
   const checkString = entries.filter(([key]) => key !== "hash")
     .map(([key, value]) => `${key}=${value}`).join("\n");
-  const secret = await hmacSha256(new TextEncoder().encode("WebAppData"), options.botToken);
+
+  // Telegram Mini Apps: secret_key = HMAC_SHA256(key=bot_token, data="WebAppData").
+  // Then calculate HMAC_SHA256(key=secret_key, data=data_check_string).
+  const secret = await hmacSha256(new TextEncoder().encode(options.botToken), "WebAppData");
   const expectedHash = bytesToHex(await hmacSha256(secret, checkString));
   if (!constantTimeHexEqual(expectedHash, receivedHash.toLowerCase())) {
     throw new AppError("INVALID_TELEGRAM_SIGNATURE", "Telegram signature is invalid.", 401);
