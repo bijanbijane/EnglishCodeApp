@@ -54,7 +54,7 @@ The API must not return stack traces, SQL text, secrets, session tokens, or priv
 ## Content and assessment invariants
 
 - Only records with `status = 'published'` are returned by public catalog routes.
-- Public question DTOs select an explicit allowlist of columns and never select `answer_key`.
+- Public question DTOs select an explicit allowlist of columns and never select `answer_key` or pre-answer `explanation`.
 - User ownership is derived from the authenticated principal, never from request JSON.
 - Answers are unique per attempt/question. Repeating the same answer returns the stored result; a different second answer returns 409.
 - Answer writes require an in-progress attempt and the question must belong to that attempt's lesson.
