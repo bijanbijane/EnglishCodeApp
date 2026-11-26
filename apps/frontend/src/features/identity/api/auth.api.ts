@@ -14,6 +14,7 @@ export type SessionBootstrapResult =
   | { status: "browser-preview" }
   | { status: "missing-init-data" }
   | { status: "secure-storage-unavailable"; message: string }
+  | { status: "reopen-required"; message: string }
   | { status: "error"; message: string };
 
 let bootstrapPromise: Promise<SessionBootstrapResult> | null = null;
@@ -47,6 +48,9 @@ async function performBootstrap(): Promise<SessionBootstrapResult> {
     await saveSession({ token: response.token, expiresAt: response.expiresAt });
     return { status: "authenticated", displayName: response.user.displayName };
   } catch (error) {
+    if (error instanceof ApiError && error.code === "TELEGRAM_INIT_DATA_REPLAYED") {
+      return { status: "reopen-required", message: "اطلاعات ورود تلگرام قبلاً استفاده شده یا منقضی است؛ Mini App را ببند و دوباره از ربات باز کن." };
+    }
     return { status: "error", message: error instanceof Error ? error.message : "ورود به حساب انجام نشد." };
   }
 }
