@@ -15,11 +15,14 @@ const app = new Hono<AppEnv>();
 app.use("*", async (c, next) => {
   const requestId = crypto.randomUUID();
   c.set("requestId", requestId);
-  await next();
-  c.header("X-Request-Id", requestId);
-  c.header("X-Content-Type-Options", "nosniff");
-  c.header("Referrer-Policy", "no-referrer");
-  c.header("X-Frame-Options", "DENY");
+  try {
+    await next();
+  } finally {
+    c.header("X-Request-Id", requestId);
+    c.header("X-Content-Type-Options", "nosniff");
+    c.header("Referrer-Policy", "no-referrer");
+    c.header("X-Frame-Options", "DENY");
+  }
 });
 
 app.use("/api/v1/*", bodyLimit({
