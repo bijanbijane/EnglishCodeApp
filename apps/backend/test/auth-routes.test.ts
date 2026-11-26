@@ -45,6 +45,17 @@ describe("authenticated API routes", () => {
     expect(db.prepare).not.toHaveBeenCalled();
   });
 
+  it("keeps request correlation and security headers on authentication errors", async () => {
+    const db = makeDatabase();
+    const response = await app.request("/api/v1/me", {}, { DB: db } as never);
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("X-Request-Id")).toBeTruthy();
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(response.headers.get("Referrer-Policy")).toBe("no-referrer");
+    expect(response.headers.get("X-Frame-Options")).toBe("DENY");
+  });
+
   it("revokes the current session on logout", async () => {
     const token = await createSessionToken();
     const db = makeDatabase();
