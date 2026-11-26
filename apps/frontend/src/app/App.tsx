@@ -185,10 +185,10 @@ export default function App() {
       )}
 
       <nav className="mobile-nav" aria-label="ناوبری اصلی">
-        <button className={route.name === "home" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "home" })}><span aria-hidden="true">⌂</span><small>خانه</small></button>
-        <button className={route.name === "learn" || route.name === "lesson" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "learn" })}><span aria-hidden="true">▤</span><small>یادگیری</small></button>
-        <button className={route.name === "progress" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "progress" })}><span aria-hidden="true">◷</span><small>پیشرفت</small></button>
-        <button className={route.name === "profile" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} type="button" onClick={() => navigateTo({ name: "profile" })}><span aria-hidden="true">○</span><small>پروفایل</small></button>
+        <button className={route.name === "home" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} aria-current={route.name === "home" ? "page" : undefined} type="button" onClick={() => navigateTo({ name: "home" })}><span aria-hidden="true">⌂</span><small>خانه</small></button>
+        <button className={route.name === "learn" || route.name === "lesson" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} aria-current={route.name === "learn" || route.name === "lesson" ? "page" : undefined} type="button" onClick={() => navigateTo({ name: "learn" })}><span aria-hidden="true">▤</span><small>یادگیری</small></button>
+        <button className={route.name === "progress" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} aria-current={route.name === "progress" ? "page" : undefined} type="button" onClick={() => navigateTo({ name: "progress" })}><span aria-hidden="true">◷</span><small>پیشرفت</small></button>
+        <button className={route.name === "profile" ? "mobile-nav__item mobile-nav__item--active" : "mobile-nav__item"} aria-current={route.name === "profile" ? "page" : undefined} type="button" onClick={() => navigateTo({ name: "profile" })}><span aria-hidden="true">○</span><small>پروفایل</small></button>
       </nav>
     </main>
   );
