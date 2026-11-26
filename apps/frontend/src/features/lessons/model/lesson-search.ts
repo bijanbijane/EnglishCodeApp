@@ -1,4 +1,4 @@
-import type { Lesson } from "./lesson.types";
+import type { Lesson } from "./lesson.types.ts";
 
 export function filterLessons(lessons: readonly Lesson[], query: string): Lesson[] {
   const term = query.trim().toLocaleLowerCase();
