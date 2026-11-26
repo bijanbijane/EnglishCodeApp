@@ -77,6 +77,9 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 ### Phase A — Foundation and contract
 - [x] Split app composition from the root entry point.
 - [x] Add an application-level render error boundary with an accessible reload fallback.
+- [x] Validate question/option identity and reject duplicate or malformed learning payloads.
+- [x] Verify answer feedback matches the submitted question/answer and completion belongs to the active attempt.
+- [x] Add recoverable Telegram session bootstrap retry and ignore stale lesson/progress responses.
 - [x] Introduce shared API transport and feature-owned API adapters.
 - [x] Add product specification, architecture, backend contract and acceptance checklist.
 - [x] Add Telegram host adapter and official WebApp script.
@@ -129,3 +132,15 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 ## Release controls
 
 PR #4 remains open and Draft. Do not merge, deploy, run production migrations, mutate production data or enable paid resources until the backend dependency is resolved and all acceptance evidence is reviewed.
+
+
+## Runtime hardening continuation — 2026-11-26
+
+- Added contract tests for lesson question payloads and attempt start/answer/completion response validation.
+- The frontend `npm test` script now runs all `test/*.test.ts` suites with Node 22 TypeScript stripping.
+- Question payload parsing rejects empty prompts/options, fewer than two choices, unsafe positions, and duplicate question/option identifiers.
+- Answer feedback must match the submitted question and answer IDs; completion must belong to the active attempt and carry a safe integer score from 0 to 100.
+- Telegram session bootstrap can be retried after a recoverable error. Lesson catalog and progress requests ignore stale responses after a newer request or navigation.
+- Logout requires explicit server confirmation before local credentials are cleared (401 is treated as already revoked).
+
+These are source-level changes only; runtime verification remains pending until a successful CI or local test/build run is available.
