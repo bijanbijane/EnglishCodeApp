@@ -38,7 +38,7 @@ export const contentRepository = {
 
   async listPublishedLessons(db: D1Database, courseId: string): Promise<LessonRow[]> {
     const result = await db.prepare(
-      `SELECT l.id, l.course_id, l.slug, lv.title, l.description, lv.level,
+      `SELECT l.id, l.course_id, l.slug, lv.title, lv.description, lv.level,
               lv.position, lv.version, lv.id AS lesson_version_id
        FROM lessons l
        JOIN lesson_versions lv ON lv.id = l.current_published_version_id
