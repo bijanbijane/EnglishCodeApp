@@ -19,7 +19,7 @@ interface AttemptListRow {
 }
 
 function encodeAttemptCursor(startedAt: string, id: string): string {
-  return btoa(`${startedAt}\n${id}`).replace(/=/g, "").replace(/\\+/g, "-").replace(/\\//g, "_");
+  return btoa(`${startedAt}\n${id}`).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
 function decodeAttemptCursor(value: string): { startedAt: string; id: string } | null {
@@ -27,7 +27,7 @@ function decodeAttemptCursor(value: string): { startedAt: string; id: string } |
   try {
     const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
     const decoded = atob(base64 + "=".repeat((4 - base64.length % 4) % 4));
-    const [startedAt, id, extra] = decoded.split("\\n");
+    const [startedAt, id, extra] = decoded.split("\n");
     if (extra !== undefined || !startedAt || !id || !Number.isFinite(Date.parse(startedAt)) || id.length > 128) return null;
     return { startedAt, id };
   } catch {
