@@ -8,14 +8,21 @@ import { verifyTelegramInitData } from "./telegram";
 export const authRoutes = new Hono<AppBindings>();
 authRoutes.post("/telegram", async (c) => {
   if (!c.env.DB || !c.env.TELEGRAM_BOT_TOKEN) return c.json(errorBody("AUTH_NOT_CONFIGURED", "Telegram sign-in is not configured.", c.get("requestId")), 503);
-  let body: { initData?: unknown };
-  try { body = await c.req.json<{ initData?: unknown }>(); }
+  let parsed: unknown;
+  try { parsed = await c.req.json(); }
   catch { return c.json(errorBody("INVALID_REQUEST", "Request body must be valid JSON.", c.get("requestId")), 400); }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return c.json(errorBody("INVALID_REQUEST", "Request body must be a JSON object.", c.get("requestId")), 400);
+  }
+  const body = parsed as { initData?: unknown };
   if (typeof body.initData !== "string") return c.json(errorBody("INVALID_REQUEST", "initData is required.", c.get("requestId")), 400);
+
   try {
+    const configuredMaxAge = Number(c.env.TELEGRAM_AUTH_MAX_AGE_SECONDS ?? 3600);
+    const maxAgeSeconds = Number.isFinite(configuredMaxAge) ? Math.min(Math.max(configuredMaxAge, 60), 86400) : 3600;
     const verified = await verifyTelegramInitData(body.initData, {
       botToken: c.env.TELEGRAM_BOT_TOKEN,
-      maxAgeSeconds: Number(c.env.TELEGRAM_AUTH_MAX_AGE_SECONDS ?? 3600)
+      maxAgeSeconds
     });
     const displayName = [verified.user.firstName, verified.user.lastName].filter(Boolean).join(" ").slice(0, 257);
     await c.env.DB.prepare(`INSERT INTO users (id,telegram_user_id,display_name) VALUES (?,?,?)
@@ -24,7 +31,8 @@ authRoutes.post("/telegram", async (c) => {
     const user = await c.env.DB.prepare("SELECT id,display_name FROM users WHERE telegram_user_id=? LIMIT 1")
       .bind(verified.user.id).first<{ id: string; display_name: string | null }>();
     if (!user) throw new AppError("USER_CREATE_FAILED", "Could not create the user account.", 503);
-    const ttl = Math.min(Math.max(Number(c.env.SESSION_TTL_SECONDS ?? 604800), 300), 2592000);
+    const configuredTtl = Number(c.env.SESSION_TTL_SECONDS ?? 604800);
+    const ttl = Number.isFinite(configuredTtl) ? Math.min(Math.max(configuredTtl, 300), 2592000) : 604800;
     const session = await createSession(c.env.DB, user.id, ttl);
     return c.json({ data: { token: session.token, tokenType: "Bearer", expiresAt: session.expiresAt,
       user: { id: user.id, displayName: user.display_name } } });
