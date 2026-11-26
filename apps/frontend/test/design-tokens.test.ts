@@ -25,3 +25,19 @@ test("global stylesheet imports and consumes the token layer", () => {
   assert.ok(styles.includes("font-family: var(--ec-font-family-ui)"));
   assert.ok(styles.includes("outline: var(--ec-focus-width) solid var(--ec-color-focus)"));
 });
+
+test("screen styles consume the extended semantic palette instead of repeated literals", () => {
+  for (const token of [
+    "--ec-color-text-strong", "--ec-color-text-secondary", "--ec-color-text-tertiary",
+    "--ec-color-border-subtle", "--ec-color-brand-accent", "--ec-color-brand-accent-strong",
+    "--ec-color-brand-deep", "--ec-color-brand-mid", "--ec-color-brand-tint",
+    "--ec-color-brand-soft", "--ec-color-brand-hover-border", "--ec-color-brand-action",
+    "--ec-color-mint-accent", "--ec-color-success-accent", "--ec-color-surface-white",
+  ]) {
+    assert.ok(tokens.includes(token), `Missing ${token}`);
+    assert.ok(styles.includes(`var(${token})`), `Styles do not consume ${token}`);
+  }
+  for (const legacyColor of ["#26324b", "#65718a", "#7d89a2", "#e5eaf2", "#4b6df0", "#2846b5", "#172a61", "#3b55ad", "#e9eeff", "#edf1ff", "#d6def8", "#4564d5", "#a8e9d0", "#3eb78b", "#3659d9", "#8ba4ff"]) {
+    assert.ok(!styles.toLowerCase().includes(legacyColor), `Legacy color remains in screen stylesheet: ${legacyColor}`);
+  }
+});
