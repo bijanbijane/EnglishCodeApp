@@ -79,7 +79,7 @@ The current branch has not been runtime-verified. Typecheck, production build, b
 Run these from `apps/frontend`:
 
 - `npm run typecheck` — TypeScript project check.
-- `npm test` — dependency-free route, strict API-envelope, lesson-payload and attempt-response contract tests (Node.js 22 with TypeScript type stripping).
+- `npm test` — dependency-free route, strict API-envelope, lesson-payload, attempt-response, profile/progress DTO and lesson-search contract tests (Node.js 22 with TypeScript type stripping).
 - `npm run build` — production TypeScript and Vite build.
 
 The route tests cover hash serialization, direct links, encoded lesson IDs and invalid-route fallback. Passing source configuration does not mean these commands have been executed; consult CI evidence and the acceptance checklist.
