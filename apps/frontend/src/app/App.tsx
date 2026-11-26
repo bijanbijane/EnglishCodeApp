@@ -7,6 +7,7 @@ import { ProgressPanel } from "../features/progress/ui/ProgressPanel";
 import type { Lesson, LessonListState } from "../features/lessons/model/lesson.types";
 import { bindTelegramLayoutMetrics, getPlatformContext, initializeTelegramHost, setTelegramBackAction } from "../services/platform/telegram";
 import { bootstrapTelegramSession, signOut, type SessionBootstrapResult } from "../features/identity/api/auth.api";
+import { subscribeToSessionInvalidation } from "../services/auth/session";
 import { hashFromRoute, routeFromHash, type AppRoute } from "./navigation/routes";
 
 export default function App() {
@@ -84,6 +85,7 @@ export default function App() {
   }, []);
 
   useEffect(() => { void loadLessons(); }, [loadLessons]);
+  useEffect(() => subscribeToSessionInvalidation(() => setSessionState({ status: "missing-init-data" })), []);
 
   useEffect(() => {
     if (route.name === "home") return;
