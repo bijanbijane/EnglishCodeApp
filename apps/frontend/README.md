@@ -59,7 +59,7 @@ Every feature should include typed API contracts, loading/empty/error states, ac
 - Telegram host adapter isolates raw initData, host detection, SecureStorage, viewport/safe-area/theme metadata and BackButton lifecycle.
 - Profile screen exposes backend-verified display name, session status and server-backed logout.
 - Progress screen reads per-lesson best score, completion count and last completion date from the authenticated `/api/v1/me/progress` endpoint.
-- Hash navigation supports home, profile and direct lesson links, including browser back/forward and Telegram BackButton.
+- Hash navigation supports home, lesson, progress and profile routes, including direct lesson links, browser back/forward and Telegram BackButton.
 - Implementation sequence and platform boundary are documented in [frontend-implementation-plan.md](../../docs/architecture/frontend-implementation-plan.md) and [frontend-platform-adapter.md](../../docs/architecture/frontend-platform-adapter.md).
 
 The current branch has not been runtime-verified. Typecheck, production build, browser testing and Telegram-client testing remain outstanding. The authenticated lesson flow is source-implemented but has not yet been runtime-verified in Telegram.
