@@ -309,7 +309,7 @@ learning.get("/me/progress", requireSession, async (c) => {
      FROM user_progress p
      JOIN lessons l ON l.id = p.lesson_id
      WHERE p.user_id = ?
-     ORDER BY p.last_completed_at DESC`,
+     ORDER BY p.last_completed_at DESC, p.lesson_id ASC`,
   ).bind(c.get("userId")).all();
 
   return c.json({
