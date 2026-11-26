@@ -66,8 +66,8 @@ function getOptionIds(optionsJson: string): string[] {
 learning.post("/lessons/:lessonId/attempts", requireSession, async (c) => {
   const attemptId = crypto.randomUUID();
   const result = await c.env.DB.prepare(
-    `INSERT INTO lesson_attempts (id, user_id, lesson_id, status)
-     SELECT ?, ?, id, 'in_progress'
+    `INSERT INTO lesson_attempts (id, user_id, lesson_id, lesson_version, status)
+     SELECT ?, ?, id, version, 'in_progress'
      FROM lessons
      WHERE id = ? AND status = 'published'`,
   ).bind(attemptId, c.get("userId"), c.req.param("lessonId")).run();
