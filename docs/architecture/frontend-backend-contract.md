@@ -9,7 +9,7 @@ This document records what is present in source code. It is not a substitute for
 
 ## 1. Response envelope and errors
 
-Successful learning and authentication routes return a `{ data: ... }` envelope. The frontend `apiGet` helper unwraps this envelope.
+Successful learning and authentication routes return a `{ data: ... }` envelope. The frontend shared `apiGet` and `apiPost` helpers unwrap this envelope.
 
 Backend errors are produced through `errorBody(code, message, requestId)`; the current frontend transport reads `error.message` and otherwise falls back to a generic Persian message. Confirm the exact serialized error shape with an integration test before depending on additional fields.
 
@@ -35,7 +35,7 @@ Backend errors are produced through `errorBody(code, message, requestId)`; the c
 - The shared transport now supports an explicit bearer token option; only authenticated feature API calls pass it.
 - The lesson list UI has loading, error/retry and ready states; an empty list is rendered by the catalog component.
 
-## 4. Authentication integration blocker
+## 4. Authentication and session status
 
 The backend issues a bearer token in the JSON response from `POST /api/v1/auth/telegram`; protected learning routes require that token in the `Authorization` header. The frontend now implements the Telegram-specific session path:
 
@@ -47,7 +47,7 @@ The backend issues a bearer token in the JSON response from `POST /api/v1/auth/t
 
 The browser client remains public-preview-only. The inspected backend does not establish an HttpOnly cookie, so browser sign-in and persistent browser sessions are not enabled. Telegram clients without Bot API 9.0 SecureStorage support also remain preview-only; no insecure fallback is used.
 
-The lesson flow now calls the real attempt, answer and completion routes when a valid Telegram session exists. Server responses determine answer correctness, explanations and final score. This is source-implemented but still requires runtime integration testing; it is not yet verified in Telegram.
+The lesson flow now calls the real attempt, answer and completion routes when a valid Telegram session exists. Server responses determine answer correctness, explanations and final score. A 401 response clears the stored client session and asks the learner to reopen the Mini App. This is source-implemented but still requires runtime integration testing; it is not yet verified in Telegram.
 
 ## 5. Contract and quality gates still required
 
