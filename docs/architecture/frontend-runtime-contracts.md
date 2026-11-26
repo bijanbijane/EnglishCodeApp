@@ -14,7 +14,7 @@ The React root mounts one application composition. The composition layer owns:
 - coordinating Telegram BackButton behavior;
 - handling navigation away from an unfinished attempt.
 
-The composition layer must not own question grading, score calculation, progress aggregation, or raw Telegram storage operations.
+The composition layer must not own question grading, score calculation, progress aggregation, or raw Telegram storage operations. The root render is wrapped in an application error boundary; unexpected render failures show a recoverable fallback instead of a blank screen.
 
 ### Route contract
 
