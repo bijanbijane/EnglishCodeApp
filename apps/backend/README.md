@@ -24,7 +24,7 @@
 - `GET /api/v1/courses`
 - `GET /api/v1/courses/:courseId/lessons`
 - `GET /api/v1/lessons/:lessonId` (never selects or returns `answer_key`)
-- Initial D1 schema and synthetic local seed data
+- D1 schema with versioned lesson/question content and assessment policy, plus synthetic local seed data
 - Per-IP Telegram login rate limiting (30 requests/minute) with HMAC-derived pseudonymous keys
 - Bounded daily cleanup of expired Telegram replay fingerprints, stale sessions, and rate-limit buckets (Worker Cron)
 - Exact-origin CORS allowlist with no wildcard or credential support; CORS route tests
