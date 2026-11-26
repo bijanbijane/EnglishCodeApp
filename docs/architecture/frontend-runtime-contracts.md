@@ -14,7 +14,7 @@ The React root mounts one application composition. The composition layer owns:
 - coordinating Telegram BackButton behavior;
 - handling navigation away from an unfinished attempt.
 
-The composition layer must not own question grading, score calculation, progress aggregation, or raw Telegram storage operations. The root render is wrapped in an application error boundary; unexpected render failures show a recoverable fallback instead of a blank screen.
+App composition imports feature capabilities through their `index.ts` public surfaces; it must not reach into feature-private files. The composition layer must not own question grading, score calculation, progress aggregation, or raw Telegram storage operations. The root render is wrapped in an application error boundary; unexpected render failures show a recoverable fallback instead of a blank screen.
 
 ### Route contract
 
@@ -38,7 +38,7 @@ Expected module shape when a feature grows:
 - `api/`: endpoint-specific adapter and runtime response parsing;
 - `model/`: feature-owned DTOs and UI state unions;
 - `ui/`: presentational and feature composition components;
-- `index.ts`: optional public export surface once multiple consumers exist.
+- `index.ts`: the feature's public export surface for app composition and other approved consumers.
 
 Do not create empty directories, generic repositories, service locators or speculative abstractions. Keep a module local until at least two real consumers demonstrate the need to share it.
 
