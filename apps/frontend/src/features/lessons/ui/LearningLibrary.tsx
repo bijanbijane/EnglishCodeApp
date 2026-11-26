@@ -57,14 +57,14 @@ export function LearningLibrary({ state, onBack, onRetry, onSelect }: LearningLi
             </select>
           </label>
           <label className="catalog-search">
-          <span aria-hidden="true">⌕</span>
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="جست‌وجوی عنوان، سطح یا توضیح درس"
-            aria-label="جست‌وجوی درس‌ها"
-          />
+            <span aria-hidden="true">⌕</span>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="جست‌وجوی عنوان، سطح یا توضیح درس"
+              aria-label="جست‌وجوی درس‌ها"
+            />
           </label>
         </div>
         {state.status === "ready" && (
