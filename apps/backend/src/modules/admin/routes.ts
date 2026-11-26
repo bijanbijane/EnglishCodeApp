@@ -425,3 +425,47 @@ adminRoutes.get(
     } });
   }
 );
+
+adminRoutes.get(
+  "/audit/events",
+  requireSession,
+  requireRole("admin"),
+  async (c) => {
+    if (!c.env.DB) return c.json(errorBody("DATABASE_UNAVAILABLE", "Audit storage is unavailable.", c.get("requestId")), 503);
+    const limit = Number(c.req.query("limit") ?? 20);
+    const rawCursor = c.req.query("cursor");
+    const cursor = rawCursor ? decodeAdminPageCursor(rawCursor) : null;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50 ||
+        (rawCursor !== undefined && !cursor)) {
+      return c.json(errorBody("INVALID_AUDIT_QUERY", "limit or cursor is invalid.", c.get("requestId")), 400);
+    }
+
+    const rows = await c.env.DB.prepare(
+      "SELECT id,actor_user_id,action,resource_type,resource_id,request_id,metadata_json,created_at " +
+      "FROM admin_audit_events " +
+      "WHERE (? IS NULL OR (created_at<? OR (created_at=? AND id<?))) " +
+      "ORDER BY created_at DESC,id DESC LIMIT ?"
+    ).bind(
+      cursor?.timestamp ?? null,
+      cursor?.timestamp ?? null,
+      cursor?.timestamp ?? null,
+      cursor?.id ?? null,
+      limit + 1
+    ).all<{
+      id: string; actor_user_id: string; action: string; resource_type: string;
+      resource_id: string | null; request_id: string; metadata_json: string; created_at: string;
+    }>();
+
+    const items = rows.results ?? [];
+    const hasMore = items.length > limit;
+    const page = hasMore ? items.slice(0, limit) : items;
+    const last = page[page.length - 1];
+    return c.json({
+      data: page,
+      meta: {
+        nextCursor: hasMore && last ? encodeAdminPageCursor(last.created_at, last.id) : null
+      }
+    });
+  }
+);
+
