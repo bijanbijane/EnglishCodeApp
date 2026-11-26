@@ -47,7 +47,7 @@ app.onError((error, c) => {
     level: "error",
     requestId,
     cfRay: c.req.header("cf-ray") ?? null,
-    message: error.message
+    errorName: error.name
   }));
   return c.json(errorBody("INTERNAL_ERROR", "An unexpected error occurred.", requestId), 500);
 });
