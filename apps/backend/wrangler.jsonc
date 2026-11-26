@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "englishcode-backend",
+  "name": "englishcode-backend-dev",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-26",
   "workers_dev": false,
@@ -8,13 +8,15 @@
     "enabled": true
   },
   "triggers": {
-    "crons": ["17 3 * * *"]
+    "crons": [
+      "17 3 * * *"
+    ]
   },
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "englishcode-local",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_name": "englishcodeapp-dev",
+      "database_id": "0e36d435-fcfa-48a9-bc2c-8b14894a39f3",
       "migrations_dir": "../../database/migrations"
     }
   ]
