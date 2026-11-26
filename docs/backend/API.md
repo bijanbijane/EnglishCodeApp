@@ -61,7 +61,7 @@ The API must not return stack traces, SQL text, secrets, session tokens, or priv
 - Completion is a conditional state transition. Progress increment is conditional on the winning update in the same D1 batch; this requires a Local D1 concurrency test before production use.
 - Attempts pin the lesson version at creation. Published lesson content must remain immutable for that version.
 
-## Authentication invariants
+- `GET /attempts/:attemptId` returns only the authenticated owner's attempt and its immutable question snapshot; answer keys are never included.\n\n## Authentication invariants
 
 - The Telegram HMAC verifier is implemented and covered by a static test vector, but is not yet exposed as a login endpoint.
 - Opaque bearer token generation, SHA-256 token hashing, active-session lookup, revocation, middleware, `/auth/logout`, and `/me` are implemented.
