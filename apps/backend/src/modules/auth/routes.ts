@@ -6,8 +6,11 @@ import { createSession, revokeSession } from "./session";
 import { verifyTelegramInitData } from "./telegram";
 
 export const authRoutes = new Hono<AppBindings>();
+
 authRoutes.post("/telegram", async (c) => {
-  if (!c.env.DB || !c.env.TELEGRAM_BOT_TOKEN) return c.json(errorBody("AUTH_NOT_CONFIGURED", "Telegram sign-in is not configured.", c.get("requestId")), 503);
+  if (!c.env.DB || !c.env.TELEGRAM_BOT_TOKEN) {
+    return c.json(errorBody("AUTH_NOT_CONFIGURED", "Telegram sign-in is not configured.", c.get("requestId")), 503);
+  }
   let parsed: unknown;
   try { parsed = await c.req.json(); }
   catch { return c.json(errorBody("INVALID_REQUEST", "Request body must be valid JSON.", c.get("requestId")), 400); }
@@ -15,15 +18,34 @@ authRoutes.post("/telegram", async (c) => {
     return c.json(errorBody("INVALID_REQUEST", "Request body must be a JSON object.", c.get("requestId")), 400);
   }
   const body = parsed as { initData?: unknown };
-  if (typeof body.initData !== "string") return c.json(errorBody("INVALID_REQUEST", "initData is required.", c.get("requestId")), 400);
+  if (typeof body.initData !== "string" || body.initData.length === 0 || body.initData.length > 8192) {
+    return c.json(errorBody("INVALID_REQUEST", "initData is required and must be at most 8192 characters.", c.get("requestId")), 400);
+  }
 
   try {
-    const configuredMaxAge = Number(c.env.TELEGRAM_AUTH_MAX_AGE_SECONDS ?? 3600);
-    const maxAgeSeconds = Number.isFinite(configuredMaxAge) ? Math.min(Math.max(configuredMaxAge, 60), 86400) : 3600;
+    const maxAgeSeconds = Number(c.env.TELEGRAM_AUTH_MAX_AGE_SECONDS ?? 3600);
+    const ttlSeconds = Number(c.env.SESSION_TTL_SECONDS ?? 604800);
+    if (!Number.isInteger(maxAgeSeconds) || maxAgeSeconds < 60 || maxAgeSeconds > 86400 ||
+        !Number.isInteger(ttlSeconds) || ttlSeconds < 300 || ttlSeconds > 2592000) {
+      throw new AppError("AUTH_CONFIGURATION_INVALID", "Authentication lifetime settings are invalid.", 500);
+    }
+
     const verified = await verifyTelegramInitData(body.initData, {
       botToken: c.env.TELEGRAM_BOT_TOKEN,
       maxAgeSeconds
     });
+    const initDataHash = new URLSearchParams(body.initData).get("hash");
+    if (!initDataHash) throw new AppError("INVALID_TELEGRAM_INIT_DATA", "Telegram authentication data is invalid.", 401);
+
+    const now = Math.floor(Date.now() / 1000);
+    await c.env.DB.prepare("DELETE FROM telegram_auth_replays WHERE expires_at <= ?").bind(now).run();
+    const replay = await c.env.DB.prepare(
+      "INSERT OR IGNORE INTO telegram_auth_replays (init_data_hash,expires_at) VALUES (?,?)"
+    ).bind(initDataHash, verified.authDate + maxAgeSeconds).run();
+    if ((replay.meta?.changes ?? 0) !== 1) {
+      throw new AppError("TELEGRAM_INIT_DATA_REPLAYED", "This Telegram sign-in payload has already been used.", 409);
+    }
+
     const displayName = [verified.user.firstName, verified.user.lastName].filter(Boolean).join(" ").slice(0, 257);
     await c.env.DB.prepare(`INSERT INTO users (id,telegram_user_id,display_name) VALUES (?,?,?)
       ON CONFLICT(telegram_user_id) DO UPDATE SET display_name=excluded.display_name`)
@@ -31,16 +53,20 @@ authRoutes.post("/telegram", async (c) => {
     const user = await c.env.DB.prepare("SELECT id,display_name FROM users WHERE telegram_user_id=? LIMIT 1")
       .bind(verified.user.id).first<{ id: string; display_name: string | null }>();
     if (!user) throw new AppError("USER_CREATE_FAILED", "Could not create the user account.", 503);
-    const configuredTtl = Number(c.env.SESSION_TTL_SECONDS ?? 604800);
-    const ttl = Number.isFinite(configuredTtl) ? Math.min(Math.max(configuredTtl, 300), 2592000) : 604800;
-    const session = await createSession(c.env.DB, user.id, ttl);
-    return c.json({ data: { token: session.token, tokenType: "Bearer", expiresAt: session.expiresAt,
-      user: { id: user.id, displayName: user.display_name } } });
+
+    const session = await createSession(c.env.DB, user.id, ttlSeconds);
+    return c.json({ data: {
+      token: session.token,
+      tokenType: "Bearer",
+      expiresAt: session.expiresAt,
+      user: { id: user.id, displayName: user.display_name }
+    } });
   } catch (error) {
     if (error instanceof AppError) return c.json(errorBody(error.code, error.message, c.get("requestId")), error.status as 400);
     return c.json(errorBody("AUTH_FAILED", "Telegram sign-in could not be completed.", c.get("requestId")), 503);
   }
 });
+
 authRoutes.post("/logout", requireAuth, async (c) => {
   const token = c.req.header("authorization")!.slice(7);
   try {
