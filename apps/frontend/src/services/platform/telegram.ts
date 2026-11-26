@@ -112,6 +112,11 @@ export function setTelegramBackAction(onBack: () => void): () => void {
 
 const SECURE_STORAGE_MIN_VERSION = "9.0";
 
+export function isTelegramSecureStorageAvailable(): boolean {
+  const webApp = typeof window === "undefined" ? undefined : window.Telegram?.WebApp;
+  return Boolean(webApp?.SecureStorage && webApp.isVersionAtLeast?.(SECURE_STORAGE_MIN_VERSION));
+}
+
 function getSecureStorage(): TelegramSecureStorage {
   const webApp = typeof window === "undefined" ? undefined : window.Telegram?.WebApp;
   if (!webApp?.SecureStorage || !webApp.isVersionAtLeast?.(SECURE_STORAGE_MIN_VERSION)) {
