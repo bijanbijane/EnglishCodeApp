@@ -19,7 +19,7 @@ function makeDb(options: {
         if (sql.includes("FROM sessions")) {
           return { first: vi.fn().mockResolvedValue({ id: "session-1", user_id: "user-1" }) };
         }
-        if (sql.includes("FROM questions q")) {
+        if (sql.includes("FROM attempt_questions q")) {
           return { first: vi.fn().mockResolvedValue(question) };
         }
         if (sql.includes("FROM attempt_answers")) {
