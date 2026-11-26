@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Env } from "../src/env";
-import { app } from "../src/app";
+import app from "../src/app";
 import { decodeAdminPageCursor, encodeAdminPageCursor } from "../src/modules/admin/pagination";
 
 const bearer = "x".repeat(43);
