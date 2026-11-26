@@ -32,22 +32,22 @@ Backend errors are produced through `errorBody(code, message, requestId)`; the c
 - `GET /api/v1/lessons` is called by the lesson feature.
 - `apiGet` unwraps a top-level `data` property.
 - The shared transport currently sends `credentials: "same-origin"`.
-- The shared transport does not currently attach an `Authorization: Bearer ...` header.
+- The shared transport now supports an explicit bearer token option; only authenticated feature API calls pass it.
 - The lesson list UI has loading, error/retry and ready states; an empty list is rendered by the catalog component.
 
 ## 4. Authentication integration blocker
 
-The backend currently issues a bearer token in the JSON response from `POST /api/v1/auth/telegram`. Protected learning routes use bearer authentication. The frontend transport does not yet attach that token, and the inspected backend route does not establish an HttpOnly cookie.
+The backend issues a bearer token in the JSON response from `POST /api/v1/auth/telegram`; protected learning routes require that token in the `Authorization` header. The frontend now implements the Telegram-specific session path:
 
-Therefore:
+1. Detect Telegram SecureStorage support with `isVersionAtLeast("9.0")` and feature detection.
+2. Read an unexpired session from the Telegram SecureStorage key `englishcode.session.v1`.
+3. If no valid session exists and raw `initData` is present, call `POST /api/v1/auth/telegram` and store the returned token/expiry in SecureStorage.
+4. Attach the bearer token only to protected attempt, answer, complete and logout requests.
+5. Never read `initDataUnsafe`, and never persist the bearer token in browser localStorage/sessionStorage.
 
-1. Authenticated lesson attempts must not be presented as integrated or working yet.
-2. Telegram SecureStorage integration must be designed against the exact host capability and backend token contract.
-3. Browser authentication needs an explicit backend-supported secure session design. An HttpOnly cookie cannot be assumed to exist.
-4. Do not add token persistence to localStorage or invent a sessionStorage fallback.
-5. Do not implement a token adapter until the security/session design is reviewed and documented.
+The browser client remains public-preview-only. The inspected backend does not establish an HttpOnly cookie, so browser sign-in and persistent browser sessions are not enabled. Telegram clients without Bot API 9.0 SecureStorage support also remain preview-only; no insecure fallback is used.
 
-The current public lesson catalog can be integrated independently of authentication. Attempt creation, answer submission, completion and logout remain blocked on the session contract.
+The lesson flow now calls the real attempt, answer and completion routes when a valid Telegram session exists. Server responses determine answer correctness, explanations and final score. This is source-implemented but still requires runtime integration testing; it is not yet verified in Telegram.
 
 ## 5. Contract and quality gates still required
 
