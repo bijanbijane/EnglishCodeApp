@@ -10,7 +10,7 @@ const invalidationListeners = new Set<() => void>();
 
 export function subscribeToSessionInvalidation(listener: () => void): () => void {
   invalidationListeners.add(listener);
-  return () => invalidationListeners.delete(listener);
+  return () => { invalidationListeners.delete(listener); };
 }
 
 function isValidSession(value: unknown): value is AuthSession {
