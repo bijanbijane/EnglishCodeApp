@@ -27,7 +27,7 @@
 - D1 schema with versioned lesson/question content and assessment policy, plus synthetic local seed data
 - Per-IP Telegram login rate limiting (30 requests/minute) with HMAC-derived pseudonymous keys
 - Bounded daily cleanup of expired Telegram replay fingerprints, stale sessions, and rate-limit buckets (Worker Cron)
-- Exact-origin CORS allowlist with no wildcard or credential support; CORS route tests
+- Exact-origin CORS allowlist with no wildcard or credential support; CORS route tests\n- D1-backed admin RBAC, content draft/review/publish workflow, append-only audit events and paginated admin audit feed
 - Backend typecheck/test scripts and a dedicated GitHub Actions workflow
 
 ## Local setup
@@ -58,7 +58,7 @@ See [API contract](../../docs/backend/API.md), [architecture](../../docs/backend
 
 ## Not implemented yet
 
-D1 integration/concurrency verification for Telegram replay/session issuance and learning writes, setting the exact production `ALLOWED_ORIGINS` values, content authoring, admin RBAC, R2, Queues, AI adapters, retention/export/delete, and operational observability.
+D1 integration/concurrency verification for Telegram replay/session issuance and learning writes, setting the exact production `ALLOWED_ORIGINS` values, owner-controlled role bootstrap, R2, Queues, AI adapters, retention/export/delete, and operational observability.
 
 These are explicit follow-up gates, not implied by the current scaffold.
 
