@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS user_vocabulary (
   lapses INTEGER NOT NULL DEFAULT 0 CHECK (lapses >= 0),
   last_reviewed_at TEXT,
   scheduler_version INTEGER NOT NULL DEFAULT 1,
+  revision INTEGER NOT NULL DEFAULT 0 CHECK (revision >= 0),
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY(user_id,item_id)
