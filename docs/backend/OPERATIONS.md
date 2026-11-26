@@ -70,3 +70,11 @@ Before beta:
 - Staging smoke test and rollback procedure are documented.
 
 Production deployment and production migration require separate explicit owner approval.
+
+
+## Scheduled authentication-state cleanup
+
+- A daily Worker Cron is configured for 03:17 UTC.
+- Each execution deletes at most 500 expired Telegram replay fingerprints, 500 rate-limit buckets older than 48 hours, and 500 stale sessions.
+- Expired unrevoked sessions are retained for at least seven days after expiry; revoked sessions are retained for at least 30 days after revocation.
+- Cleanup is code/configuration only until a Worker is deployed. No production schedule is active.
