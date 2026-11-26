@@ -36,6 +36,15 @@ CREATE INDEX IF NOT EXISTS idx_content_review_events_request_time
 
 CREATE TRIGGER IF NOT EXISTS trg_content_review_events_no_update
 BEFORE UPDATE ON content_review_events
+WHEN NOT (
+  OLD.actor_user_id IS NOT NULL
+  AND NEW.actor_user_id IS NULL
+  AND NEW.id=OLD.id
+  AND NEW.request_id=OLD.request_id
+  AND NEW.event_type=OLD.event_type
+  AND NEW.reason_code IS OLD.reason_code
+  AND NEW.occurred_at=OLD.occurred_at
+)
 BEGIN
   SELECT RAISE(ABORT,'content review events are immutable');
 END;
