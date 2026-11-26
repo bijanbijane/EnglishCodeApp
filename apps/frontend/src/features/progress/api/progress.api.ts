@@ -8,8 +8,6 @@ export type LessonProgress = {
   last_completed_at: string | null;
 };
 
-export type LearnerProfile = { id: string; displayName: string | null };
-
 async function authenticatedGet<T>(path: string): Promise<T> {
   const accessToken = await getSessionToken();
   try {
@@ -27,6 +25,3 @@ export function getMyProgress(): Promise<LessonProgress[]> {
   return authenticatedGet<LessonProgress[]>("/api/v1/me/progress");
 }
 
-export function getMyProfile(): Promise<LearnerProfile> {
-  return authenticatedGet<LearnerProfile>("/api/v1/me");
-}
