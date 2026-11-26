@@ -13,8 +13,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: apps/backend/package.json
       - name: Install backend dependencies
         run: npm install
         working-directory: apps/backend
@@ -32,8 +30,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: apps/frontend/package.json
       - name: Install frontend dependencies
         run: npm install
         working-directory: apps/frontend
