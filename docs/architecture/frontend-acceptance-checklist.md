@@ -125,3 +125,8 @@ The shared focus-visible treatment now covers native form controls as well as bu
 ## Semantic palette migration continuation — 2026-11-26
 
 The current shared stylesheet now consumes semantic tokens for the most repeated text, brand, surface, border, success and focus colors. Translucent brand/focus treatments have dedicated tokens to preserve their original alpha values. A contract test was added for token presence and stylesheet usage. The migration remains partial: 99 raw color occurrences across 91 distinct values remain in the stylesheet, so the design-token acceptance item is still unchecked pending further migration and visual/contrast review. The latest edits have not yet been locally revalidated; hosted CI run #717 failed without retrievable job steps/logs.
+
+
+## Accessibility follow-through — 2026-11-26
+
+Small source-level corrections were made: progress bars announce the lesson title rather than an internal ID, progress/lesson loading states use polite live announcements, decorative spinners are hidden from assistive technology, and the catalog retry button has an explicit type. Static source-contract tests were added but remain unexecuted after the latest edits. These corrections do not satisfy the full accessibility acceptance criteria; keyboard, screen-reader, contrast, zoom/reflow and Telegram-device audits remain unchecked.
