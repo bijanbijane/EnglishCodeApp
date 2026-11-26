@@ -38,7 +38,7 @@ learningRoutes.get("/lessons/:lessonId/questions", async (c) => {
     } catch { options = []; }
     return { id: question.source_question_id, prompt: question.prompt, options, position: question.position };
   });
-  return c.json({ data: { lessonVersion: lesson.version, questions: data } });
+  return c.json({ data, meta: { lessonVersion: lesson.version } });
 });
 
 learningRoutes.post("/lessons/:lessonId/attempts", requireAuth, async (c) => {
