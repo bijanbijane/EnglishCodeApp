@@ -218,3 +218,13 @@ These are source-level changes only; runtime verification remains pending until 
 - Added a contract test that checks token definitions, actual stylesheet consumption and removal of the migrated repeated literals.
 - This is a staged migration, not completion: the current stylesheet still contains 99 raw color occurrences across 91 distinct values. Remaining one-off values require role-by-role consolidation and visual/contrast review; the design-token acceptance item remains unchecked.
 - Latest source changes have not yet been re-run through local typecheck/tests/build. CI run [#717](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45840537070) failed both jobs; GitHub returned no step summaries or downloadable logs, so the cause remains unknown.
+
+
+## Accessibility follow-through — 2026-11-26
+
+- Progress-bar accessible names now use the learner-facing lesson title instead of the internal lesson ID.
+- Progress and lesson-question loading states announce changes through a polite live region; decorative loading indicators are hidden from assistive technology.
+- The lesson-catalog retry control now declares `type="button"` explicitly.
+- Added source-contract tests for these accessible names, loading announcements and retry semantics. These tests are committed but have not yet been executed after the latest edits.
+- This does not close the full accessibility gate: keyboard-only walkthrough, screen-reader behavior, contrast, 200% zoom/reflow and Telegram-device testing remain open.
+- Latest hosted CI run [#739](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45841109336) failed both jobs with no step summaries or downloadable logs.
