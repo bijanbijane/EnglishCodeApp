@@ -37,9 +37,7 @@ export async function submitLessonAnswer(attemptId: string, questionId: string, 
     const result = parseAnswerSubmissionResult(await apiPost<unknown>(
       "/api/v1/attempts/" + encodeURIComponent(attemptId) + "/answers", { questionId, answerId }, { accessToken },
     ));
-    if (result.questionId !== questionId || result.answerId !== answerId) {
-      throw new Error("بازخورد سرور با پرسش و گزینهٔ ارسال‌شده مطابقت ندارد.");
-    }
+    assertAnswerMatchesRequest(result, questionId, answerId);
     return result;
   });
 }
