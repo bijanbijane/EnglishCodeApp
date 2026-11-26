@@ -29,6 +29,7 @@ describe("bounded authentication-state cleanup", () => {
     expect(prepared[1].sql).toContain("LIMIT 500");
     expect(prepared[1].sql).toContain("auth_rate_limits");
     expect(prepared[2].sql).toContain("LIMIT 500");
+    expect(prepared[2].sql).toContain("INDEXED BY idx_sessions_expires_at");
     expect(prepared[2].sql).toContain("expires_at < ?");
     expect(prepared[2].sql).toContain("revoked_at IS NULL");
     expect(prepared[2].sql).not.toContain(" OR ");
