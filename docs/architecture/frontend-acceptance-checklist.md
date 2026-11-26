@@ -23,7 +23,7 @@ This checklist operationalizes `frontend-product-spec.md`. Check an item only wh
 ## C. UI states
 - [ ] Loading, loaded, empty, error and retry states.
 - [ ] Session expired/unauthorized state.
-- [ ] Submitting state prevents duplicate actions.
+- [x] Submitting state prevents duplicate actions.
 - [ ] Recoverable errors preserve safe user input.
 - [ ] Network failure and stale data behavior are defined.
 - [ ] Feedback explains errors and provides a next action.
@@ -105,3 +105,8 @@ The source now separates the Home dashboard from the dedicated `#/learn` library
 The profile screen now offers a retry action after a recoverable `GET /api/v1/me` failure without clearing the authenticated session. Local validation on 2026-11-26 passed: clean `npm ci`, frontend typecheck, 39/39 frontend tests, Vite production build and `git diff --check`. Backend workspace typecheck/tests and hosted CI remain separate open gates; Telegram-device and E2E checks have not been run.
 
 Practice and Review remain intentionally absent from active navigation until the frontend's backend base exposes the required server-owned contracts. The five-destination navigation acceptance item above remains unchecked. Local frontend unit tests, typecheck and production build are now checked based on 2026-11-26 execution evidence. Component/integration/E2E tests, hosted CI, accessibility audits and Telegram-device checks remain unchecked.
+
+
+## Duplicate-action safeguard — 2026-11-26
+
+The lesson UI now uses single-flight guards for answer submission, attempt creation and completion. Local tests verify that concurrent invocations do not start a second action and that a failed action releases the guard for retry. Backend idempotency and end-to-end verification are still required.

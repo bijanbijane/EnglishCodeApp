@@ -105,6 +105,7 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 - [x] Protected attempt creation, answer submission and completion.
 - [x] Server-confirmed correctness, explanation and score.
 - [x] Warn before abandoning an active attempt.
+- [x] Prevent overlapping answer, attempt-start and completion actions in the mounted UI with tested single-flight guards; server-side idempotency remains an integration requirement.
 - [ ] Verify duplicate submission and completion behavior against integration tests.
 - [ ] Add server-backed attempt resume/recovery before presenting lesson continuation as complete.
 
@@ -136,8 +137,8 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 
 - `npm ci --no-audit --no-fund`: successful from the root workspace lockfile; npm reported that install scripts for `esbuild` and `fsevents` were not approved in this local npm environment. The frontend build nevertheless completed successfully.
 - `npm run typecheck --workspace @englishcode/frontend`: passed.
-- `npm test --workspace @englishcode/frontend`: **39/39 tests passed**, including API envelope, profile/progress DTO, lesson/attempt contract, lesson search and route suites.
-- `npm run build --workspace @englishcode/frontend`: passed; Vite emitted 266.85 KB JavaScript (80.89 KB gzip) and 19.65 KB CSS (4.71 KB gzip).
+- `npm test --workspace @englishcode/frontend`: **41/41 tests passed**, including API envelope, profile/progress DTO, lesson/attempt contract, lesson search and route suites.
+- `npm run build --workspace @englishcode/frontend`: passed; Vite emitted 267.10 KB JavaScript (80.97 KB gzip) and 19.65 KB CSS (4.71 KB gzip) on the latest build.
 - `git diff --check`: passed.
 - Full-workspace typecheck remains blocked by the backend base currently used by this PR: missing Node `process` types and a WebCrypto `BufferSource` typing mismatch. Backend tests on that base also have 2 failures: the no-D1 response returns 500 instead of 503, and the Telegram login fixture returns 401 instead of 200. These are backend dependency failures, not frontend failures; do not silently patch backend code from this frontend task.
 - Hosted CI is still failing on the backend job; the frontend must be rechecked on the latest pushed head. No successful Telegram-device, browser E2E, or full learning-journey integration run is claimed.
@@ -146,8 +147,8 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 ## Progress accounting — 2026-11-26
 
 - Architecture design: **100% documented**; module boundaries, route/state ownership, platform adapter, API/security contracts and acceptance criteria are recorded.
-- Implementation-plan checklist: **31/47 items (66.0%) checked**. This is checklist coverage, not release readiness or a production-completion percentage.
-- Frontend local gates: clean `npm ci`, typecheck, **39/39 tests**, production build and `git diff --check` passed.
+- Implementation-plan checklist: **32/48 items (66.7%) checked**. This is checklist coverage, not release readiness or a production-completion percentage.
+- Frontend local gates: clean `npm ci`, typecheck, **41/41 tests**, production build and `git diff --check` passed.
 - Remaining release gates: backend base typecheck/tests, hosted CI, component/integration/E2E coverage, Telegram iOS/Android verification, accessibility and performance audits.
 
 ## Release controls
@@ -185,3 +186,10 @@ These are source-level changes only; runtime verification remains pending until 
 
 
 - The latest inspected CI run is [#657](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/45814430122) on head `e7ca0a40c47c296bbf11c4e57c4c75e8c4039e15`; both frontend and backend jobs failed. GitHub exposes empty step arrays and no logs URL, so no typecheck/test/build output or failure cause can be determined. This was also the branch head at the latest inspection. No full local install, typecheck, repository test run or production build has been executed.
+
+
+## Duplicate-action protection — 2026-11-26
+
+- Added a shared single-flight guard and applied it to answer submission, attempt creation and lesson completion. Rapid repeated activations from one mounted UI owner no longer start overlapping requests.
+- Added two deterministic Node tests covering concurrent invocation suppression and lock release after a failed request.
+- This is a client-side interaction safeguard only. It does not replace backend idempotency, persisted attempt recovery or integration tests; those acceptance items remain open.

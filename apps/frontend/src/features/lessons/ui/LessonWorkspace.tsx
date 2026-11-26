@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createSingleFlightGuard } from "../../../shared/async/single-flight";
 import { getLessonQuestions } from "../api/questions.api";
 import { startLessonAttempt, submitLessonAnswer, completeLessonAttempt } from "../api/attempts.api";
 import type { Lesson } from "../model/lesson.types";
@@ -28,24 +29,27 @@ function QuestionCard({ question, index, attemptId, onSubmitted }: {
   const [previouslyRecorded, setPreviouslyRecorded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const submitGuard = useRef(createSingleFlightGuard());
   const options = Array.isArray(question.options) ? question.options : [];
 
   async function submit() {
-    if (!attemptId || !selected || submitting || result) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      const response = await submitLessonAnswer(attemptId, question.id, selected);
-      const answerWasAlreadyRecorded = response.answerId !== selected;
-      setPreviouslyRecorded(answerWasAlreadyRecorded);
-      if (answerWasAlreadyRecorded) setSelected(response.answerId);
-      setResult(response);
-      onSubmitted(question.id);
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "ثبت پاسخ انجام نشد.");
-    } finally {
-      setSubmitting(false);
-    }
+    if (!attemptId || !selected || result) return;
+    await submitGuard.current.run(async () => {
+      setSubmitting(true);
+      setError(null);
+      try {
+        const response = await submitLessonAnswer(attemptId, question.id, selected);
+        const answerWasAlreadyRecorded = response.answerId !== selected;
+        setPreviouslyRecorded(answerWasAlreadyRecorded);
+        if (answerWasAlreadyRecorded) setSelected(response.answerId);
+        setResult(response);
+        onSubmitted(question.id);
+      } catch (submitError) {
+        setError(submitError instanceof Error ? submitError.message : "ثبت پاسخ انجام نشد.");
+      } finally {
+        setSubmitting(false);
+      }
+    });
   }
 
   return (
@@ -100,6 +104,8 @@ export function LessonWorkspace({ lesson, onBack, canStartAttempt, sessionMessag
   const [answeredIds, setAnsweredIds] = useState<string[]>([]);
   const [completing, setCompleting] = useState(false);
   const [completion, setCompletion] = useState<LessonCompletionResult | null>(null);
+  const startGuard = useRef(createSingleFlightGuard());
+  const completionGuard = useRef(createSingleFlightGuard());
 
   useEffect(() => {
     let active = true;
@@ -123,33 +129,37 @@ export function LessonWorkspace({ lesson, onBack, canStartAttempt, sessionMessag
   }, [attemptId, completion]);
 
   async function beginAttempt() {
-    if (starting || attemptId) return;
-    setStarting(true);
-    setStartError(null);
-    try {
-      const attempt = await startLessonAttempt(lesson.id);
-      setAttemptId(attempt.attemptId);
-      onAttemptActiveChange(true);
-    } catch (error) {
-      setStartError(error instanceof Error ? error.message : "شروع تمرین انجام نشد.");
-    } finally {
-      setStarting(false);
-    }
+    if (attemptId) return;
+    await startGuard.current.run(async () => {
+      setStarting(true);
+      setStartError(null);
+      try {
+        const attempt = await startLessonAttempt(lesson.id);
+        setAttemptId(attempt.attemptId);
+        onAttemptActiveChange(true);
+      } catch (error) {
+        setStartError(error instanceof Error ? error.message : "شروع تمرین انجام نشد.");
+      } finally {
+        setStarting(false);
+      }
+    });
   }
 
   async function finishAttempt() {
-    if (!attemptId || completing || completion || state.status !== "ready") return;
-    setCompleting(true);
-    setStartError(null);
-    try {
-      const result = await completeLessonAttempt(attemptId);
-      setCompletion(result);
-      onAttemptActiveChange(false);
-    } catch (error) {
-      setStartError(error instanceof Error ? error.message : "تکمیل درس انجام نشد.");
-    } finally {
-      setCompleting(false);
-    }
+    if (!attemptId || completion || state.status !== "ready") return;
+    await completionGuard.current.run(async () => {
+      setCompleting(true);
+      setStartError(null);
+      try {
+        const result = await completeLessonAttempt(attemptId);
+        setCompletion(result);
+        onAttemptActiveChange(false);
+      } catch (error) {
+        setStartError(error instanceof Error ? error.message : "تکمیل درس انجام نشد.");
+      } finally {
+        setCompleting(false);
+      }
+    });
   }
 
   const questions = state.status === "ready" ? state.questions : [];
