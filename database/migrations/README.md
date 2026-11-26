@@ -12,6 +12,7 @@
 | 0006 | 0006_versioned_learning_content.sql | snapshot نسخهٔ درس/سؤال، policy نمره‌دهی و اتصال Attempt به نسخهٔ ثابت |
 | 0007 | 0007_admin_rbac_audit.sql | نقش‌های کاربری و audit log تغییرناپذیر |
 | 0008 | 0008_immutable_results_progress_events.sql | نتیجهٔ تغییرناپذیر آزمون، رخداد پیشرفت append-only و بازسازی projection |
+| 0009 | 0009_content_review_workflow.sql | مالک draft، درخواست review، رویدادهای review و کنترل گردش انتشار محتوا |
 
 ## Migration history note
 
@@ -48,6 +49,14 @@ Migration 0002 خودش telegram_auth_replays و index انقضا را ایجا�
 - New completion writes result, progress event and the read-optimized projection in one D1 batch.
 - modules/progress/rebuild.ts can rebuild one user's projection atomically from immutable events.
 - Physical account deletion requires a deliberate tombstone/pseudonymization and retention design; do not bypass RESTRICT/append-only controls casually.
+
+## 0009 — Content author/review/publish workflow
+- Adds `created_by_user_id` to lesson versions.
+- `content_review_requests` stores one review lifecycle per immutable version; a rejected version is replaced by a new draft.
+- `content_review_events` is append-only and records submit/approve/reject/publish transitions.
+- Self-review is blocked both in the API and by a database trigger.
+- Publishing is admin-only and updates the lesson pointer only after reviewer approval.
+- Draft creation, reviewer decisions and publication include their admin audit insert in the same D1 batch.
 
 ## Execution policy
 - ابتدا تمام migrationها را روی Local D1 خالی اجرا کنید.

@@ -20,7 +20,7 @@ Verified Telegram login ensures a provider-neutral identity row (provider=telegr
 - POST /attempts/:attemptId/answers — body { "questionId": "...", "answerId": "..." }. Server grades against the question version pinned to the attempt. Same answer retry returns stored result; a different second answer returns 409.
 - POST /attempts/:attemptId/complete — computes weighted percentage against the pinned question version, writes one immutable result and one append-only progress event, then updates the rebuildable progress projection in the same D1 batch.
 
-Migration 0006 backfills version 1 from existing lessons/questions and installs immutability triggers for published content. Migration 0008 backfills immutable result facts and progress events for existing completed attempts, rebuilds user_progress from those facts, and blocks UPDATE/DELETE of result/event rows. There is not yet a public authoring/review/publish API; new versions must not be inserted into a published version.
+Migration 0006 backfills version 1 from existing lessons/questions and installs immutability triggers for published content. Migration 0008 backfills immutable result facts and progress events for existing completed attempts, rebuilds user_progress from those facts, and blocks UPDATE/DELETE of result/event rows. Migration 0009 adds the protected draft/review/publish workflow, records authorship and review events, and blocks self-review; new versions must not be inserted into a published version.
 
 ## Vocabulary and spaced repetition
 - GET /me/vocabulary?limit=50 — current user's vocabulary state; limit 1..100.
@@ -29,6 +29,20 @@ Migration 0006 backfills version 1 from existing lessons/questions and installs 
 - POST /me/reviews/:itemId — body { "rating": 0|1|2|3, "idempotencyKey": "..." }. Rating 0=again, 1=hard, 2=good, 3=easy. Scheduler v1 is deterministic and SM-2-inspired, not a scientific optimality claim. Optimistic revision prevents stale concurrent writes; a distinct concurrent review may return 409 REVIEW_CONFLICT.
 
 Vocabulary content is currently seeded/managed outside the public API.
+
+## Content administration and review
+
+All endpoints below are under `/api/v1/admin` and require an authenticated session plus the listed server-side role. No public role-grant endpoint exists.
+
+- POST /content/lessons/:lessonId/versions — `content_author`; creates a draft version with 1..100 questions. Each question accepts an existing `sourceQuestionId` from the same lesson or creates a new canonical question. The answer key is accepted only on this protected route.
+- GET /content/lessons/:lessonId/versions — `content_author`; lists the current author's versions for that lesson and their review status.
+- POST /content/lessons/:lessonId/versions/:versionId/submit-review — `content_author`; submits an authored draft for review.
+- GET /content/reviews?status=pending&limit=20 — `content_reviewer`; lists the review queue.
+- GET /content/reviews/:requestId — `content_reviewer`; reads review details, including private answer keys.
+- POST /content/reviews/:requestId/decision — `content_reviewer`; body `{ "decision": "approve"|"reject", "reasonCode": "..." }`. The author cannot review their own content.
+- POST /content/reviews/:requestId/publish — `admin`; publishes only a reviewer-approved version and updates the lesson's published pointer.
+
+Review decisions, publication, draft creation and audit writes are executed in transactional D1 batches. Review events and admin audit events are append-only. A rejected version is not resubmitted; create a new draft version. Published lesson/question versions remain immutable.
 
 ## Health
 - GET /health — process liveness; does not prove database connectivity.
@@ -39,8 +53,9 @@ Vocabulary content is currently seeded/managed outside the public API.
 - 201 new attempt or first vocabulary enrollment
 - 400 invalid body/query
 - 401 missing/invalid/expired session or Telegram data
+- 403 authenticated user lacks role or attempts self-review
 - 404 route/resource/not-enrolled item
-- 409 replay, answer after completion, conflicting answer, idempotency-key reuse or stale concurrent review conflict
+- 409 replay, answer after completion, conflicting answer, review/publish state conflict or idempotency-key reuse
 - 503 required storage/auth configuration unavailable
 
 ## Not implemented

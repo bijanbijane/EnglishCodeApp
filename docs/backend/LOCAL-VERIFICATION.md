@@ -11,7 +11,7 @@
 |---|---|
 | `npm ci --no-audit --no-fund` | Passed |
 | `npm run typecheck` | Passed; frontend and backend |
-| `npm test` | Passed; 8 files / 32 tests at time of run |
+| `npm test` | Passed; 11 files / 41 tests on latest run |
 | `npm run build:frontend` | Passed |
 | `git diff --check` | Passed |
 
@@ -21,8 +21,8 @@ An initial typecheck found missing Node type declarations and a WebCrypto `Buffe
 
 Using Wrangler with the explicit `--local` flag:
 - `npm run db:migrate:local`
-- Applied migrations 0001 through 0006 successfully.
-- D1 migration registry reported all six as applied.
+- Applied migrations 0001 through 0008 successfully.
+- D1 migration registry reported no pending migrations.
 
 ## Upgrade/backfill path
 
@@ -32,7 +32,7 @@ A second isolated Local D1 database was initialized with migration 0001 only. Sy
 - one question;
 - one completed attempt `legacy-attempt-1`.
 
-Migrations 0002 through 0006 then applied successfully. A join query confirmed:
+Migrations 0002 through 0008 then applied successfully. A join query confirmed:
 - provider mapping `telegram / legacy-telegram-1` belongs to the original internal user ID;
 - lesson content version 1 exists;
 - old attempt references `legacy-lesson-1:v1`;
@@ -51,7 +51,9 @@ Wrangler Worker ran at localhost with a dummy local bot token and Local D1 bindi
 | Weighted score with one correct of two questions | 50 |
 | Repeat completed attempt request | 200; progress completion count did not increment again |
 | Answer racing completion | one request won according to transaction order; completion returned 200 |
-| Answer after completion | 409 ATTEMPT_NOT_ACTIVE |
+| New answer after completion | 409 ATTEMPT_NOT_ACTIVE |
+| Retry of the same previously stored answer after completion | 200; stored answer returned idempotently |
+| Retry with a different answer after completion | 409 ANSWER_ALREADY_SUBMITTED |
 | Concurrent completion calls for same attempt | both callers received 200; progress incremented once |
 | Vocabulary enrollment | 200/201 depending on pre-existing enrollment |
 | Same review idempotency key and same payload | 200 replay of existing event |
@@ -70,7 +72,7 @@ The review race was serialized in this local runtime; this does not prove the st
 
 ## Next gates
 
-1. Commit the lockfile and CI `npm ci` workflow; obtain hosted Actions evidence.
+1. Obtain hosted GitHub Actions evidence; the lockfile and `npm ci` workflow are already committed on the feature branch.
 2. Add a deterministic test for stale review revision and same-key concurrent replay.
 3. Add cross-user ownership tests for every attempt endpoint.
 4. Implement content authoring/review/publish only after admin RBAC and append-only audit.
@@ -105,10 +107,51 @@ On a separate Local D1 Worker with a weighted two-question lesson:
 
 ### Current workspace gate
 - Typecheck: passed (frontend and backend).
-- Backend tests: 11 files / 40 tests passed.
+- Backend tests: 12 files / 45 tests passed.
 - Frontend production build: passed.
 - `git diff --check`: passed.
 - Remote D1, GitHub-hosted Actions, production deployment and production migrations were not run.
 
 ### Design constraint to resolve before account deletion
 The immutable result/event facts use restrictive user references. Account deletion must be designed as an explicit retention-aware tombstone/pseudonymization process, or an approved erasure strategy that preserves integrity. Do not add a physical user-delete endpoint until legal/product retention rules and the treatment of result facts are decided.
+
+## G2 content author/review/publish workflow — 2026-11-26
+
+### Implemented
+- Migration `0009_content_review_workflow.sql` adds lesson-version authorship, one review lifecycle per version and append-only review events.
+- `content_author` creates a draft version with validated question payloads, lists their own versions and submits a draft for review.
+- `content_reviewer` reads the review queue and private review detail (including answer keys), then approves/rejects with a constrained reason code.
+- `admin` alone publishes approved versions and updates the lesson's published-version pointer.
+- Authors cannot review their own versions (route guard and D1 trigger). Reviewers cannot publish. No public role-grant route exists.
+- Draft creation, submit, reviewer decision and publish each include the corresponding admin audit insert in the same D1 batch.
+
+### Actual Worker + Local D1 flow
+Using three synthetic Telegram users with separate author/reviewer/admin roles:
+1. Author created lesson version 2 with two questions — 201.
+2. Author attempted reviewer decision — 403.
+3. Author submitted their own draft — 201.
+4. Author attempted self-review — 403.
+5. Separate reviewer approved — 200.
+6. Reviewer attempted publish — 403.
+7. Admin published approved version — 200.
+8. Public lesson question endpoint switched to version 2 and returned updated prompt/options without answer_key.
+9. Reviewer queue/detail returned the review request and private answer key; author access to reviewer queue returned 403.
+10. Review history contained exactly submitted/approved/published events; audit log contained content.version.created, content.review.submitted, content.review.approved and content.version.published.
+11. Direct UPDATE of the published question version was rejected by the existing published-content immutability trigger.
+
+### Current workspace gate
+- Typecheck: passed (frontend + backend).
+- Backend tests: 12 files / 45 tests passed.
+- Frontend production build: passed.
+- `git diff --check`: passed.
+- Local D1 migrations 0001..0009 applied sequentially in the isolated test database.
+- No remote/production migration or deployment was run.
+
+### Remaining content administration work
+- Role bootstrap/revocation and owner recovery procedure; no role-grant API is exposed.
+- Admin audit query/export and retention controls.
+- Content authoring update/edit endpoints for existing rejected drafts; current policy is to create a new version after rejection.
+- Cross-role permission matrix and adversarial tests beyond the core happy path.
+
+### Additional answer retry semantics
+After a completed attempt, an identical retry for an answer already stored returns the original answer result (200); a conflicting answer for that question returns 409; a previously unanswered question returns 409. This was exercised on the actual Worker + Local D1 after the content v2 publication.

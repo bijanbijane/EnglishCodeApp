@@ -46,6 +46,13 @@ SQL migration files are the schema source of truth. This page describes the bran
 - Existing completed attempts are backfilled; user_progress is rebuilt from progress_events.
 - Completion writes the result, event and projection conditionally in a single D1 batch.
 
+### 0009
+- lesson_versions.created_by_user_id records the author of new draft versions.
+- content_review_requests records one review lifecycle per version.
+- content_review_events is append-only and records submission, decision and publication.
+- Self-review is blocked by route authorization and a D1 trigger.
+- Content authoring, reviewer decisions and admin publishing write audit facts transactionally.
+
 ## Integrity rules
 - A session belongs to one user; token hash unique.
 - An external provider subject maps to at most one internal user.

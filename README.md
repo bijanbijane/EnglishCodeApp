@@ -9,11 +9,11 @@
 - Database: Cloudflare D1 با migrationهای نسخه‌بندی‌شده.
 - Auth: Telegram Mini App HMAC، کنترل freshness و replay، نشست bearer opaque و نگاشت هویت مستقل از provider.
 - Learning: محتوای version-pinned، attempt، ثبت پاسخ، ارزیابی سمت سرور، نتیجهٔ immutable و progress eventهای قابل بازسازی.
-- Admin foundation: نقش‌های سمت سرور و writer ممیزی؛ هنوز هیچ endpoint مدیریتی یا راه اعطای نقش عمومی فعال نیست.
+- Admin: مسیرهای کنترل‌شدهٔ ساخت نسخهٔ draft، صف بازبینی، تصمیم reviewer و انتشار admin با audit اتمیک؛ مدیریت اعطای نقش و پنل کامل هنوز پیاده‌سازی نشده‌اند.
 - Vocabulary: ثبت واژگان و مرور فاصله‌دار نسخه‌دار با idempotency و revision.
 - CI: lockfile ریشه و `npm ci`؛ typecheck، تست بک‌اند و build فرانت‌اند.
 
-این شاخه هنوز production-ready نیست. پنل مدیریت/نویسندگی محتوا، چهار مهارت کامل، RBAC مدیریتی، محدودیت نرخ توزیع‌شده، media/R2، Queue/outbox، حذف/خروجی حساب و سیاست‌های نهایی retention هنوز تکمیل نشده‌اند.
+این شاخه هنوز production-ready نیست. پنل کامل مدیریت و bootstrap نقش‌ها، چهار مهارت کامل، محدودیت نرخ توزیع‌شده، media/R2، Queue/outbox، حذف/خروجی حساب و سیاست‌های نهایی retention هنوز تکمیل نشده‌اند.
 
 ## اجرای محلی
 
@@ -54,8 +54,7 @@ Local D1 state در `.wrangler/` ذخیره می‌شود و در Git ثبت ن�
 6. `0006_versioned_learning_content.sql`
 7. `0007_admin_rbac_audit.sql`
 8. `0008_immutable_results_progress_events.sql`
-7. `0007_admin_rbac_audit.sql`
-8. `0008_immutable_results_progress_events.sql`
+9. `0009_content_review_workflow.sql`
 
 Migration 0003 تکرار idempotent تعریف replay table/index موجود در 0002 است؛ تاریخچه حفظ شده و نباید migration اعمال‌شده بازنویسی شود.
 
@@ -64,13 +63,16 @@ Migration 0003 تکرار idempotent تعریف replay table/index موجود د
 در ۲۶ نوامبر ۲۰۲۶:
 - `npm ci` موفق.
 - TypeScript typecheck موفق برای frontend و backend.
-- ۴۰ تست بک‌اند موفق (۱۱ فایل تست).
+- ۴۵ تست بک‌اند موفق (۱۲ فایل تست).
 - frontend production build موفق.
-- هر ۸ migration روی یک Local D1 ایزوله و خالی اجرا شد.
+- هر ۹ migration روی یک Local D1 ایزوله و خالی اجرا شد.
+- گردش کامل ساخت draft، ارسال به reviewer، جلوگیری از self-review، تأیید reviewer و انتشار توسط admin روی Worker + Local D1 اجرا شد.
+- reviewer به صف و جزئیات دارای answer key دسترسی داشت؛ author با پاسخ ۴۰۳ از صف review منع شد.
+- زنجیرهٔ review سه رویداد داشت و چهار اقدام مدیریتی متناظر در audit ثبت شدند.
 - Migration 0008 روی Local D1 جداگانه پس از درج دادهٔ قدیمی synthetic اجرا شد؛ نتیجهٔ آزمون، رخداد پیشرفت و بازسازی شمارنده از دادهٔ قدیمی تأیید شد.
 - Worker + Local D1 نتیجهٔ وزنی ۶۷ از ۱۰۰، تکرار completion و ثبت دقیق یک result/event برای هر attempt را تأیید کرد.
 - trigger تغییر نتیجهٔ ثبت‌شده را با `SQLITE_CONSTRAINT_TRIGGER` رد کرد.
-- مسیر upgrade از schema شمارهٔ 0001 با دادهٔ قدیمی synthetic تا 0006 اجرا شد؛ identity، lesson version و attempt policy backfill تأیید شد.
+- مسیر upgrade از schema شمارهٔ 0001 با دادهٔ قدیمی synthetic تا 0008 اجرا شد؛ identity، lesson version، attempt result، progress event و projection بازسازی‌شده تأیید شدند. Migration 0009 نیز روی Local D1 fresh اعمال و گردش کامل review/publish روی Worker آزمایش شد.
 - ورود هم‌زمان با initData یکسان روی Worker + Local D1: یک پاسخ 200 و یک پاسخ 409.
 - رقابت پاسخ/تکمیل، جلوگیری از پاسخ پس از تکمیل، تکرار completion و شمارش progress روی Local D1 بررسی شد.
 - idempotency مرور واژگان و رد استفادهٔ مجدد از کلید با payload متفاوت روی Local D1 بررسی شد.

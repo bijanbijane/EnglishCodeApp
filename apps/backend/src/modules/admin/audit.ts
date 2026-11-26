@@ -1,4 +1,4 @@
-import type { D1Database } from "../../env";
+import type { D1Database, D1PreparedStatement } from "../../env";
 
 const SAFE_METADATA_KEYS = new Set(["version", "reasonCode", "status", "count", "source", "policyVersion"]);
 
@@ -11,11 +11,7 @@ export interface AdminAuditEventInput {
   metadata?: Record<string, unknown>;
 }
 
-/**
- * Persist a minimal audit fact. Free text, credentials, request bodies and user
- * submissions are intentionally not accepted in metadata.
- */
-export async function writeAdminAuditEvent(db: D1Database, input: AdminAuditEventInput): Promise<void> {
+function normalizeAuditInput(input: AdminAuditEventInput) {
   if (!input.actorUserId || input.action.length < 3 || input.action.length > 96 ||
       input.resourceType.length < 2 || input.resourceType.length > 64 ||
       (input.resourceId != null && input.resourceId.length > 128) ||
@@ -34,12 +30,28 @@ export async function writeAdminAuditEvent(db: D1Database, input: AdminAuditEven
   }
   const metadataJson = JSON.stringify(safeMetadata);
   if (metadataJson.length > 1024) throw new Error("Audit metadata is too large.");
+  return { metadataJson, id: crypto.randomUUID() };
+}
 
-  await db.prepare(
-    "INSERT INTO admin_audit_events (id,actor_user_id,action,resource_type,resource_id,request_id,metadata_json) " +
-    "VALUES (?,?,?,?,?,?,?)"
-  ).bind(
-    crypto.randomUUID(), input.actorUserId, input.action, input.resourceType,
+/** Build an audit INSERT so it can participate in the same D1 batch as the privileged mutation. */
+export function createAdminAuditStatement(
+  db: D1Database,
+  input: AdminAuditEventInput,
+  onlyIfPreviousStatementChanged = false
+): D1PreparedStatement {
+  const { metadataJson, id } = normalizeAuditInput(input);
+  const sql = onlyIfPreviousStatementChanged
+    ? "INSERT INTO admin_audit_events (id,actor_user_id,action,resource_type,resource_id,request_id,metadata_json) " +
+      "SELECT ?,?,?,?,?,?,? WHERE changes()=1"
+    : "INSERT INTO admin_audit_events (id,actor_user_id,action,resource_type,resource_id,request_id,metadata_json) " +
+      "VALUES (?,?,?,?,?,?,?)";
+  return db.prepare(sql).bind(
+    id, input.actorUserId, input.action, input.resourceType,
     input.resourceId ?? null, input.requestId, metadataJson
-  ).run();
+  );
+}
+
+/** Persist a minimal audit fact. Free text, credentials and user submissions are never accepted. */
+export async function writeAdminAuditEvent(db: D1Database, input: AdminAuditEventInput): Promise<void> {
+  await createAdminAuditStatement(db, input).run();
 }

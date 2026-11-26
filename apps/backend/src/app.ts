@@ -5,6 +5,7 @@ import { authRoutes } from "./modules/auth/routes";
 import { learningRoutes } from "./modules/learning/routes";
 import { userRoutes } from "./modules/users/routes";
 import { vocabularyRoutes } from "./modules/vocabulary/routes";
+import { adminRoutes } from "./modules/admin/routes";
 
 export const app = new Hono<AppBindings>();
 
@@ -38,6 +39,7 @@ app.route("/api/v1/auth", authRoutes);
 app.route("/api/v1", learningRoutes);
 app.route("/api/v1", userRoutes);
 app.route("/api/v1", vocabularyRoutes);
+app.route("/api/v1/admin", adminRoutes);
 
 app.notFound((c) => c.json(errorBody("NOT_FOUND", "Route not found.", c.get("requestId")), 404));
 app.onError((error, c) => {

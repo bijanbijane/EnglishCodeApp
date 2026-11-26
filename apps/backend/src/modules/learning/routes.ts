@@ -200,9 +200,6 @@ learningRoutes.post("/attempts/:attemptId/answers", requireAuth, async (c) => {
   ).bind(c.req.param("attemptId"), c.get("user").id)
     .first<{ id: string; lesson_id: string; lesson_version_id: string; status: string }>();
   if (!attempt) return c.json(errorBody("ATTEMPT_NOT_FOUND", "Lesson attempt was not found.", c.get("requestId")), 404);
-  if (attempt.status !== "started") {
-    return c.json(errorBody("ATTEMPT_NOT_ACTIVE", "This attempt is no longer accepting answers.", c.get("requestId")), 409);
-  }
 
   const question = await c.env.DB.prepare(
     "SELECT source_question_id,answer_key,explanation FROM question_versions " +
@@ -210,6 +207,27 @@ learningRoutes.post("/attempts/:attemptId/answers", requireAuth, async (c) => {
   ).bind(body.questionId, attempt.lesson_version_id)
     .first<{ source_question_id: string; answer_key: string; explanation: string }>();
   if (!question) return c.json(errorBody("QUESTION_NOT_FOUND", "Question was not found in this attempt's lesson version.", c.get("requestId")), 404);
+
+  // Preserve idempotent retries for an answer already committed before the
+  // attempt became terminal, but never accept a new or conflicting answer.
+  if (attempt.status !== "started") {
+    const saved = await c.env.DB.prepare(
+      "SELECT submitted_answer,is_correct FROM attempt_answers WHERE attempt_id=? AND question_id=? LIMIT 1"
+    ).bind(attempt.id, question.source_question_id)
+      .first<{ submitted_answer: string; is_correct: number }>();
+    if (!saved) {
+      return c.json(errorBody("ATTEMPT_NOT_ACTIVE", "This attempt is no longer accepting answers.", c.get("requestId")), 409);
+    }
+    if (saved.submitted_answer !== body.answerId) {
+      return c.json(errorBody("ANSWER_ALREADY_SUBMITTED", "A different answer has already been recorded for this question.", c.get("requestId")), 409);
+    }
+    return c.json({ data: {
+      questionId: question.source_question_id,
+      answerId: saved.submitted_answer,
+      isCorrect: Boolean(saved.is_correct),
+      explanation: question.explanation
+    } });
+  }
 
   // The SQL status predicate closes the race with attempt completion. A retry
   // with the same answer is idempotent; a conflicting second answer is 409.
