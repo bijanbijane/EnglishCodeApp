@@ -32,7 +32,7 @@
 
 ## B2 — Learning write path
 
-- [x] Implement authenticated attempt creation with server-derived owner and lesson-version pin.
+- [x] Implement authenticated attempt creation with server-derived owner, lesson-version pin, and immutable question snapshot.\n- [x] Implement owner-scoped retrieval of an attempt snapshot without answer-key disclosure.
 - [x] Implement answer validation, server-side grading, same-answer retry behavior, and conflict for a different second answer.
 - [x] Implement conditional completion and progress upsert in one D1 batch.
 - [x] Implement current-user progress read endpoint.
@@ -42,7 +42,7 @@
 
 ## B3 — Content lifecycle and administration
 
-- [ ] Version published content; published versions remain immutable for historical attempts.
+- [ ] Add an explicit publishing/versioning workflow for source content; existing attempts already preserve immutable question snapshots.
 - [ ] Add content authoring/publishing only when an operational editor workflow is defined.
 - [ ] Add staff roles/capabilities, controlled role bootstrap/revocation, and audit trail.
 - [ ] Add cursor pagination and bounded query contracts for growing collections.
@@ -66,7 +66,7 @@
 
 1. Remote desktop test environment is offline; no local shell execution was available during the current work session.
 2. GitHub returned no visible status checks for the current commits; the workflow is configured but not verified green.
-3. Login is intentionally incomplete until D1 replay/session atomicity is proven.
+3. Telegram login code is implemented, but D1 replay/session atomicity is not yet verified against Local D1.
 4. The initial migration history on main must be reconciled before any shared database is attached.
 
 
