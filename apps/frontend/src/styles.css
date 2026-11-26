@@ -22,7 +22,7 @@ html { min-width: 320px; scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, a { font: inherit; }
 a { color: inherit; }
-button:focus-visible, a:focus-visible { outline: var(--ec-focus-width) solid var(--ec-color-focus); outline-offset: var(--ec-focus-offset); }
+:where(button, a, input, select, textarea, [role="button"]):focus-visible { outline: var(--ec-focus-width) solid var(--ec-color-focus); outline-offset: var(--ec-focus-offset); }
 .app-shell { width: min(var(--ec-content-wide), 100%); margin: 0 auto; padding: 26px 30px 32px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; min-height: 46px; }
 .brand { display: inline-flex; align-items: center; gap: 11px; text-decoration: none; direction: ltr; }
@@ -283,3 +283,13 @@ button:focus-visible, a:focus-visible { outline: var(--ec-focus-width) solid var
   .learning-library__level-control { justify-content:space-between; }
   .learning-library__level-filter { flex:1; }
 }
+
+
+/* Keyboard focus and minimum touch-target baseline */
+:where(.button, .back-link, .answer-option, .mobile-nav__item, .avatar--button, .learning-library__level-filter, .catalog-search) {
+  min-block-size: var(--ec-touch-target-min);
+}
+.back-link { display: inline-flex; align-items: center; }
+.avatar--button { min-inline-size: var(--ec-touch-target-min); }
+.catalog-search input { block-size: var(--ec-touch-target-min); }
+.learning-library__level-filter { block-size: var(--ec-touch-target-min); }

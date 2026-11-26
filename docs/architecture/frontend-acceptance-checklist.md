@@ -115,3 +115,8 @@ The lesson UI now uses single-flight guards for answer submission, attempt creat
 ## Design-token foundation — 2026-11-26
 
 A centralized token layer now defines semantic color roles, typography, spacing, radii/elevations, breakpoint/content-width references, motion, focus and touch-target sizing. Global typography, canvas, focus treatment and content width consume these variables. The complete acceptance item remains unchecked because legacy one-off colors and spacing values still exist in feature styles and require staged migration plus visual/contrast review.
+
+
+## Keyboard and touch-target baseline — 2026-11-26
+
+The shared focus-visible treatment now covers native form controls as well as buttons and links. Primary buttons, navigation, answer options and search/filter controls consume the 44px minimum touch-target token. The acceptance items for keyboard operation and usable touch targets remain unchecked until a complete keyboard walkthrough and real Telegram-device hit-target verification are performed.

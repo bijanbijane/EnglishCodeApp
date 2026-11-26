@@ -130,6 +130,7 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 - [ ] Verify Telegram SecureStorage on supported iOS and Android clients.
 - [ ] Verify safe-area, viewport, orientation, theme and BackButton lifecycle.
 - [ ] Add browser authentication only after an approved backend HttpOnly cookie/session contract.
+- [x] Add shared keyboard focus-visible styling and the 44px minimum touch-target baseline to primary buttons, navigation, answers and search/filter controls; full device/accessibility audit remains open.
 - [ ] Add accessibility, RTL/LTR mixed-content and mobile viewport audits.
 - [ ] Add Playwright E2E for the critical learning journey.
 - [ ] Verify performance on representative low-end devices and constrained networks.
@@ -138,8 +139,8 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 
 - `npm ci --no-audit --no-fund`: successful from the root workspace lockfile; npm reported that install scripts for `esbuild` and `fsevents` were not approved in this local npm environment. The frontend build nevertheless completed successfully.
 - `npm run typecheck --workspace @englishcode/frontend`: passed.
-- `npm test --workspace @englishcode/frontend`: **41/41 tests passed**, including API envelope, profile/progress DTO, lesson/attempt contract, lesson search and route suites.
-- `npm run build --workspace @englishcode/frontend`: passed; Vite emitted 267.10 KB JavaScript (80.97 KB gzip) and 19.65 KB CSS (4.71 KB gzip) on the latest build.
+- `npm test --workspace @englishcode/frontend`: **47/47 tests passed** on the latest local run, including API envelope, profile/progress DTO, lesson/attempt contract, lesson search, route, design-token and accessibility-style suites.
+- `npm run build --workspace @englishcode/frontend`: passed; Vite emitted 267.10 KB JavaScript (80.97 KB gzip) and 22.22 KB CSS (5.41 KB gzip) on the latest build.
 - `git diff --check`: passed.
 - Full-workspace typecheck remains blocked by the backend base currently used by this PR: missing Node `process` types and a WebCrypto `BufferSource` typing mismatch. Backend tests on that base also have 2 failures: the no-D1 response returns 500 instead of 503, and the Telegram login fixture returns 401 instead of 200. These are backend dependency failures, not frontend failures; do not silently patch backend code from this frontend task.
 - Hosted CI is still failing on the backend job; the frontend must be rechecked on the latest pushed head. No successful Telegram-device, browser E2E, or full learning-journey integration run is claimed.
@@ -149,7 +150,7 @@ All successful endpoints use a `{ data: ... }` envelope. Feature API adapters va
 
 - Architecture design: **100% documented**; module boundaries, route/state ownership, platform adapter, API/security contracts and acceptance criteria are recorded.
 - Implementation-plan checklist: **32/48 items (66.7%) checked**. This is checklist coverage, not release readiness or a production-completion percentage.
-- Frontend local gates: clean `npm ci`, typecheck, **41/41 tests**, production build and `git diff --check` passed.
+- Frontend local gates: clean `npm ci` on the unchanged lockfile baseline, typecheck, **47/47 tests**, production build and `git diff --check` passed.
 - Remaining release gates: backend base typecheck/tests, hosted CI, component/integration/E2E coverage, Telegram iOS/Android verification, accessibility and performance audits.
 
 ## Release controls
@@ -201,3 +202,10 @@ These are source-level changes only; runtime verification remains pending until 
 - Added `src/styles/tokens.css` with semantic color roles, type scale/families/weights/line heights, a 4px spacing scale, radii, elevations, responsive reference values/content widths, motion timings/easing, focus treatment and minimum touch target size.
 - Imported the token layer before global styles and mapped the root palette, typography, focus ring and content width to semantic variables. Existing feature-specific literal colors/spacing have not all been migrated; acceptance for complete token centralization remains open until that migration and visual review are complete.
 - Added static contract tests for required token groups and stylesheet consumption.
+
+
+## Keyboard focus and touch-target baseline — 2026-11-26
+
+- Expanded the global `:focus-visible` ring to native buttons, links, inputs, selects, textareas and role=button controls, using the central focus tokens.
+- Applied the central 44px minimum block-size token to primary buttons, back navigation, answer options, mobile navigation, avatar button, search container and CEFR filter; search input, select and avatar button receive explicit dimension rules.
+- Added three static CSS contract tests. These verify token wiring, not actual device hit-testing or WCAG conformance. Full keyboard walkthrough, contrast review, touch interaction on Telegram clients and zoom/reflow audits remain open.
