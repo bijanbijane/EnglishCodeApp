@@ -6,6 +6,12 @@ const EXPIRY_SKEW_MS = 30_000;
 
 export type AuthSession = { token: string; expiresAt: string };
 let memorySession: AuthSession | null = null;
+const invalidationListeners = new Set<() => void>();
+
+export function subscribeToSessionInvalidation(listener: () => void): () => void {
+  invalidationListeners.add(listener);
+  return () => invalidationListeners.delete(listener);
+}
 
 function isValidSession(value: unknown): value is AuthSession {
   if (!value || typeof value !== "object") return false;
@@ -46,6 +52,7 @@ export async function saveSession(session: AuthSession): Promise<void> {
 
 export async function clearSession(): Promise<void> {
   memorySession = null;
+  invalidationListeners.forEach((listener) => listener());
   if (getPlatformContext().host === "telegram") {
     await removeTelegramSecureItem(SESSION_STORAGE_KEY);
   }
