@@ -8,6 +8,10 @@ export type AuthSession = { token: string; expiresAt: string };
 let memorySession: AuthSession | null = null;
 const invalidationListeners = new Set<() => void>();
 
+function notifySessionInvalidated(): void {
+  notifySessionInvalidated();
+}
+
 export function subscribeToSessionInvalidation(listener: () => void): () => void {
   invalidationListeners.add(listener);
   return () => { invalidationListeners.delete(listener); };
@@ -23,6 +27,7 @@ function isValidSession(value: unknown): value is AuthSession {
 
 export async function readSession(): Promise<AuthSession | null> {
   if (isValidSession(memorySession)) return memorySession;
+  if (memorySession) notifySessionInvalidated();
   memorySession = null;
   if (getPlatformContext().host !== "telegram") return null;
 
@@ -38,6 +43,7 @@ export async function readSession(): Promise<AuthSession | null> {
     // Invalid stored content is treated as an absent session.
   }
   await removeTelegramSecureItem(SESSION_STORAGE_KEY);
+  notifySessionInvalidated();
   return null;
 }
 
