@@ -369,23 +369,48 @@ Create folders when a real use case is implemented. Avoid empty placeholder modu
 
 ## 8. Telegram and browser platform boundary
 
-Define a small platform interface for:
-- raw Telegram initData;
-- viewport and safe-area information;
-- back button;
-- theme parameters;
-- haptic feedback (optional);
-- close behavior (optional).
+Telegram is the first host, not the application architecture. The official host integration requirements are tracked against the [Telegram Mini Apps documentation](https://core.telegram.org/bots/webapps).
 
-Feature code must not import Telegram SDK directly. A browser adapter provides safe no-op or browser-native behavior when Telegram is absent.
+### 8.1 Supported launch and bootstrap
 
-Security:
-- send raw initData to the backend for signature and freshness validation;
-- never trust initDataUnsafe as authentication;
-- never embed bot tokens or backend secrets in the client;
-- backend owns session issuance, authorization and expiry;
-- do not log initData, credentials or personal learning content;
-- use the backend-defined secure session mechanism; do not invent a token storage scheme in the UI.
+- The authenticated learning flow is designed for the Main Mini App and bot menu-button launch paths.
+- Keyboard-button and inline-mode launches must not be treated as authenticated entry points unless the backend explicitly supports their empty/missing initData behavior.
+- Load the official Telegram WebApp client script in the host shell, feature-detect the API, and call `ready()` only after the app has completed its essential bootstrap.
+- The app must render a safe browser fallback when opened outside Telegram.
+- Treat host-provided user display data as untrusted until the backend validates the signed initData.
+
+### 8.2 Platform adapter contract
+
+Expose a small typed adapter for:
+- raw `initData` string (never a reconstructed object);
+- viewport height/expanded state and safe-area/content-safe-area insets;
+- BackButton and MainButton lifecycle;
+- theme parameters and color scheme;
+- optional haptics and close behavior;
+- host availability and supported feature detection.
+
+Feature modules must not import Telegram SDK directly. The adapter owns event subscription, cleanup, capability detection and browser fallback. Do not assume every Telegram client version supports every optional capability.
+
+### 8.3 Session and credential handling
+
+- Send raw initData to the backend for signature, auth-date freshness and replay validation.
+- Never trust `initDataUnsafe` as an authentication source.
+- Never embed bot tokens or backend secrets in the client.
+- Backend owns session issuance, authorization, revocation and expiry.
+- Follow the Telegram SecureStorage-first strategy where the supported host capability exists, using capability detection and the exact backend token/session contract.
+- Browser fallback must use the backend-approved secure mechanism; prefer secure, HttpOnly, SameSite cookies where the backend contract supports them.
+- Do not persist long-lived bearer credentials in localStorage. Do not introduce sessionStorage as an undocumented fallback.
+- Do not log initData, credentials or personal learning content.
+- Session expiry and revoked-session responses must return the user to a recoverable authentication/bootstrap state.
+
+### 8.4 Layout and navigation integration
+
+- Use Telegram viewport and safe-area values rather than assuming a fixed device height.
+- Keep important controls clear of bottom navigation/system insets.
+- Synchronize Telegram theme parameters through design tokens; preserve contrast and semantic color meaning.
+- Integrate BackButton with the app navigation stack and clean up handlers on route changes/unmount.
+- MainButton is reserved for a single contextual primary action; do not duplicate a visible in-page primary action without a clear reason.
+- Do not make haptics, Telegram theme or host buttons required for core learning completion.
 
 ## 9. API and domain integration
 
