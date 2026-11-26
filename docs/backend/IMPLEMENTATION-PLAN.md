@@ -29,7 +29,7 @@
 - [ ] Prove replay/session atomicity with real Local D1 concurrent requests.
 - [ ] Prove exactly one winner under concurrent identical initData.
 - [ ] Test session expiry, revocation, and malformed bearer tokens against Local D1.
-- [x] Add per-IP Telegram login rate limiting (30/minute), body-size limit, and Retry-After response.\n- [ ] Define and enforce the exact production origin policy before enabling browser cross-origin access.
+- [x] Add per-IP Telegram login rate limiting (30/minute), body-size limit, and Retry-After response.\n- [x] Implement exact-origin CORS allowlist, explicit methods/headers, and no credential support.\n- [ ] Set and verify the exact production `ALLOWED_ORIGINS` values after frontend origin is finalized.
 
 ## B2 — Learning write path
 
