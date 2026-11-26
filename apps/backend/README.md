@@ -3,11 +3,11 @@
 ## Implemented
 
 - Hono application with a Cloudflare Worker-compatible fetch entrypoint.
-- Local Node development adapter for quick frontend/backend iteration.
+- Local Node development adapter with an isolated in-memory demo fixture.
 - `GET /api/v1/health`.
 - `GET /api/v1/lessons`, reading published lessons from the D1 binding.
 - Structured 404/500/503 responses.
-- Unit tests for health, missing D1 binding and unknown routes.
+- API tests for health, configured database, missing D1 binding and unknown routes.
 
 ## Run locally
 
@@ -15,7 +15,7 @@
 npm run dev:backend
 ```
 
-The local Node adapter does not emulate D1. The health route works locally; lessons return a deliberate 503 until a D1 binding is configured.
+The local Node adapter supplies demo lesson rows so the frontend can be previewed without creating a Cloudflare account or database. This fixture is local-only and is not imported by the Worker entrypoint. It is not persistent and must never be used as production data.
 
 ## Cloudflare boundary
 
