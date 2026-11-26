@@ -29,3 +29,16 @@ test("filters by lesson description and handles null descriptions", () => {
 test("returns an empty list when nothing matches", () => {
   assert.deepEqual(filterLessons(lessons, "C2 advanced"), []);
 });
+
+test("filters by selected level and supports combined search", () => {
+  assert.deepEqual(filterLessons(lessons, "", "A2").map((lesson) => lesson.id), ["a2"]);
+  assert.deepEqual(filterLessons(lessons, "work", "A1"), []);
+  assert.deepEqual(filterLessons(lessons, "work", "B1").map((lesson) => lesson.id), ["b1"]);
+});
+
+test("normalizes Persian and Arabic keyboard variants", () => {
+  const persianLessons: Lesson[] = [
+    { id: "fa-1", title: "کلاس زبان", level: "A1", position: 1 },
+  ];
+  assert.deepEqual(filterLessons(persianLessons, "كلاس").map((lesson) => lesson.id), ["fa-1"]);
+});
