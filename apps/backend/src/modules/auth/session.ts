@@ -1,17 +1,13 @@
 import type { D1Database } from "../../env";
 import { createOpaqueToken, sha256Hex } from "../../shared/crypto";
 
-interface SessionRow {
-  id: string;
-  telegram_user_id: string;
-  display_name: string | null;
-  token_hash: string;
-}
+interface SessionRow { id: string; telegram_user_id: string; display_name: string | null; token_hash: string; }
 export async function createSession(db: D1Database, userId: string, ttlSeconds: number) {
   const token = createOpaqueToken();
   const tokenHash = await sha256Hex(token);
   const now = new Date();
   const expiresAt = new Date(now.getTime() + ttlSeconds * 1000).toISOString();
+  await db.prepare("DELETE FROM sessions WHERE expires_at <= ? OR revoked_at IS NOT NULL").bind(now.toISOString()).run();
   await db.prepare("INSERT INTO sessions (id,user_id,token_hash,expires_at,created_at) VALUES (?,?,?,?,?)")
     .bind(crypto.randomUUID(), userId, tokenHash, expiresAt, now.toISOString()).run();
   return { token, expiresAt };
