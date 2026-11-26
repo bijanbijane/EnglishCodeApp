@@ -13,18 +13,22 @@ export default function App() {
   const [lessonState, setLessonState] = useState<LessonListState>({ status: "loading" });
   const [route, setRoute] = useState<AppRoute>(() => typeof window === "undefined" ? { name: "home" } : routeFromHash(window.location.hash));
   const [signingOut, setSigningOut] = useState(false);
+  const [activeAttempt, setActiveAttempt] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sessionState, setSessionState] = useState<SessionBootstrapResult | { status: "checking" }>({ status: "checking" });
   const hostInitialized = useRef(false);
 
   const navigateTo = useCallback((next: AppRoute) => {
+    const leavingActiveLesson = route.name === "lesson" && (next.name !== "lesson" || next.lessonId !== route.lessonId);
+    if (activeAttempt && leavingActiveLesson && typeof window !== "undefined" && !window.confirm("این تلاش هنوز کامل نشده و در نسخهٔ فعلی قابل ادامه نیست. از صفحه خارج می‌شوی؟")) return;
+    if (activeAttempt && leavingActiveLesson) setActiveAttempt(false);
     setRoute(next);
     if (typeof window !== "undefined") {
       const nextHash = hashFromRoute(next);
       if (window.location.hash !== nextHash) window.location.hash = nextHash;
     }
-  }, []);
+  }, [activeAttempt, route]);
 
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
@@ -51,10 +55,19 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const onHashChange = () => setRoute(routeFromHash(window.location.hash));
+    const onHashChange = () => {
+      const next = routeFromHash(window.location.hash);
+      const leavingActiveLesson = route.name === "lesson" && (next.name !== "lesson" || next.lessonId !== route.lessonId);
+      if (activeAttempt && leavingActiveLesson && !window.confirm("این تلاش هنوز کامل نشده و در نسخهٔ فعلی قابل ادامه نیست. از صفحه خارج می‌شوی؟")) {
+        window.location.hash = hashFromRoute(route);
+        return;
+      }
+      if (activeAttempt && leavingActiveLesson) setActiveAttempt(false);
+      setRoute(next);
+    };
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
+  }, [activeAttempt, route]);
 
   useEffect(() => {
     if (hostInitialized.current || lessonState.status === "loading" || sessionState.status === "checking") return;
@@ -114,7 +127,7 @@ export default function App() {
       {route.name === "lesson" ? (
         lessonState.status === "loading" ? <div className="state-panel" role="status"><span className="loader" /> در حال بارگذاری درس…</div>
           : lessonState.status === "error" ? <div className="state-panel state-panel--error" role="alert"><div><strong>اطلاعات درس دریافت نشد.</strong><p>{lessonState.message}</p></div><button className="button button--secondary" type="button" onClick={() => void loadLessons()}>تلاش دوباره</button></div>
-            : selectedLesson ? <LessonWorkspace key={selectedLesson.id} lesson={selectedLesson} onBack={() => navigateTo({ name: "home" })} canStartAttempt={canStartAttempt} sessionMessage={sessionMessage} />
+            : selectedLesson ? <LessonWorkspace key={selectedLesson.id} lesson={selectedLesson} onBack={() => navigateTo({ name: "home" })} canStartAttempt={canStartAttempt} sessionMessage={sessionMessage} onAttemptActiveChange={setActiveAttempt} />
               : <div className="state-panel"><strong>این درس در فهرست فعلی وجود ندارد.</strong><button className="button button--secondary" type="button" onClick={() => navigateTo({ name: "home" })}>بازگشت به درس‌ها</button></div>
       ) : route.name === "profile" ? (
         <ProfilePanel isAuthenticated={canStartAttempt} isTelegramHost={getPlatformContext().host === "telegram"} signingOut={signingOut} error={signOutError ?? undefined} onSignOut={() => void handleSignOut()} onBack={() => navigateTo({ name: "home" })} />
