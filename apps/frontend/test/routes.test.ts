@@ -10,6 +10,7 @@ test("empty and unknown hashes resolve to home", () => {
 
 test("learn, profile and progress routes round-trip", () => {
   assert.deepEqual(routeFromHash(hashFromRoute({ name: "learn" })), { name: "learn" });
+  assert.deepEqual(routeFromHash(hashFromRoute({ name: "learn" })), { name: "learn" });
   assert.deepEqual(routeFromHash(hashFromRoute({ name: "profile" })), { name: "profile" });
   assert.deepEqual(routeFromHash(hashFromRoute({ name: "progress" })), { name: "progress" });
 });
