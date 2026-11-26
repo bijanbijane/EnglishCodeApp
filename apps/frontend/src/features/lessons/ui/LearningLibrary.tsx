@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { LessonCatalog } from "./LessonCatalog";
 import type { Lesson, LessonListState } from "../model/lesson.types";
+import { filterLessons } from "../model/lesson-search";
 
 type LearningLibraryProps = {
   state: LessonListState;
@@ -12,13 +13,7 @@ type LearningLibraryProps = {
 export function LearningLibrary({ state, onBack, onRetry, onSelect }: LearningLibraryProps) {
   const [search, setSearch] = useState("");
   const lessons = state.status === "ready" ? state.lessons : [];
-  const visibleLessons = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase();
-    if (!term) return lessons;
-    return lessons.filter((lesson) =>
-      (lesson.title + " " + lesson.level + " " + (lesson.description ?? "")).toLocaleLowerCase().includes(term)
-    );
-  }, [lessons, search]);
+  const visibleLessons = useMemo(() => filterLessons(lessons, search), [lessons, search]);
 
   return (
     <section className="learning-library" aria-labelledby="learning-library-title">
