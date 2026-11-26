@@ -250,3 +250,6 @@ button:focus-visible, a:focus-visible { outline: 3px solid #8ba4ff; outline-offs
 .app-fatal-error strong { display:block; color:#963f4c; font-size:15px; }
 .app-fatal-error p { margin:9px 0 0; color:#68758d; font-size:12px; line-height:2; }
 .app-fatal-error .button { margin-top:17px; }
+
+.session-banner__retry { flex:0 0 auto; margin-inline-start:auto; padding:7px 12px; font-size:11px; }
+@media (max-width:560px) { .session-banner { flex-wrap:wrap; } .session-banner__retry { margin-inline-start:17px; } }
