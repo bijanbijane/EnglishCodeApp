@@ -98,8 +98,8 @@ Follow the Editorial Learning Studio direction in the product specification. Cen
 Branch: `feat/frontend-modular-foundation`  
 PR: [#4](https://github.com/bijanbijane/EnglishCodeApp/pull/4)
 
-Implemented in the branch: app composition split, shared API client, searchable/selectable lesson catalog, server-backed question list, Telegram SecureStorage session bootstrap (Bot API 9.0+), bearer-authenticated attempt/answer/complete flow, server-confirmed answer feedback and final score, responsive RTL dashboard, Telegram BackButton/safe-area/theme adapter, architecture documentation and CI workflow path correction.
+Implemented in the branch: app composition split, shared API client, hash navigation for home/lesson/profile/progress, searchable lesson catalog, validated lesson/question/progress DTOs, Telegram SecureStorage session bootstrap (Bot API 9.0+), bearer-authenticated attempt/answer/complete flow, server-confirmed feedback and score, server-backed progress and profile screens, logout/session invalidation, responsive RTL dashboard and Telegram BackButton/safe-area/theme adapter.
 
-Not yet verified: npm install, typecheck, tests, production build, browser behavior and Telegram-client behavior. Browser sign-in remains preview-only until the backend supports an approved secure cookie/session contract. Review remains incomplete; progress has a basic server-backed summary screen; profile exposes account display name, session status and logout.
+Not yet verified: dependency installation, typecheck, automated tests, production build, browser behavior and Telegram-client behavior. Browser sign-in remains preview-only until the backend supports an approved secure cookie/session contract. Review and skill-specific modules remain incomplete because their backend contracts are not yet available.
 
 No merge, deployment, production migration, production data mutation or paid-resource activation is part of this work.
