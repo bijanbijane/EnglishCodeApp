@@ -10,33 +10,28 @@
 4. Insert the initial admin grant and a minimal bootstrap audit event in one D1 batch.
 5. Verify the role by calling a role-protected read endpoint. Never add the grant to source-controlled seed data.
 
-Template only — replace the placeholder with the verified internal user ID and execute manually in the approved environment:
+Template only — replace the placeholder with the verified internal user ID and execute through a trusted owner-operated maintenance script that uses `D1Database.batch()`. Do not expose this as an HTTP endpoint or paste the placeholder unchanged.
 
-```sql
-BEGIN;
+```ts
+const roleId = crypto.randomUUID();
+const requestId = "bootstrap-initial-admin"; // stable, non-secret audit correlation value
 
-INSERT INTO user_roles (id, user_id, role, granted_by)
-VALUES (lower(hex(randomblob(16))), '<VERIFIED_INTERNAL_USER_ID>', 'admin', NULL);
-
-INSERT INTO admin_audit_events
-  (id, actor_user_id, action, resource_type, resource_id, request_id, metadata_json)
-VALUES (
-  lower(hex(randomblob(16))),
-  NULL,
-  'role.bootstrap.granted',
-  'user_role',
-  (SELECT id FROM user_roles
-   WHERE user_id = '<VERIFIED_INTERNAL_USER_ID>'
-     AND role = 'admin'
-     AND revoked_at IS NULL),
-  'bootstrap-initial-admin',
-  '{"source":"owner_controlled_bootstrap","role":"admin"}'
-);
-
-COMMIT;
+await env.DB.batch([
+  env.DB.prepare(
+    "INSERT INTO user_roles (id,user_id,role,granted_by) VALUES (?,?, 'admin',NULL)"
+  ).bind(roleId, verifiedInternalUserId),
+  env.DB.prepare(
+    "INSERT INTO admin_audit_events " +
+    "(id,actor_user_id,action,resource_type,resource_id,request_id,metadata_json) " +
+    "SELECT ?,NULL,'role.bootstrap.granted','user_role',?,?,? WHERE changes()=1"
+  ).bind(
+    crypto.randomUUID(),
+    roleId,
+    requestId,
+    JSON.stringify({ source: "owner_controlled_bootstrap", role: "admin" }),
+  ),
+]);
 ```
-
-Run this as a single transaction using the platform's supported D1 batch/console workflow; do not paste the placeholder unchanged.
 
 ## Granting additional roles
 
