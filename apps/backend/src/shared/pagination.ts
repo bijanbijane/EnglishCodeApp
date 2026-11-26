@@ -17,9 +17,18 @@ export function decodePageCursor(value: string): PageCursor | null {
   try {
     const timestamp = decodeURIComponent(parts[0]);
     const id = decodeURIComponent(parts[1]);
+    const isIsoTimestamp = /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$/.test(timestamp);
+    const isSqliteTimestamp = /^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$/.test(timestamp);
+    const normalizedTimestamp = isSqliteTimestamp
+      ? `${timestamp.replace(" ", "T")}.000Z`
+      : timestamp;
+    const parsedTimestamp = new Date(normalizedTimestamp);
+
     if (
       timestamp.length > 64 ||
-      !Number.isFinite(Date.parse(timestamp)) ||
+      (!isIsoTimestamp && !isSqliteTimestamp) ||
+      !Number.isFinite(parsedTimestamp.getTime()) ||
+      parsedTimestamp.toISOString() !== normalizedTimestamp ||
       !CURSOR_ID_PATTERN.test(id)
     ) return null;
     return { timestamp, id };
