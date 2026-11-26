@@ -19,9 +19,9 @@ The first client is a Telegram Mini App, but the product roadmap requires later 
 8. Use React StrictMode and test effect cleanup rather than disabling StrictMode.
 9. Keep the frontend mobile-first, Persian RTL by default, with explicit LTR/auto direction for English content and Telegram safe-area/theme handling.
 
-## Authentication decision still open
+## Authentication decision
 
-The backend currently returns opaque Bearer tokens and rejects reuse of the same Telegram initData. A memory-only token is lost on reload; blindly repeating the same initData may be rejected as replay. Before frontend auth implementation, choose and test a session rehydration strategy. sessionStorage is a possible Mini App compromise but is accessible to injected JavaScript; cookie-based HttpOnly sessions require a backend/API design change and CSRF review.
+Telegram SecureStorage (Bot API 9.0+) is the preferred at-rest storage for the opaque backend session token when the Telegram client supports it. Feature-detect support. Do not silently fall back to localStorage or CloudStorage. When SecureStorage is unavailable, use a memory-only session and an explicit re-authentication path. See ADR-0004 and the Telegram Mini App architecture specification for the full lifecycle.
 
 ## Consequences
 
