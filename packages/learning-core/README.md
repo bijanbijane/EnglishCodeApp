@@ -45,6 +45,12 @@ The CEFR level is a curriculum and assessment design constraint, not a label to 
 
 The lesson validator requires Context, Input, Noticing, Guided Practice, Production, Feedback, Spaced Recall, and Assessment in order. Each stage must declare an activity and observable evidence. A lesson also needs an original communicative outcome, a real-world task, and a mastery gate requiring at least two attempts plus delayed recall.
 
+## Original sample lesson
+
+- [A2: Talk About a Personal Goal](examples/a2-personal-goals.md) is an original eight-stage communicative lesson with model input, guided practice, production, selective feedback, delayed retrieval, and an assessment rubric.
+- Its typed blueprint is in `examples/a2-personal-goals.ts` and is validated by the backend test suite.
+- This sample is CEFR-informed, not a Council of Europe-certified assessment.
+
 ## Development
 
 The module has no runtime package dependencies. Backend tests import its pure functions directly.
