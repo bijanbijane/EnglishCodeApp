@@ -35,7 +35,7 @@ describe("backend HTTP foundation", () => {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ initData: "x".repeat(270_000) }),
+        body: JSON.stringify({ initData: "x".repeat(2 * 1024 * 1024 + 1) }),
       },
       {} as never,
     );
