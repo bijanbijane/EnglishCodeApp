@@ -52,7 +52,7 @@ const lesson = {
 const mistake = {
   id: "test-001",
   category: "preposition",
-  cefr: "A2",
+  cefr: "A2" as const,
   learner_sentence: "I am interested on music.",
   corrected_sentence: "I am interested in music.",
   explanation: "Use interested in.",
