@@ -36,6 +36,14 @@ Never edit a migration applied to a shared database. Use forward-only migrations
 - GitHub Actions runs inspected on 2026-11-27 failed before a runner was assigned (runner_id=0, no executed steps). This is an infrastructure/runner-allocation failure, not evidence that code tests failed or passed.
 - Cloudflare validation builds reported by feature PRs are evidence only for the exact code commit and checks listed in those PRs. They do not establish that the current main commit passed the same checks.
 
+## Static review checkpoint — 2026-11-27
+
+- Refreshed main at `f3671f2194e562fc194d23e9602b768455d8e483`; open PRs #21–#25 remain Draft and are not part of main.
+- PR #25's completion batch was statically reviewed. Its current statement order is attempt UPDATE → learning-event INSERT → progress upsert → SELECT. The progress upsert is gated by `changes() = 1`, so it observes the immediately preceding event INSERT rather than the attempt UPDATE. This creates an avoidable coupling between event insertion and progress projection.
+- A review comment was added to PR #25 recommending UPDATE → progress upsert → event INSERT → SELECT, preserving the original single-winner gate while keeping all writes in the same D1 batch. The suggested order and its idempotency/concurrency behavior still require Local D1 verification.
+- PR #25 workflow run 314 (commit `d079b201b9ba95fff7b9d23355a8d3e9d34d52d9`) is reported failed before job steps; this is not a code-test result. No tests were run in this session.
+- PR #24's webhook handler was checked for Mini App launch behavior; it ignores non-private chats before sending Web App buttons. No new defect was confirmed in that path by this limited static review.
+
 ## Observability
 - Generate a request ID for every request.
 - Keep Cloudflare Ray ID separate when available.
