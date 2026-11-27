@@ -54,3 +54,14 @@ The lesson validator requires Context, Input, Noticing, Guided Practice, Product
 ## Development
 
 The module has no runtime package dependencies. Backend tests import its pure functions directly.
+
+
+## Additional course sources and exercise contracts
+
+This branch adds pinned, license-preserved samples from:
+- **The Complete English Course — From Zero to Fluent** (MIT): two grammar/reference chapters.
+- **Read English** (CC BY 4.0 for course content): one A2–B1, one B1–B2, and one C1–C2 reading lesson, with attribution and the upstream license retained.
+
+It also adds an original, dependency-free exercise contract and a sample pack for multiple choice, gap fill, reorder, transformation, error spotting, matching, and flashcards. The exercise formats are informed by the public description of Grammar Drill Yard; no upstream code or lesson content is copied because its inspected repository has no standalone license file and no auditable source implementation.
+
+See [data source and quality notes](data/SOURCES.md) before publishing or adapting any imported content. Vendored samples are source material, not yet approved learner-facing lessons.
