@@ -59,7 +59,7 @@ function uint(value: number): Uint8Array {
   return new Uint8Array(bytes);
 }
 
-function webm(blocks: Uint8Array[], unknownSegment = false, unknownCluster = false): Uint8Array {
+function webm(blocks: Uint8Array[], unknownSegment = false, unknownCluster = false, additionalClusters: Uint8Array[] = []): Uint8Array {
   const text = (value: string) => new TextEncoder().encode(value);
   const opusHead = new Uint8Array(19);
   opusHead.set(text("OpusHead"));
@@ -87,7 +87,7 @@ function webm(blocks: Uint8Array[], unknownSegment = false, unknownCluster = fal
   const cluster = unknownCluster
     ? unknownSizeElement(0x1f43b675, clusterPayload)
     : element(0x1f43b675, clusterPayload);
-  const segmentPayload = concatBytes(info, tracks, cluster);
+  const segmentPayload = concatBytes(info, tracks, cluster, ...additionalClusters);
   const segment = unknownSegment
     ? unknownSizeElement(0x18538067, segmentPayload)
     : element(0x18538067, segmentPayload);
@@ -143,6 +143,22 @@ describe("WebM/Opus duration parser", () => {
   it("parses MediaRecorder-style unknown-size Segment and Cluster elements", () => {
     const singleBlock = block(0, new Uint8Array(), opusPacket);
     expect(getWebmOpusDurationSeconds(webm([singleBlock], true, true))).toBeCloseTo(0.02, 6);
+  });
+
+  it("ends an unknown-size Cluster at the next Cluster and includes later audio blocks", () => {
+    const firstBlock = block(0, new Uint8Array(), opusPacket);
+    const secondBlock = block(0, new Uint8Array(), opusPacket);
+    const secondCluster = element(
+      0x1f43b675,
+      concatBytes(
+        element(0xe7, uint(1_000)),
+        element(0xa3, secondBlock),
+      ),
+    );
+
+    expect(
+      getWebmOpusDurationSeconds(webm([firstBlock], true, true, [secondCluster])),
+    ).toBeCloseTo(1.02, 6);
   });
 
   it("parses a real FFmpeg WebM/Opus recording with an Info Duration element and BlockGroup tail", () => {
