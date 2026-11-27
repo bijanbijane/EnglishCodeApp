@@ -222,7 +222,14 @@ describe("Telegram webhook", () => {
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe(`https://api.telegram.org/bot${botToken}/sendMessage`);
     expect(JSON.parse(String(init.body))).toMatchObject({
-      chat_id: 42, text: expect.stringContaining("Welcome to EnglishCode"),
+      chat_id: 42,
+      text: expect.stringContaining("Open the app"),
+      reply_markup: {
+        inline_keyboard: [[{
+          text: "Open EnglishCode",
+          web_app: { url: "https://englishcode-frontend-dev.bijanbijane-1.workers.dev" },
+        }]],
+      },
     });
     const replay = await app.request(
       "/api/v1/telegram/webhook",
