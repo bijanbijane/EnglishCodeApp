@@ -14,7 +14,7 @@ describe("API request body limits", () => {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: "x".repeat(300 * 1024),
+        body: "x".repeat(2 * 1024 * 1024 + 1),
       },
       { DB, TELEGRAM_BOT_TOKEN: "test-bot-token" } as never,
     );
