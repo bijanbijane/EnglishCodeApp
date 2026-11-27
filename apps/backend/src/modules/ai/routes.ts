@@ -36,10 +36,10 @@ function hasAudioSignature(bytes: Uint8Array, mimeType: string): boolean {
 function parsePayload(value: unknown): { audioBase64: string; durationSeconds: number } {
   if (typeof value !== "object" || value === null) throw new AppError("VALIDATION_ERROR", "A valid audio payload is required.", 400);
   const body = value as Record<string, unknown>;
+  const mimeType = typeof body.mimeType === "string" ? body.mimeType.split(";")[0].trim().toLowerCase() : "";
   if (typeof body.audioBase64 !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(body.audioBase64) ||
       body.audioBase64.length === 0 || body.audioBase64.length > 132000 ||
-      typeof body.mimeType !== "string" ||
-      !["audio/webm", "audio/ogg", "audio/mpeg", "audio/mp4", "audio/wav", "audio/x-wav"].includes(body.mimeType) ||
+      !["audio/webm", "audio/ogg", "audio/mpeg", "audio/mp4", "audio/wav", "audio/x-wav"].includes(mimeType) ||
       typeof body.durationSeconds !== "number" || !Number.isFinite(body.durationSeconds) ||
       body.durationSeconds <= 0 || body.durationSeconds > MAX_DURATION_SECONDS) {
     throw new AppError("VALIDATION_ERROR", "Use a supported audio format and a clip no longer than 60 seconds.", 400);
@@ -52,7 +52,7 @@ function parsePayload(value: unknown): { audioBase64: string; durationSeconds: n
     throw new AppError("VALIDATION_ERROR", "Audio payload exceeds 96 KiB.", 413);
   }
   const audioBytes = Uint8Array.from(decoded, (character) => character.charCodeAt(0));
-  if (!hasAudioSignature(audioBytes, body.mimeType)) {
+  if (!hasAudioSignature(audioBytes, mimeType)) {
     throw new AppError("VALIDATION_ERROR", "Audio data does not match the declared format.", 400);
   }
   return { audioBase64: body.audioBase64, durationSeconds: body.durationSeconds };
