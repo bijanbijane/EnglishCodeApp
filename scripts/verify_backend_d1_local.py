@@ -163,6 +163,7 @@ def main():
                 request(
                     "POST", "/api/v1/telegram/webhook",
                     payload={"message": {"text": "/start", "chat": {"id": 42, "type": "private"}}},
+                    extra_headers=webhook_headers,
                 ),
                 400,
                 "Telegram webhook requires update_id",
@@ -180,7 +181,7 @@ def main():
             )
             assert first_webhook.get("ok") is True and first_webhook.get("duplicate") is not True
             duplicate_webhook = expect_status(
-                request("POST", "/api/v1/telegram/webhook", payload=webhook_update),
+                request("POST", "/api/v1/telegram/webhook", payload=webhook_update, extra_headers=webhook_headers),
                 200,
                 "Telegram webhook duplicate delivery",
             )
