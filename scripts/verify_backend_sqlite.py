@@ -106,6 +106,24 @@ def main() -> None:
             (published["current_published_version_id"],),
         ).fetchone()[0] == 2
 
+        # Public lesson detail must read descriptive content from the immutable
+        # published version, not the mutable legacy lesson row.
+        db.execute(
+            "UPDATE lessons SET description=? WHERE id=?",
+            ("Stale legacy description", "lesson-greetings-001"),
+        )
+        published_detail = db.execute(
+            """SELECT l.id, l.course_id, l.slug, lv.title, lv.description, lv.level,
+                      lv.position, lv.version, lv.id AS lesson_version_id
+               FROM lessons l
+               JOIN lesson_versions lv ON lv.id = l.current_published_version_id
+               WHERE l.id = ? AND l.status = 'published' AND lv.status = 'published'
+               LIMIT 1""",
+            ("lesson-greetings-001",),
+        ).fetchone()
+        assert published_detail["description"] == "Practice common greetings and polite introductions."
+        assert published_detail["description"] != "Stale legacy description"
+
         # Attempt creation pins a published lesson and assessment policy, then snapshots
         # the exact published question versions and their weights in one transaction.
         attempt_id = "attempt-1"
