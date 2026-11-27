@@ -37,7 +37,7 @@
 - [x] Conditional completion and progress upsert in one D1 batch.
 - [x] Current-user progress endpoint.
 - [ ] Verify answer/complete races and exactly-once progress against Local D1.
-- [ ] Add immutable attempt-result/progress-event facts and deterministic projection rebuild.
+- [x] Add immutable attempt-result/progress-event facts and deterministic projection rebuild (migration 0016, completion write path, maintenance SQL; validation pending).
 - [ ] Finalize pass thresholds, retry policy and future question types.
 
 ## B3 — Content governance and administration
@@ -77,4 +77,4 @@
 4. D1 `batch()` and SQLite `changes()` invariants are covered by a committed SQLite compatibility script but still need real Local D1/concurrency verification.
 5. Production origin values and first-admin bootstrap remain owner-controlled and unset.
 
-No deployment, remote migration, production secret change, paid resource or production role grant has been performed.
+No deployment, remote migration, production secret change, paid resource or production role grant has been performed. Migration 0016 adds an append-only completion-event ledger, backfills historical completed attempts, and the completion transaction appends one idempotent event before updating the derived progress projection. A transactional maintenance SQL script rebuilds user_progress from events. Exact-commit test and fresh-Local-D1 validation remain pending.
