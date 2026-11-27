@@ -77,6 +77,12 @@ This checkpoint records repository-observed state only. It is not a claim that t
 - Commit: `dc9db06f23e3d1b90a02698e586e18ef845c1c6c`. Read-back confirmed both SQLite batch sequences. PR comment `7222448678` records the change and its unverified status.
 - No local tests, Wrangler Local D1 commands, remote migrations, or deployments were run. GitHub Actions runner allocation remains an external blocker; do not interpret pre-step job failures as test outcomes.
 
+## Latest CI observation — PR #25 head — 2026-11-27
+
+- Backend CI run `46027745390` (run #328) was triggered for exact head `dc9db06f23e3d1b90a02698e586e18ef845c1c6c` and concluded `failure`.
+- The returned backend job has `steps: null` and `logs_url: null`; no runner/step evidence is available. This does not establish any test failure or pass.
+- PR comment `7222458045` records the evidence. Keep PR #25 Draft until a run reaches workflow steps and passes on the exact head.
+
 ## Security and data implications
 
 - No application source code or SQL migration was changed in this documentation batch.
