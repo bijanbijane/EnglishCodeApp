@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+const LearningContentModule = lazy(() => import("./features/learning-content/LearningContentModule"));
 import { api, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
 import { getSessionErrorMessage, restoreSession, revokeSession } from "./auth";
 
@@ -17,7 +18,7 @@ type TelegramWebApp = {
 };
 declare global { interface Window { Telegram?: { WebApp?: TelegramWebApp } } }
 
-type Screen = "home" | "lesson" | "result";
+type Screen = "home" | "lesson" | "result" | "content";
 type ProgressEntry = { lesson_id: string; course_id: string; best_score: number; completed_count: number; lesson_title: string; last_completed_at: string };
 function App() {
   const telegram = window.Telegram?.WebApp;
@@ -258,6 +259,10 @@ function App() {
         </div>
         {progress.length > 0 && <div className="recent-progress"><h3>Recently completed</h3>{progress.slice(0,3).map((item) => <div className="recent-row" key={item.lesson_id}><span>{item.lesson_title}</span><strong>{item.best_score}%</strong></div>)}</div>}
       </section>}
+      <section className="library-launch">
+        <div><p className="eyebrow">EXPLORE & PRACTISE</p><h2>Build stronger English foundations.</h2><p>Search 2,138 vocabulary records or work through 40 common learner-error examples.</p></div>
+        <button className="primary-button" onClick={() => setScreen("content")}>Open learning library ↗</button>
+      </section>
       <section className="content-section">
       <div className="section-heading"><div><p className="eyebrow">YOUR LEARNING SPACE</p><h2>{selectedCourse ? selectedCourse.title : "Choose your path"}</h2></div>
         {selectedCourse && <button className="text-button" onClick={showCourses}>All courses ←</button>}
@@ -280,6 +285,10 @@ function App() {
         ) : coursesLoadFailed ? <div className="empty-state"><span>The course catalogue could not be loaded.</span><button className="text-button" onClick={() => void loadCourses()}>Retry loading courses</button></div> : <div className="empty-state">No published courses yet. Check back soon.</div>}</div>}
       </section>
     </>}
+
+    {screen === "content" && <Suspense fallback={<div className="loading"><span className="spinner" />Loading learning library…</div>}>
+      <LearningContentModule onBack={() => setScreen("home")} />
+    </Suspense>}
 
     {screen === "lesson" && attempt && currentQuestion && <section className="exercise">
       <div className="exercise-top"><button className="text-button" onClick={goHome}>← Exit lesson</button><span>{selectedLesson?.title}</span></div>
