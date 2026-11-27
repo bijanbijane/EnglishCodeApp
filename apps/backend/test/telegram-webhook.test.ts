@@ -2,9 +2,58 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import app from "../src/app";
 
 const webhookSecret = "test-webhook-secret";
+const setupKey = "test-one-time-setup-key";
 const botToken = "123456:TEST_BOT_TOKEN";
+const env = {
+  TELEGRAM_BOT_TOKEN: botToken,
+  TELEGRAM_WEBHOOK_SECRET: webhookSecret,
+  TELEGRAM_SETUP_KEY: setupKey,
+} as never;
 
 afterEach(() => vi.unstubAllGlobals());
+
+describe("Telegram webhook setup", () => {
+  it("rejects requests without the one-time setup key", async () => {
+    const response = await app.request(
+      "/api/v1/telegram/setup",
+      { method: "POST" },
+      env,
+    );
+
+    expect(response.status).toBe(401);
+  });
+
+  it("registers only the fixed Development webhook URL", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, result: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await app.request(
+      "/api/v1/telegram/setup",
+      {
+        method: "POST",
+        headers: { "X-EnglishCode-Setup-Key": setupKey },
+      },
+      env,
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true, webhook: "registered" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(`https://api.telegram.org/bot${botToken}/setWebhook`);
+    expect(JSON.parse(String(init.body))).toEqual({
+      url: "https://englishcode-backend-dev.bijanbijane-1.workers.dev/api/v1/telegram/webhook",
+      secret_token: webhookSecret,
+      allowed_updates: ["message"],
+      drop_pending_updates: false,
+    });
+  });
+});
 
 describe("Telegram webhook", () => {
   it("rejects requests without the Telegram secret header", async () => {
@@ -15,7 +64,7 @@ describe("Telegram webhook", () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ update_id: 1, message: { text: "/start", chat: { id: 42, type: "private" } } }),
       },
-      { TELEGRAM_BOT_TOKEN: botToken, TELEGRAM_WEBHOOK_SECRET: webhookSecret } as never,
+      env,
     );
 
     expect(response.status).toBe(401);
@@ -43,7 +92,7 @@ describe("Telegram webhook", () => {
           message: { text: "/start", chat: { id: 42, type: "private" } },
         }),
       },
-      { TELEGRAM_BOT_TOKEN: botToken, TELEGRAM_WEBHOOK_SECRET: webhookSecret } as never,
+      env,
     );
 
     expect(response.status).toBe(200);
@@ -55,6 +104,23 @@ describe("Telegram webhook", () => {
       chat_id: 42,
       text: expect.stringContaining("Welcome to EnglishCode"),
     });
+  });
+
+  it("rejects null as an invalid Telegram update", async () => {
+    const response = await app.request(
+      "/api/v1/telegram/webhook",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Telegram-Bot-Api-Secret-Token": webhookSecret,
+        },
+        body: "null",
+      },
+      env,
+    );
+
+    expect(response.status).toBe(400);
   });
 
   it("acknowledges unsupported update types without sending a message", async () => {
@@ -71,7 +137,7 @@ describe("Telegram webhook", () => {
         },
         body: JSON.stringify({ update_id: 2, callback_query: { id: "abc" } }),
       },
-      { TELEGRAM_BOT_TOKEN: botToken, TELEGRAM_WEBHOOK_SECRET: webhookSecret } as never,
+      env,
     );
 
     expect(response.status).toBe(200);
