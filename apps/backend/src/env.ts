@@ -7,5 +7,14 @@ export interface Env {
   APP_ENV?: "local" | "development" | "staging" | "production";
   ALLOWED_ORIGINS?: string;
 }
-export type AppVariables = { requestId: string; userId: string; sessionId: string };
-export type AppEnv = { Bindings: Env; Variables: AppVariables };
+
+export type AppVariables = {
+  requestId: string;
+  userId: string;
+  sessionId: string;
+};
+
+export type AppEnv = {
+  Bindings: Env;
+  Variables: AppVariables;
+};
