@@ -84,7 +84,7 @@ function makeAttempt(answers: Record<string, string> = {}): Attempt {
 
 function findButton(container: HTMLElement, label: string): HTMLButtonElement {
   const button = Array.from(container.querySelectorAll("button"))
-    .find((item) => item.textContent?.includes(label));
+    .find((item) => item.textContent?.includes(label) || item.getAttribute("aria-label")?.includes(label));
   if (!button) throw new Error(`Button not found: ${label}`);
   return button;
 }
@@ -95,6 +95,7 @@ afterEach(() => {
 });
 
 it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout journey", async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   const secureValues = new Map<string, string>();
   const secureStorage = {
     getItem: (key: string, callback: (error: string | null, value: string | null) => void) =>
@@ -191,6 +192,8 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
 
     await act(async () => {
       container.querySelector<HTMLButtonElement>(".answer-option")?.click();
+    });
+    await act(async () => {
       findButton(container, "Check answer").click();
     });
     expect(container.textContent).toContain("Correct answer.");
