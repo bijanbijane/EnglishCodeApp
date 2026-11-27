@@ -362,6 +362,65 @@ def main():
             )
             assert progress_after_second["data"][0]["completed_count"] == 2
 
+            # The completion ledger must contain one fact per completed attempt.
+            event_count_sql = PERSIST_DIR / "learning-event-count.sql"
+            event_count_sql.write_text(
+                "SELECT COUNT(*) AS event_count FROM learning_events "
+                f"WHERE user_id='{user_id}' AND event_type='lesson_attempt_completed';",
+                encoding="utf-8",
+            )
+            event_count_output = run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={event_count_sql}", "--json",
+            ])
+            event_count_payload = json.loads(event_count_output)
+            if isinstance(event_count_payload, list):
+                event_count_rows = event_count_payload[0]["results"]
+            else:
+                event_count_rows = event_count_payload["results"]
+            assert event_count_rows[0]["event_count"] == 2, event_count_rows
+
+            # Account erasure must cascade learning events while direct event deletion remains guarded.
+            cascade_insert_sql = PERSIST_DIR / "cascade-event-fixture.sql"
+            cascade_insert_sql.write_text(
+                "INSERT INTO users (id,display_name) VALUES ('cascade-user-001','Cascade User');"
+                "INSERT INTO learning_events "
+                "(event_id,user_id,event_type,aggregate_id,lesson_id,score,occurred_at,payload_json) "
+                "VALUES ('cascade-event-001','cascade-user-001','lesson_attempt_completed',"
+                "'cascade-attempt-001','lesson-greetings-001',75,'2026-11-27T00:00:00.000Z',"
+                "json_object('attemptId','cascade-attempt-001'));",
+                encoding="utf-8",
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={cascade_insert_sql}",
+            ])
+            cascade_delete_sql = PERSIST_DIR / "cascade-user-delete.sql"
+            cascade_delete_sql.write_text(
+                "DELETE FROM users WHERE id='cascade-user-001';",
+                encoding="utf-8",
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={cascade_delete_sql}",
+            ])
+            cascade_count_sql = PERSIST_DIR / "cascade-event-count.sql"
+            cascade_count_sql.write_text(
+                "SELECT COUNT(*) AS event_count FROM learning_events "
+                "WHERE user_id='cascade-user-001';",
+                encoding="utf-8",
+            )
+            cascade_count_output = run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={cascade_count_sql}", "--json",
+            ])
+            cascade_count_payload = json.loads(cascade_count_output)
+            if isinstance(cascade_count_payload, list):
+                cascade_count_rows = cascade_count_payload[0]["results"]
+            else:
+                cascade_count_rows = cascade_count_payload["results"]
+            assert cascade_count_rows[0]["event_count"] == 0, cascade_count_rows
+
             history_page_one = expect_status(
                 request("GET", "/api/v1/me/history?limit=1", token),
                 200,
