@@ -138,6 +138,7 @@ def main():
                 "--ip", "127.0.0.1", "--port", "8796",
                 "--persist-to", persist,
                 "--var", f"TELEGRAM_BOT_TOKEN:{BOT_TOKEN}",
+                "--var", "TELEGRAM_WEBHOOK_SECRET:local-test-webhook-secret",
                 "--var", "APP_ENV:local",
             ],
             cwd=BACKEND,
@@ -154,6 +155,34 @@ def main():
 
             ready = expect_status(request("GET", "/api/v1/ready"), 200, "readiness")
             assert ready.get("data", {}).get("database") == "ok"
+
+            webhook_headers = {"X-Telegram-Bot-Api-Secret-Token": "local-test-webhook-secret"}
+            invalid_update = expect_status(
+                request(
+                    "POST", "/api/v1/telegram/webhook",
+                    payload={"message": {"text": "/start", "chat": {"id": 42, "type": "private"}}},
+                ),
+                400,
+                "Telegram webhook requires update_id",
+            )
+            assert invalid_update.get("error") == "A valid Telegram update_id is required."
+
+            webhook_update = {
+                "update_id": 900000101,
+                "callback_query": {"id": "local-dedup-test"},
+            }
+            first_webhook = expect_status(
+                request("POST", "/api/v1/telegram/webhook", payload=webhook_update),
+                200,
+                "Telegram webhook first delivery",
+            )
+            assert first_webhook.get("ok") is True and first_webhook.get("duplicate") is not True
+            duplicate_webhook = expect_status(
+                request("POST", "/api/v1/telegram/webhook", payload=webhook_update),
+                200,
+                "Telegram webhook duplicate delivery",
+            )
+            assert duplicate_webhook == {"ok": True, "duplicate": True}
 
             courses = expect_status(request("GET", "/api/v1/courses"), 200, "frontend course contract")
             assert courses["data"]
