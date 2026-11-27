@@ -32,6 +32,7 @@ async function request(path, expectedStatus = 200) {
       assert(response.status === expectedStatus, `${path}: expected HTTP ${expectedStatus}, received HTTP ${response.status}: ${JSON.stringify(body)}`);
       return body;
     } catch (error) {
+      if (error instanceof Error && error.message.startsWith(`${path}:`)) throw error;
       lastError = error;
       if (attempt === 10) break;
       await new Promise((resolve) => setTimeout(resolve, 3_000));
