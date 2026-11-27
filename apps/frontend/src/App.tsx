@@ -143,10 +143,27 @@ function App() {
     setBusy(true); setError("");
     try {
       const result = await api.answer(attempt.id, currentQuestion.id, answer);
-      const refreshed = await api.attempt(attempt.id);
-      setAttempt(refreshed);
-      setNotice(result.isCorrect ? "Correct answer." : "Not quite. Keep going.");
+      if (!result.accepted) throw new Error("The server did not accept this answer.");
+
+      // The answer POST is the authoritative confirmation. Reflect it immediately so
+      // a failed follow-up read cannot make an accepted answer appear unsubmitted.
+      setAttempt((current) => current?.id === attempt.id ? {
+        ...current,
+        questions: current.questions.map((question) => question.id === currentQuestion.id
+          ? { ...question, submittedAnswer: answer, isCorrect: result.isCorrect }
+          : question),
+      } : current);
       setAnswer(null);
+      setNotice(result.isCorrect ? "Correct answer." : "Not quite. Keep going.");
+
+      try {
+        const refreshed = await api.attempt(attempt.id);
+        setAttempt((current) => current?.id === attempt.id ? refreshed : current);
+      } catch {
+        setNotice(result.isCorrect
+          ? "Correct answer. Your answer was saved, but the lesson could not refresh. You can continue."
+          : "Answer saved. The lesson could not refresh. You can continue.");
+      }
     } catch (e) { setError(e instanceof Error ? e.message : "Could not submit the answer."); }
     finally { setBusy(false); }
   };

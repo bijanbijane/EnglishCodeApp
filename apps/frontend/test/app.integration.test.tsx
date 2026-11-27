@@ -148,7 +148,7 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
   vi.spyOn(api, "attempt").mockImplementation(async () => {
     attemptReads += 1;
     if (attemptReads === 1) return makeAttempt();
-    if (attemptReads === 2) return makeAttempt({ "question-greetings-001": "a" });
+    if (attemptReads === 2) throw new Error("Temporary attempt refresh failure");
     return makeAttempt({
       "question-greetings-001": "a",
       "question-greetings-002": "a",
@@ -215,7 +215,7 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
     await act(async () => {
       findButton(container, "Check answer").click();
     });
-    expect(container.textContent).toContain("Correct answer.");
+    expect(container.textContent).toContain("Correct answer. Your answer was saved, but the lesson could not refresh.");
 
     await act(async () => {
       findButton(container, "Continue").click();
