@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   filterErrorCorrections,
   getSenseSynonyms,
+  LESSON_STAGE_ORDER,
   parseErrorCorrectionJsonl,
   parseVocabularyDataset,
   searchVocabulary,
+  validateLessonBlueprint,
 } from "../../../packages/learning-core/src";
 
 const vocabularyInput = {
@@ -29,6 +31,21 @@ const vocabularyInput = {
       verified: true,
     },
   ],
+};
+
+const lesson = {
+  id: "lesson-a2-speaking",
+  title: "Talk about personal goals",
+  level: "A2" as const,
+  communicativeOutcome: "The learner can describe a personal goal and give one reason.",
+  realWorldTask: "Record a short voice message about a goal for this month.",
+  targetLanguage: ["want to", "plan to", "because"],
+  stages: LESSON_STAGE_ORDER.map((type) => ({
+    type,
+    activity: `Complete the ${type} activity.`,
+    expectedEvidence: `Observable evidence for ${type}.`,
+  })),
+  mastery: { minimumAttempts: 2, minimumScorePercent: 80, requireDelayedRecall: true },
 };
 
 const mistake = {
@@ -69,6 +86,21 @@ describe("learning-core open content", () => {
   it("rejects malformed JSONL and invalid records", () => {
     expect(() => parseErrorCorrectionJsonl("{")).toThrow(SyntaxError);
     expect(() => parseErrorCorrectionJsonl(JSON.stringify({ id: "missing-fields" }))).toThrow(TypeError);
+  });
+
+  it("accepts a complete communicative lesson with delayed recall", () => {
+    expect(validateLessonBlueprint(lesson)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("rejects lessons that skip stages or promote one-shot mastery", () => {
+    const invalid = {
+      ...lesson,
+      stages: lesson.stages.slice(0, -1),
+      mastery: { minimumAttempts: 1, minimumScorePercent: 60, requireDelayedRecall: false },
+    };
+    const result = validateLessonBlueprint(invalid);
+    expect(result.valid).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(2);
   });
 
   it("caps result limits to avoid unbounded response sizes", () => {
