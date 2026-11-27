@@ -239,7 +239,7 @@ def main():
 
             transcription_payload = {
                 "audioBase64": "GkXfowA=",
-                "mimeType": "audio/webm",
+                "mimeType": "audio/webm;codecs=opus",
                 "durationSeconds": 1,
             }
 
