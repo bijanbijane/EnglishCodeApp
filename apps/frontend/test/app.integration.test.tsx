@@ -238,7 +238,7 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
     await act(async () => {
       findButton(container, "Back to courses").click();
     });
-    expect(container.textContent).toContain("1 lessons completed");
+    expect(container.textContent).toContain("1 unique lesson");
     expect(container.textContent).toContain("Greetings and Introductions");
 
     await act(async () => {
@@ -307,7 +307,7 @@ it("restores an existing Telegram Secure Storage session after a fresh app mount
     expect(progressRequest).toHaveBeenCalledOnce();
     expect(secureValues.get("englishcode_session")).toBe("persisted-session-token");
     expect(container.textContent).toContain("Local Learner");
-    expect(container.textContent).toContain("1 lessons completed");
+    expect(container.textContent).toContain("1 unique lesson");
   } finally {
     await act(async () => root.unmount());
     container.remove();

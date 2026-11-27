@@ -207,7 +207,7 @@ function App() {
 
     {screen === "home" && <>
       {profile && <section className="progress-section" aria-label="Learning progress">
-        <div className="progress-heading"><div><p className="eyebrow">YOUR ACTIVITY</p><h2>Progress overview</h2></div><span className="progress-caption">{progressLoading ? "Updating…" : `${progress.length} lessons completed`}</span></div>
+        <div className="progress-heading"><div><p className="eyebrow">YOUR ACTIVITY</p><h2>Progress overview</h2></div><span className="progress-caption">{progressLoading ? "Updating…" : `${progress.length} unique ${progress.length === 1 ? "lesson" : "lessons"}`}</span></div>
         <div className="progress-stats">
           <article className="progress-stat"><span>LESSONS</span><strong>{progress.reduce((sum, item) => sum + item.completed_count, 0)}</strong><small>completed attempts</small></article>
           <article className="progress-stat"><span>BEST SCORES</span><strong>{progress.length ? Math.round(progress.reduce((sum, item) => sum + item.best_score, 0) / progress.length) : 0}<i>%</i></strong><small>average across lessons</small></article>
