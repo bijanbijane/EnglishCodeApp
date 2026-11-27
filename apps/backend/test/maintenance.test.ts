@@ -16,6 +16,7 @@ describe("bounded authentication-state cleanup", () => {
         { meta: { changes: 2 } },
         { meta: { changes: 4 } },
         { meta: { changes: 5 } },
+        { meta: { changes: 6 } },
       ]),
     };
 
@@ -23,7 +24,7 @@ describe("bounded authentication-state cleanup", () => {
     await cleanupExpiredAuthState(db as never, now);
 
     expect(db.batch).toHaveBeenCalledTimes(1);
-    expect(prepared).toHaveLength(4);
+    expect(prepared).toHaveLength(5);
     expect(prepared[0].sql).toContain("LIMIT 500");
     expect(prepared[0].sql).toContain("expires_at < ?");
     expect(prepared[1].sql).toContain("LIMIT 500");
@@ -36,9 +37,13 @@ describe("bounded authentication-state cleanup", () => {
     expect(prepared[3].sql).toContain("LIMIT 500");
     expect(prepared[3].sql).toContain("revoked_at < ?");
     expect(prepared[3].sql).toContain("ORDER BY revoked_at ASC");
+    expect(prepared[4].sql).toContain("ai_transcription_reservations");
+    expect(prepared[4].sql).toContain("LIMIT 500");
+    expect(prepared[4].sql).toContain("day_utc < ?");
     expect(prepared[0].values[0]).toBe(now.toISOString());
     expect(prepared[1].values).toEqual(["2026-11-24T03:17:00.000Z"]);
     expect(prepared[2].values).toEqual(["2026-11-19T03:17:00.000Z"]);
     expect(prepared[3].values).toEqual(["2026-10-27T03:17:00.000Z"]);
+    expect(prepared[4].values).toEqual(["2026-11-19"]);
   });
 });
