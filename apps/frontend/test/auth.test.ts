@@ -101,11 +101,24 @@ describe("secure session lifecycle", () => {
     const setToken = vi.fn();
     const logout = vi.fn().mockResolvedValue({ loggedOut: true });
 
-    await expect(revokeSession({ storage: store.storage, logout, setToken })).resolves.toBeUndefined();
+    await expect(revokeSession({ storage: store.storage, logout, setToken })).resolves.toEqual({ storageCleared: true });
 
     expect(logout).toHaveBeenCalledOnce();
     expect(setToken).toHaveBeenCalledWith(null);
     expect(store.value()).toBeNull();
     expect(store.storage.removeItem).toHaveBeenCalledOnce();
+  });
+
+  it("still completes sign-out when secure-storage cleanup fails after server revocation", async () => {
+    const store = makeStorage("saved-token");
+    store.storage.removeItem = vi.fn((_key, callback) => callback("Storage unavailable"));
+    const setToken = vi.fn();
+    const logout = vi.fn().mockResolvedValue({ loggedOut: true });
+
+    await expect(revokeSession({ storage: store.storage, logout, setToken })).resolves.toEqual({ storageCleared: false });
+
+    expect(logout).toHaveBeenCalledOnce();
+    expect(setToken).toHaveBeenCalledWith(null);
+    expect(store.value()).toBe("saved-token");
   });
 });
