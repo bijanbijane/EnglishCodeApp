@@ -1,0 +1,139 @@
+{
+  "id": "a2-grammar-foundations",
+  "title": "Grammar Foundations: Present Simple and Sentence Order",
+  "level": "A2",
+  "sourceNote": "Original EnglishCode practice examples. Exercise formats are informed by the publicly described categories in Grammar-Drill-Yard; no upstream code or lesson content is copied.",
+  "items": [
+    {
+      "id": "a2-present-001",
+      "type": "multiple-choice",
+      "level": "A2",
+      "prompt": "Choose the correct sentence.",
+      "tags": [
+        "present-simple",
+        "form"
+      ],
+      "options": [
+        {
+          "id": "a",
+          "text": "She go to work by bus."
+        },
+        {
+          "id": "b",
+          "text": "She goes to work by bus."
+        },
+        {
+          "id": "c",
+          "text": "She going to work by bus."
+        }
+      ],
+      "correctOptionId": "b",
+      "feedback": "Use -s with he, she, and it in the present simple."
+    },
+    {
+      "id": "a2-present-002",
+      "type": "gap-fill",
+      "level": "A2",
+      "prompt": "Complete the sentence: My brother ___ (study) English every evening.",
+      "tags": [
+        "present-simple",
+        "retrieval"
+      ],
+      "acceptedAnswers": [
+        "studies"
+      ],
+      "feedback": "For consonant + y, change y to -ies."
+    },
+    {
+      "id": "a2-order-001",
+      "type": "reorder",
+      "level": "A2",
+      "prompt": "Put the words in a natural sentence.",
+      "tags": [
+        "word-order"
+      ],
+      "tokens": [
+        "usually",
+        "I",
+        "breakfast",
+        "eat",
+        "at",
+        "seven"
+      ],
+      "correctOrder": [
+        "I",
+        "usually",
+        "eat",
+        "breakfast",
+        "at",
+        "seven"
+      ],
+      "feedback": "A common neutral order is subject, adverb of frequency, verb, object, then time."
+    },
+    {
+      "id": "a2-transform-001",
+      "type": "transformation",
+      "level": "A2",
+      "prompt": "Make the sentence negative.",
+      "tags": [
+        "negation",
+        "do-support"
+      ],
+      "sourceText": "They are at home.",
+      "instruction": "Write a negative sentence with the same meaning.",
+      "acceptedAnswers": [
+        "They are not at home.",
+        "They aren't at home."
+      ],
+      "feedback": "Keep the verb be; do not add do/does."
+    },
+    {
+      "id": "a2-error-001",
+      "type": "error-spotting",
+      "level": "A2",
+      "prompt": "Find and correct the grammar error.",
+      "tags": [
+        "subject-verb-agreement"
+      ],
+      "sourceText": "He go to school every day.",
+      "correctedText": "He goes to school every day.",
+      "explanation": "In the present simple, a third-person singular subject takes -s or -es."
+    },
+    {
+      "id": "a2-match-001",
+      "type": "matching",
+      "level": "A2",
+      "prompt": "Match each word with its closest meaning.",
+      "tags": [
+        "vocabulary",
+        "retrieval"
+      ],
+      "pairs": [
+        {
+          "left": "rapid",
+          "right": "fast"
+        },
+        {
+          "left": "begin",
+          "right": "start"
+        },
+        {
+          "left": "quiet",
+          "right": "silent"
+        }
+      ]
+    },
+    {
+      "id": "a2-card-001",
+      "type": "flashcard",
+      "level": "A2",
+      "prompt": "Recall the meaning before revealing the answer.",
+      "tags": [
+        "vocabulary",
+        "spaced-review"
+      ],
+      "front": "What does reliable mean?",
+      "back": "Able to be trusted or depended on."
+    }
+  ]
+}
