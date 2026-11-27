@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "apps/backend/**"
+      - "packages/learning-core/**"
       - "database/migrations/**"
       - "database/seeds/**"
       - "scripts/**"
