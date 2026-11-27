@@ -322,15 +322,38 @@ adminRoutes.get(
   requireRole("content_author"),
   async (c) => {
     if (!c.env.DB) return c.json(errorBody("DATABASE_UNAVAILABLE", "Content storage is unavailable.", c.get("requestId")), 503);
+    const limit = Number(c.req.query("limit") ?? 20);
+    const rawCursor = c.req.query("cursor");
+    const cursor = rawCursor ? decodeAdminPageCursor(rawCursor) : null;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50 ||
+        (rawCursor !== undefined && !cursor)) {
+      return c.json(errorBody("INVALID_VERSION_QUERY", "limit or cursor is invalid.", c.get("requestId")), 400);
+    }
+
     const rows = await c.env.DB.prepare(
       "SELECT lv.id,lv.version,lv.title,lv.level,lv.status,lv.created_at,cr.status AS review_status " +
       "FROM lesson_versions lv LEFT JOIN content_review_requests cr ON cr.lesson_version_id=lv.id " +
-      "WHERE lv.lesson_id=? AND lv.created_by_user_id=? ORDER BY lv.version DESC LIMIT 50"
-    ).bind(c.req.param("lessonId"), c.get("userId")).all<{
+      "WHERE lv.lesson_id=? AND lv.created_by_user_id=? " +
+      "AND (? IS NULL OR lv.created_at<? OR (lv.created_at=? AND lv.id<?)) " +
+      "ORDER BY lv.created_at DESC,lv.id DESC LIMIT ?"
+    ).bind(
+      c.req.param("lessonId"), c.get("userId"),
+      cursor?.timestamp ?? null, cursor?.timestamp ?? null,
+      cursor?.timestamp ?? null, cursor?.id ?? null, limit + 1
+    ).all<{
       id: string; version: number; title: string; level: string; status: string;
       created_at: string; review_status: string | null;
     }>();
-    return c.json({ data: rows.results ?? [] });
+    const items = rows.results ?? [];
+    const hasMore = items.length > limit;
+    const page = hasMore ? items.slice(0, limit) : items;
+    const last = page[page.length - 1];
+    return c.json({
+      data: page,
+      meta: {
+        nextCursor: hasMore && last ? encodeAdminPageCursor(last.created_at, last.id) : null
+      }
+    });
   }
 );
 
