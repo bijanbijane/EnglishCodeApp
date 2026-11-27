@@ -33,16 +33,77 @@ function responseText(text: string): string {
   return "Message received. EnglishCode Telegram learning features are being prepared.";
 }
 
-// Temporary bootstrap is deliberately POST-only and requires the webhook secret.
+const setupPage = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>EnglishCode Telegram setup</title>
+</head>
+<body>
+<main>
+<h1>EnglishCode Telegram setup</h1>
+<p id="status">Checking the one-time setup link…</p>
+<pre id="result" aria-live="polite"></pre>
+</main>
+<script>
+(async () => {
+  const status = document.getElementById("status");
+  const result = document.getElementById("result");
+  const key = location.hash.slice(1);
+  history.replaceState(null, "", location.pathname);
+  if (!key) {
+    status.textContent = "Setup key is missing. Open the complete setup link provided in the ChatGPT conversation.";
+    return;
+  }
+  status.textContent = "Registering and verifying the Telegram webhook…";
+  try {
+    const response = await fetch(location.pathname, {
+      method: "POST",
+      headers: { "X-EnglishCode-Setup-Token": key }
+    });
+    const data = await response.json();
+    result.textContent = JSON.stringify(data, null, 2);
+    status.textContent = response.ok && data.ok === true
+      ? "Webhook setup completed."
+      : "Webhook setup failed. Share the result with the project assistant.";
+  } catch (error) {
+    status.textContent = "Request failed. Retry once or share this error with the project assistant.";
+    result.textContent = String(error);
+  }
+})();
+</script>
+</body>
+</html>`;
+
+telegram.get("/telegram/setup", (c) => {
+  if (!c.env.TELEGRAM_SETUP_KEY) {
+    return c.text("Telegram setup is not configured.", 503);
+  }
+  return new Response(setupPage, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store, max-age=0",
+      "Referrer-Policy": "no-referrer",
+      "Content-Security-Policy": "default-src 'none'; script-src 'unsafe-inline'; connect-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+});
+
+// Temporary bootstrap requires a separate, high-entropy setup key.
+// The key is sent in a request header, never in the URL or request body.
 telegram.post("/telegram/setup", async (c) => {
   const token = c.env.TELEGRAM_BOT_TOKEN;
   const webhookSecret = c.env.TELEGRAM_WEBHOOK_SECRET;
-  if (!token || !webhookSecret) {
+  const setupKey = c.env.TELEGRAM_SETUP_KEY;
+  if (!token || !webhookSecret || !setupKey) {
     return c.json({ error: "Telegram setup is not configured." }, 503);
   }
 
   const suppliedSetupSecret = c.req.header("X-EnglishCode-Setup-Token") ?? "";
-  if (!constantTimeEqual(suppliedSetupSecret, webhookSecret)) {
+  if (!constantTimeEqual(suppliedSetupSecret, setupKey)) {
     return c.json({ error: "Unauthorized." }, 401);
   }
 
