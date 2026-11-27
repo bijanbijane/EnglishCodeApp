@@ -36,3 +36,28 @@
   .progress-stat strong{font-size:23px}
   .hero-meta{gap:9px;letter-spacing:1px}
 }
+
+/* Telegram and device safe areas (system insets + Telegram content insets). */
+:root{
+  --app-safe-top:calc(max(env(safe-area-inset-top,0px),var(--tg-safe-area-inset-top,0px)) + var(--tg-content-safe-area-inset-top,0px));
+  --app-safe-right:calc(max(env(safe-area-inset-right,0px),var(--tg-safe-area-inset-right,0px)) + var(--tg-content-safe-area-inset-right,0px));
+  --app-safe-bottom:calc(max(env(safe-area-inset-bottom,0px),var(--tg-safe-area-inset-bottom,0px)) + var(--tg-content-safe-area-inset-bottom,0px));
+  --app-safe-left:calc(max(env(safe-area-inset-left,0px),var(--tg-safe-area-inset-left,0px)) + var(--tg-content-safe-area-inset-left,0px));
+}
+.app-shell{
+  padding-top:var(--app-safe-top);
+  padding-right:var(--app-safe-right);
+  padding-bottom:var(--app-safe-bottom);
+  padding-left:var(--app-safe-left);
+}
+.topbar{min-height:82px;height:auto}
+.alert span,.notice{min-width:0}
+.alert span{overflow-wrap:anywhere}
+.alert button,.notice button{
+  display:grid;
+  place-items:center;
+  flex:0 0 44px;
+  min-width:44px;
+  min-height:44px;
+}
+@media(max-width:700px){.topbar{min-height:68px;height:auto}}
