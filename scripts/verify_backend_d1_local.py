@@ -221,48 +221,6 @@ def main():
             assert user_id == login["data"]["user"]["id"]
             assert "display_name" in profile["data"] and "created_at" in profile["data"]
 
-            # Exercise the AI transcription quota against Wrangler's real local D1.
-            quota_day = time.strftime("%Y-%m-%d", time.gmtime())
-            user_quota_sql = PERSIST_DIR / "ai-user-quota-fixture.sql"
-            user_quota_sql.write_text(
-                "INSERT INTO ai_transcription_reservations (id,day_utc,user_id) VALUES "
-                f"('ai-user-quota-1','{quota_day}','{user_id}'),"
-                f"('ai-user-quota-2','{quota_day}','{user_id}');",
-                encoding="utf-8",
-            )
-            run([
-                "npx", "wrangler", "d1", "execute", DATABASE,
-                "--local", "--persist-to", persist, f"--file={user_quota_sql}",
-            ])
-            quota_payload = {
-                "audioBase64": "AQID",
-                "mimeType": "audio/webm",
-                "durationSeconds": 1,
-            }
-            user_quota_result = expect_status(
-                request("POST", "/api/v1/ai/transcriptions", token, quota_payload),
-                429,
-                "AI transcription per-user daily quota",
-            )
-            assert user_quota_result.get("error", {}).get("code") == "RATE_LIMITED"
-
-            # Remove the user fixture and fill only the global reservation bucket.
-            global_quota_sql = PERSIST_DIR / "ai-global-quota-fixture.sql"
-            global_rows = ",".join(
-                f"('ai-global-quota-{index}','{quota_day}','*')"
-                for index in range(1, 61)
-            )
-            global_quota_sql.write_text(
-                "DELETE FROM ai_transcription_reservations; "
-                "INSERT INTO ai_transcription_reservations (id,day_utc,user_id) VALUES "
-                + global_rows + ";",
-                encoding="utf-8",
-            )
-            run([
-                "npx", "wrangler", "d1", "execute", DATABASE,
-                "--local", "--persist-to", persist, f"--file={global_quota_sql}",
-            ])
-
             # Exercise quota enforcement through the real Worker + Wrangler Local D1.
             # These cases avoid invoking Workers AI: requests must be rejected before inference.
             quota_day = datetime.now(timezone.utc).date().isoformat()
