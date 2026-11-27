@@ -312,7 +312,7 @@ learning.post("/attempts/:attemptId/complete", requireSession, async (c) => {
     ).bind(attemptId, userId),
   ]);
 
-  const attempt = results[2].results[0] as CompletedAttempt | undefined;
+  const attempt = results[3].results[0] as CompletedAttempt | undefined;
   if (!attempt) throw new AppError("NOT_FOUND", "Attempt was not found.", 404);
   if (attempt.status !== "completed") {
     throw new AppError("CONFLICT", "The attempt cannot be completed in its current state.", 409);
