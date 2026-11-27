@@ -77,10 +77,10 @@ def expect_status(result, expected, label):
     return body
 
 
-def make_init_data(user_id, first_name):
+def make_init_data(user_id, first_name, query_id=None):
     values = {
         "auth_date": str(int(time.time())),
-        "query_id": f"local-test-{user_id}",
+        "query_id": query_id or f"local-test-{user_id}",
         "user": json.dumps(
             {"id": user_id, "first_name": first_name},
             separators=(",", ":"),
@@ -376,6 +376,58 @@ def main():
             if not second_user_id.replace("-", "").replace("_", "").isalnum():
                 raise AssertionError("Unexpected user ID format")
 
+            # Distinct valid Telegram payloads for the same provider identity
+            # must converge on one canonical account under concurrent requests.
+            def concurrent_same_identity(query_id):
+                init_data = make_init_data(
+                    900000003, "Concurrent Identity", query_id=query_id
+                )
+                return request(
+                    "POST", "/api/v1/auth/telegram",
+                    payload={"initData": init_data},
+                    ip="203.0.113.13",
+                )
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                identity_results = list(pool.map(
+                    concurrent_same_identity,
+                    ("local-identity-race-a", "local-identity-race-b"),
+                ))
+            assert [status for status, _ in identity_results] == [201, 201], identity_results
+            identity_tokens = [
+                body["data"]["accessToken"] for _, body in identity_results
+            ]
+            identity_profiles = [
+                expect_status(
+                    request("GET", "/api/v1/me", identity_token),
+                    200,
+                    "concurrent same-identity profile",
+                )
+                for identity_token in identity_tokens
+            ]
+            canonical_ids = {
+                profile["data"]["id"] for profile in identity_profiles
+            }
+            assert len(canonical_ids) == 1, identity_profiles
+
+            identity_count_sql = PERSIST_DIR / "concurrent-identity-count.sql"
+            identity_count_sql.write_text(
+                "SELECT COUNT(*) AS account_count FROM users "
+                "WHERE display_name='Concurrent Identity';",
+                encoding="utf-8",
+            )
+            identity_count_output = run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                f"--file={identity_count_sql}", "--json",
+            ])
+            identity_count_payload = json.loads(identity_count_output)
+            if isinstance(identity_count_payload, list):
+                identity_count_rows = identity_count_payload[0]["results"]
+            else:
+                identity_count_rows = identity_count_payload["results"]
+            assert identity_count_rows[0]["account_count"] == 1, identity_count_rows
+
             expect_status(
                 request("GET", "/api/v1/admin/audit", second_token),
                 403,
@@ -659,7 +711,7 @@ def main():
             print(
                 "Wrangler local D1 integration passed: Telegram HMAC/replay, "
                 "session issuance/revocation, content privacy, attempt ownership, "
-                "answer idempotency, concurrent completion, concurrent login replay, admin/reviewer RBAC grant/revocation, review/audit cursor pagination, login rate limiting with Retry-After, and frontend API response-contract compatibility."
+                "answer idempotency, concurrent completion, concurrent login replay, concurrent same-identity account convergence, admin/reviewer RBAC grant/revocation, review/audit cursor pagination, login rate limiting with Retry-After, and frontend API response-contract compatibility."
             )
         finally:
             process.terminate()
