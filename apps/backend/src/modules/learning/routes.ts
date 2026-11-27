@@ -271,6 +271,17 @@ learning.post("/attempts/:attemptId/complete", requireSession, async (c) => {
        WHERE id = ? AND user_id = ? AND status = 'in_progress'`,
     ).bind(completedAt, attemptId, userId),
     c.env.DB.prepare(
+      `INSERT INTO user_progress
+         (user_id, lesson_id, best_score, completed_count, last_completed_at)
+       SELECT user_id, lesson_id, score, 1, completed_at
+       FROM lesson_attempts
+       WHERE id = ? AND status = 'completed' AND completed_at = ? AND changes() = 1
+       ON CONFLICT(user_id, lesson_id) DO UPDATE SET
+         best_score = MAX(user_progress.best_score, excluded.best_score),
+         completed_count = user_progress.completed_count + 1,
+         last_completed_at = excluded.last_completed_at`,
+    ).bind(attemptId, completedAt),
+    c.env.DB.prepare(
       `INSERT INTO learning_events
          (event_id, user_id, event_type, aggregate_id, lesson_id, score, occurred_at, payload_json)
        SELECT
@@ -295,17 +306,6 @@ learning.post("/attempts/:attemptId/complete", requireSession, async (c) => {
          AND a.completed_at = ? AND a.score IS NOT NULL
        ON CONFLICT(event_type, aggregate_id) DO NOTHING`,
     ).bind(attemptId, userId, completedAt),
-    c.env.DB.prepare(
-      `INSERT INTO user_progress
-         (user_id, lesson_id, best_score, completed_count, last_completed_at)
-       SELECT user_id, lesson_id, score, 1, completed_at
-       FROM lesson_attempts
-       WHERE id = ? AND status = 'completed' AND completed_at = ? AND changes() = 1
-       ON CONFLICT(user_id, lesson_id) DO UPDATE SET
-         best_score = MAX(user_progress.best_score, excluded.best_score),
-         completed_count = user_progress.completed_count + 1,
-         last_completed_at = excluded.last_completed_at`,
-    ).bind(attemptId, completedAt),
     c.env.DB.prepare(
       `SELECT status, score, completed_at
        FROM lesson_attempts WHERE id = ? AND user_id = ? LIMIT 1`,
