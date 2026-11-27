@@ -5,6 +5,7 @@ This React feature is the learner-facing interface for generated projections of 
 - Vocabulary: 2,138 sense-level records from Carryword.
 - Error clinic: 40 synthetic correction examples from Elispeak.
 - Lesson preview: original eight-stage A2 communicative lesson.
+- Grammar practice: seven original self-checking exercise examples using the new validated learning-core contract.
 - The frontend JSON files are generated projections, not independently maintained source data.
 - Run `npm run sync:content` from `apps/frontend` to regenerate all three projections from the pinned source files.
 - The feature is lazy-loaded, so its dataset and styles are not part of the initial home-screen route.
