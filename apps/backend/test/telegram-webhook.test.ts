@@ -95,13 +95,16 @@ describe("Telegram webhook setup", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("does not re-register an already-correct webhook", async () => {
+  it("re-applies the expected secret when the webhook URL already matches", async () => {
     const makeInfoResponse = () => new Response(JSON.stringify({
       ok: true,
       result: { url: webhookUrl, pending_update_count: 0, allowed_updates: ["message"] },
     }), { status: 200, headers: { "Content-Type": "application/json" } });
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(makeInfoResponse())
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, result: true }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      }))
       .mockResolvedValueOnce(makeInfoResponse());
     vi.stubGlobal("fetch", fetchMock);
     const response = await app.request(
@@ -112,12 +115,41 @@ describe("Telegram webhook setup", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       ok: true,
-      webhook: "already_registered",
+      webhook: "reconfigured",
       url: webhookUrl,
       pendingUpdateCount: 0,
       allowedUpdates: ["message"],
     });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const [setUrl, setInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(setUrl).toBe(`https://api.telegram.org/bot${botToken}/setWebhook`);
+    expect(JSON.parse(String(setInit.body))).toEqual({
+      url: webhookUrl,
+      secret_token: webhookSecret,
+      allowed_updates: ["message"],
+      drop_pending_updates: false,
+    });
+  });
+
+  it("rejects setup when Telegram does not confirm the requested allowed updates", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        ok: true, result: { url: "", pending_update_count: 0, allowed_updates: [] },
+      }), { status: 200, headers: { "Content-Type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, result: true }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        ok: true, result: { url: webhookUrl, pending_update_count: 0, allowed_updates: [] },
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await app.request(
+      "/api/v1/telegram/setup",
+      { method: "POST", headers: { "X-EnglishCode-Setup-Token": setupKey } },
+      env,
+    );
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({ error: "Telegram webhook verification failed." });
   });
 
   it("registers and verifies the fixed Development webhook URL when not configured", async () => {
