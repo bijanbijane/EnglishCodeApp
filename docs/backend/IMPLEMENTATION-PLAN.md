@@ -33,7 +33,7 @@
 - [x] Current-user progress endpoint.
 - [ ] Verify answer/complete races and exactly-once progress against Wrangler Local D1 on the current main commit.
 - [ ] Finalize pass thresholds, retry policy, and future question types.
-- [ ] Immutable completion-event ledger and deterministic progress rebuild are proposed in open PR #19; they are not part of main until merged.
+- [ ] Immutable completion-event ledger and deterministic progress rebuild are proposed in open PRs #19 and #25. Both introduce migration 0016 and are alternative implementations, not changes to merge together. PR #25 is the focused main-based port; keep it Draft until exact-head CI and Local D1 checks pass.
 
 ## B3 — Content governance and administration
 - [x] D1-backed roles: admin, content_author, content_reviewer, and support.
