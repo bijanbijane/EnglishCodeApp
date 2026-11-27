@@ -135,6 +135,28 @@ function App() {
 
   const goHome = () => { setScreen("home"); setSelectedLesson(null); setAttempt(null); setNotice(""); setError(""); };
 
+  const signIn = async () => {
+    if (!telegram?.SecureStorage || !telegram.isVersionAtLeast?.("9.0")) {
+      setError("Secure sign-in requires a recent Telegram app with Secure Storage support.");
+      return;
+    }
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const restored = await restoreSession({
+        storage: telegram.SecureStorage,
+        initData: telegram.initData,
+        profile: api.profile,
+        login: api.login,
+        setToken: setAccessToken,
+      });
+      setProfile(restored);
+      setNotice("You are signed in.");
+    } catch (e) {
+      setAccessToken(null);
+      setError(e instanceof Error ? e.message : "Telegram sign-in is unavailable.");
+    } finally { setBusy(false); }
+  };
+
   const logout = async () => {
     setBusy(true); setError("");
     try {
@@ -152,7 +174,7 @@ function App() {
   return <main className="app-shell">
     <header className="topbar">
       <button className="brand" onClick={goHome} aria-label="English Code home"><span className="brand-mark">EC</span><span>english<span className="brand-accent">code</span></span></button>
-      <div className="account">{profile ? <><span className="status-dot" />{profile.display_name || "Learner"}<button className="text-button account-action" onClick={() => void logout()} disabled={busy}>Sign out</button></> : <span className="muted">{telegram ? "Connecting…" : "Preview mode"}</span>}</div>
+      <div className="account">{profile ? <><span className="status-dot" />{profile.display_name || "Learner"}<button className="text-button account-action" onClick={() => void logout()} disabled={busy}>Sign out</button></> : telegram ? <button className="text-button account-action" onClick={() => void signIn()} disabled={busy}>{busy ? "Connecting…" : "Sign in"}</button> : <span className="muted">Preview mode</span>}</div>
     </header>
 
     <section className="hero">
