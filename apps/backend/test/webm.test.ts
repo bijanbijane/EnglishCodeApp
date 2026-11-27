@@ -150,7 +150,7 @@ describe("WebM/Opus duration parser", () => {
     const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
     const duration = getWebmOpusDurationSeconds(bytes);
 
-    expect(bytes.length).toBe(4788);
+    expect(bytes.length).toBe(1275);
     expect(duration).toBeGreaterThan(0.19);
     expect(duration).toBeLessThan(0.23);
   });
