@@ -90,15 +90,37 @@ function readElement(
   return { id: id.value, dataStart, dataEnd, unknownSize: size.unknownSize };
 }
 
+function findUnknownClusterEnd(
+  bytes: Uint8Array,
+  start: number,
+  end: number,
+): number {
+  let offset = start;
+  while (offset < end) {
+    const child = readElement(bytes, offset, end);
+    // A new Cluster, or a new EBML header starting another initialization
+    // segment, closes an unknown-sized Cluster at the Segment level.
+    if (child.id === CLUSTER_ID || child.id === EBML_HEADER_ID) return offset;
+    if (child.unknownSize) invalidAudio();
+    offset = child.dataEnd;
+  }
+  return end;
+}
+
 function childElements(
   bytes: Uint8Array,
   start: number,
   end: number,
+  allowUnknownClusterBoundaries = false,
 ): EbmlElement[] {
   const elements: EbmlElement[] = [];
   let offset = start;
   while (offset < end) {
     const element = readElement(bytes, offset, end);
+    if (allowUnknownClusterBoundaries && element.id === CLUSTER_ID && element.unknownSize) {
+      element.dataEnd = findUnknownClusterEnd(bytes, element.dataStart, end);
+      element.unknownSize = false;
+    }
     elements.push(element);
     offset = element.dataEnd;
     if (element.unknownSize) break;
@@ -397,7 +419,7 @@ export function getWebmOpusDurationSeconds(bytes: Uint8Array): number {
   const docType = headerChildren.find((element) => element.id === EBML_DOCTYPE_ID);
   if (!docType || readText(bytes, docType) !== "webm") invalidAudio();
 
-  const segmentChildren = childElements(bytes, segment.dataStart, segment.dataEnd);
+  const segmentChildren = childElements(bytes, segment.dataStart, segment.dataEnd, true);
   const info = segmentChildren.find((element) => element.id === INFO_ID);
   const tracksElement = segmentChildren.find((element) => element.id === TRACKS_ID);
   if (!tracksElement) invalidAudio();
