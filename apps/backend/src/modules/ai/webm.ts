@@ -65,8 +65,8 @@ function readVint(
     (first & valueMask) === valueMask &&
     bytes.slice(offset + 1, offset + length).every((byte) => byte === 0xff);
 
-  if (!Number.isSafeInteger(value)) invalidAudio();
-  return { value, length, unknownSize };
+  if (!unknownSize && !Number.isSafeInteger(value)) invalidAudio();
+  return { value: unknownSize ? 0 : value, length, unknownSize };
 }
 
 function readElement(
