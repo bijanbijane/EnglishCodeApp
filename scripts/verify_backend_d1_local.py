@@ -510,7 +510,7 @@ def main():
             second_token = second_login["data"]["accessToken"]
 
             global_quota_result = expect_status(
-                request("POST", "/api/v1/ai/transcriptions", second_token, quota_payload),
+                request("POST", "/api/v1/ai/transcriptions", second_token, transcription_payload),
                 429,
                 "AI transcription global daily quota",
             )
