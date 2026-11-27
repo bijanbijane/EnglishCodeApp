@@ -29,7 +29,7 @@ function makeDb(quotaGranted = true) {
 }
 
 const validPayload = {
-  audioBase64: "AQID",
+  audioBase64: "GkXfowA=",
   mimeType: "audio/webm",
   durationSeconds: 10,
 };
@@ -91,6 +91,26 @@ describe("AI speech transcription API", () => {
     );
 
     expect(response.status).toBe(413);
+    expect(db.batch).not.toHaveBeenCalled();
+  });
+
+  it("rejects audio whose signature does not match the declared MIME type", async () => {
+    const token = await createSessionToken();
+    const { db } = makeDb();
+    const response = await app.request(
+      "/api/v1/ai/transcriptions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...validPayload, audioBase64: "AQID" }),
+      },
+      { DB: db, AI: { run: vi.fn() } } as never,
+    );
+
+    expect(response.status).toBe(400);
     expect(db.batch).not.toHaveBeenCalled();
   });
 
