@@ -58,7 +58,7 @@ export async function revokeSession(deps: {
   storage: SessionStorage;
   logout: () => Promise<unknown>;
   setToken: (token: string | null) => void;
-}): Promise<void> {
+}): Promise<{ storageCleared: boolean }> {
   await deps.logout();
   deps.setToken(null);
   try {
