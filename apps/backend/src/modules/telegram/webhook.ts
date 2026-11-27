@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../../env";
 
 const telegram = new Hono<AppEnv>();
+const WEBHOOK_URL = "https://englishcode-backend-dev.bijanbijane-1.workers.dev/api/v1/telegram/webhook";
 
 type TelegramMessage = {
   text?: string;
@@ -32,6 +33,43 @@ function responseText(text: string): string {
   return "Message received. EnglishCode Telegram learning features are being prepared.";
 }
 
+telegram.post("/telegram/setup", async (c) => {
+  const token = c.env.TELEGRAM_BOT_TOKEN;
+  const webhookSecret = c.env.TELEGRAM_WEBHOOK_SECRET;
+  const setupKey = c.env.TELEGRAM_SETUP_KEY;
+  if (!token || !webhookSecret || !setupKey) {
+    return c.json({ error: "Telegram setup is not configured." }, 503);
+  }
+
+  const suppliedKey = c.req.header("X-EnglishCode-Setup-Key") ?? "";
+  if (!constantTimeEqual(suppliedKey, setupKey)) {
+    return c.json({ error: "Unauthorized." }, 401);
+  }
+
+  // The destination is fixed in code; callers cannot redirect the bot webhook.
+  const telegramResponse = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: WEBHOOK_URL,
+      secret_token: webhookSecret,
+      allowed_updates: ["message"],
+      drop_pending_updates: false,
+    }),
+  });
+
+  if (!telegramResponse.ok) {
+    return c.json({ error: "Telegram webhook registration failed." }, 502);
+  }
+
+  const result = await telegramResponse.json() as { ok?: boolean };
+  if (result.ok !== true) {
+    return c.json({ error: "Telegram webhook registration failed." }, 502);
+  }
+
+  return c.json({ ok: true, webhook: "registered" });
+});
+
 telegram.post("/telegram/webhook", async (c) => {
   const token = c.env.TELEGRAM_BOT_TOKEN;
   const webhookSecret = c.env.TELEGRAM_WEBHOOK_SECRET;
@@ -49,6 +87,9 @@ telegram.post("/telegram/webhook", async (c) => {
     update = await c.req.json<TelegramUpdate>();
   } catch {
     return c.json({ error: "Invalid JSON." }, 400);
+  }
+  if (typeof update !== "object" || update === null) {
+    return c.json({ error: "Invalid update." }, 400);
   }
 
   const message = update.message;
