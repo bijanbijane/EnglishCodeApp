@@ -21,10 +21,10 @@ Both upstream datasets and their license files are preserved without editing. Se
 ## Runtime design
 
 - No runtime dependencies, model downloads, GPU, external API, or persistent process.
-- The package exposes pure parsing, filtering, and lookup functions.
+- The package exposes pure parsing, filtering, lookup, and lesson-validation functions.
 - Vendor data is deliberately not imported into the Worker bundle. The raw Carryword file is approximately 591 KB and the Elispeak file approximately 15 KB; use a controlled build/import process and D1 or static sharding before exposing large catalogs.
 - Open English WordNet is documented as a candidate source but is not bundled here. Its 2025 JSON archive is about 9.5 MB compressed; do not load the full resource into a Worker request or bundle.
-- Keep user attempts, mastery, review scheduling, and progress in the existing backend/D1 domain. This package owns reusable reference content only.
+- Keep user attempts, mastery, review scheduling, and progress in the existing backend/D1 domain. This package owns reusable reference content and content-quality contracts only.
 
 ## Pedagogical integration
 
@@ -40,6 +40,10 @@ Use content in a lesson sequence rather than presenting isolated lists:
 8. Mastery check with more than one item and more than one attempt.
 
 The CEFR level is a curriculum and assessment design constraint, not a label to copy from a third-party dataset without evidence.
+
+## Lesson quality contract
+
+The lesson validator requires Context, Input, Noticing, Guided Practice, Production, Feedback, Spaced Recall, and Assessment in order. Each stage must declare an activity and observable evidence. A lesson also needs an original communicative outcome, a real-world task, and a mastery gate requiring at least two attempts plus delayed recall.
 
 ## Development
 
