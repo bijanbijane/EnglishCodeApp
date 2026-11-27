@@ -313,3 +313,120 @@ it("restores an existing Telegram Secure Storage session after a fresh app mount
     container.remove();
   }
 });
+
+
+it("keeps the latest course selection when an earlier lesson request resolves late", async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  const secondCourse: Course = {
+    ...course,
+    id: "course-english-conversation",
+    slug: "english-conversation",
+    title: "English Conversation",
+  };
+  const firstLesson: Lesson = { ...lesson, title: "First course lesson" };
+  const secondLesson: Lesson = {
+    ...lesson,
+    id: "lesson-conversation-001",
+    course_id: secondCourse.id,
+    title: "Second course lesson",
+  };
+
+  let resolveFirst!: (value: Lesson[]) => void;
+  let resolveSecond!: (value: Lesson[]) => void;
+  const firstRequest = new Promise<Lesson[]>((resolve) => { resolveFirst = resolve; });
+  const secondRequest = new Promise<Lesson[]>((resolve) => { resolveSecond = resolve; });
+
+  vi.spyOn(api, "courses").mockResolvedValue([course, secondCourse]);
+  vi.spyOn(api, "lessons").mockImplementation((courseId) =>
+    courseId === course.id ? firstRequest : secondRequest,
+  );
+
+  const { default: App } = await import("../src/App");
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+
+  try {
+    await act(async () => {
+      root.render(<App />);
+      await Promise.resolve();
+    });
+    expect(container.textContent).toContain("English Foundations");
+    expect(container.textContent).toContain("English Conversation");
+
+    await act(async () => {
+      findButton(container, "English Foundations").click();
+    });
+    expect(container.textContent).toContain("Loading your learning space");
+
+    await act(async () => {
+      findButton(container, "All courses").click();
+    });
+    expect(container.textContent).toContain("English Conversation");
+
+    await act(async () => {
+      findButton(container, "English Conversation").click();
+    });
+    await act(async () => {
+      resolveSecond([secondLesson]);
+      await Promise.resolve();
+    });
+    expect(container.textContent).toContain("Second course lesson");
+
+    await act(async () => {
+      resolveFirst([firstLesson]);
+      await Promise.resolve();
+    });
+    expect(container.textContent).toContain("English Conversation");
+    expect(container.textContent).toContain("Second course lesson");
+    expect(container.textContent).not.toContain("First course lesson");
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+it("does not show a previous course's lessons after the next course request fails", async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  const secondCourse: Course = {
+    ...course,
+    id: "course-english-conversation",
+    slug: "english-conversation",
+    title: "English Conversation",
+  };
+
+  vi.spyOn(api, "courses").mockResolvedValue([course, secondCourse]);
+  vi.spyOn(api, "lessons")
+    .mockResolvedValueOnce([lesson])
+    .mockRejectedValueOnce(new Error("Temporary lesson service failure"));
+
+  const { default: App } = await import("../src/App");
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+
+  try {
+    await act(async () => {
+      root.render(<App />);
+      await Promise.resolve();
+    });
+    await act(async () => {
+      findButton(container, "English Foundations").click();
+    });
+    expect(container.textContent).toContain("Greetings and Introductions");
+
+    await act(async () => {
+      findButton(container, "All courses").click();
+    });
+    await act(async () => {
+      findButton(container, "English Conversation").click();
+    });
+
+    expect(container.textContent).toContain("Temporary lesson service failure");
+    expect(container.textContent).toContain("Lessons could not be loaded");
+    expect(container.textContent).not.toContain("Greetings and Introductions");
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
