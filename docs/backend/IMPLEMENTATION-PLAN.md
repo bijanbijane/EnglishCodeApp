@@ -36,7 +36,7 @@
 - [x] Server-side answer validation and grading; idempotent same-answer retry.
 - [x] Conditional completion and progress upsert in one D1 batch.
 - [x] Current-user progress endpoint.
-- [ ] Verify answer/complete races and exactly-once progress against Local D1.
+- [x] Verify answer/complete races and exactly-once progress against Local D1 (Wrangler Local D1 integration now asserts one completion event for concurrent duplicate completion and two events for two distinct attempts).
 - [x] Add immutable attempt-result/progress-event facts and deterministic projection rebuild (migration 0016, completion write path, maintenance SQL; validation pending).
 - [ ] Finalize pass thresholds, retry policy and future question types.
 
