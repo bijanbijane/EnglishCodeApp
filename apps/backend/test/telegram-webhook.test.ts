@@ -5,10 +5,61 @@ const webhookSecret = "test-webhook-secret";
 const setupKey = "test-one-time-setup-key";
 const botToken = "123456:TEST_BOT_TOKEN";
 const webhookUrl = "https://englishcode-backend-dev.bijanbijane-1.workers.dev/api/v1/telegram/webhook";
+function createD1Mock() {
+  const updates = new Map<number, { status: string; updatedAt: number }>();
+  return {
+    prepare(query: string) {
+      let values: unknown[] = [];
+      return {
+        bind(...args: unknown[]) {
+          values = args;
+          return {
+            async run() {
+              const updateId = Number(values[0]);
+              if (query.includes("INSERT INTO telegram_webhook_updates")) {
+                const current = updates.get(updateId);
+                if (!current) {
+                  updates.set(updateId, { status: "processing", updatedAt: Date.now() });
+                  return { meta: { changes: 1 } };
+                }
+                if (current.status === "processing" && current.updatedAt < Date.now() - 300_000) {
+                  updates.set(updateId, { status: "processing", updatedAt: Date.now() });
+                  return { meta: { changes: 1 } };
+                }
+                return { meta: { changes: 0 } };
+              }
+              if (query.includes("UPDATE telegram_webhook_updates")) {
+                const current = updates.get(updateId);
+                if (!current || current.status !== "processing") return { meta: { changes: 0 } };
+                updates.set(updateId, { status: "processed", updatedAt: Date.now() });
+                return { meta: { changes: 1 } };
+              }
+              if (query.includes("DELETE FROM telegram_webhook_updates")) {
+                const current = updates.get(updateId);
+                if (current?.status === "processing") {
+                  updates.delete(updateId);
+                  return { meta: { changes: 1 } };
+                }
+                return { meta: { changes: 0 } };
+              }
+              throw new Error("Unexpected D1 run query in test: " + query);
+            },
+            async first() {
+              const current = updates.get(Number(values[0]));
+              return current ? { status: current.status } : null;
+            },
+          };
+        },
+      };
+    },
+  };
+}
+
 const env = {
   TELEGRAM_BOT_TOKEN: botToken,
   TELEGRAM_WEBHOOK_SECRET: webhookSecret,
   TELEGRAM_SETUP_KEY: setupKey,
+  DB: createD1Mock(),
 } as never;
 
 afterEach(() => vi.unstubAllGlobals());
@@ -141,6 +192,33 @@ describe("Telegram webhook", () => {
     expect(JSON.parse(String(init.body))).toMatchObject({
       chat_id: 42, text: expect.stringContaining("Welcome to EnglishCode"),
     });
+    const replay = await app.request(
+      "/api/v1/telegram/webhook",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Telegram-Bot-Api-Secret-Token": webhookSecret },
+        body: JSON.stringify({
+          update_id: 1, message: { text: "/start", chat: { id: 42, type: "private" } },
+        }),
+      },
+      env,
+    );
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toEqual({ ok: true, duplicate: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects updates without a valid update_id", async () => {
+    const response = await app.request(
+      "/api/v1/telegram/webhook",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Telegram-Bot-Api-Secret-Token": webhookSecret },
+        body: JSON.stringify({ message: { text: "/start", chat: { id: 42, type: "private" } } }),
+      },
+      env,
+    );
+    expect(response.status).toBe(400);
   });
 
   it("rejects null as an invalid Telegram update", async () => {
