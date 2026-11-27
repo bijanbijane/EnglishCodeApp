@@ -62,13 +62,20 @@ export default function LearningContentModule({ onBack }: { onBack: () => void }
         <div className="word-navigation"><span>{filteredWords.length ? wordIndex + 1 : 0} / {filteredWords.length} matching entries</span><div><button disabled={wordIndex === 0} onClick={() => setWordIndex((i) => Math.max(0, i - 1))}>Previous</button><button disabled={wordIndex >= filteredWords.length - 1} onClick={() => setWordIndex((i) => Math.min(filteredWords.length - 1, i + 1))}>Next →</button></div></div>
       </article> : <div className="library-empty">No matching words. Try a broader search or another level.</div>}
       <p className="library-footnote">Dictionary records are organized by sense: the same spelling can have different meanings.</p>
-    </div> : <div className="clinic-workspace">
+    </div> : tab === "correction" ? <div className="clinic-workspace">
       <div className="clinic-progress"><span>ERROR CLINIC</span><span>CASE {String(mistakeIndex + 1).padStart(2, "0")} / {String(mistakes.length).padStart(2, "0")}</span></div>
       <div className="clinic-tags"><span>{currentMistake.cefr}</span><span>{currentMistake.category.replaceAll("_", " ")}</span></div>
       <h3>Can you spot what needs to change?</h3>
       <div className="sentence-panel incorrect"><span>LEARNER SENTENCE</span><p>{currentMistake.learner_sentence}</p></div>
       {revealed ? <><div className="sentence-panel corrected"><span>IMPROVED VERSION</span><p>{currentMistake.corrected_sentence}</p></div><div className="explanation-panel"><span>THE PATTERN</span><p>{currentMistake.explanation}</p></div><div className="practice-panel"><span>MAKE IT YOURS</span><p>{currentMistake.practice_prompt}</p></div></> : <button className="reveal-button" onClick={() => setRevealed(true)}>Reveal correction and explanation</button>}
       <div className="clinic-actions"><button onClick={() => { setMistakeIndex((i) => (i + 1) % mistakes.length); setRevealed(false); }}>Next case →</button><span>Short explanations. Active practice. No score pressure.</span></div>
+    </div> : <div className="lesson-preview-workspace">
+      <div className="lesson-preview-header"><span>A2 · COMMUNICATIVE SPEAKING</span><h3>{a2PersonalGoalsLesson.title}</h3><p>{a2PersonalGoalsLesson.communicativeOutcome}</p></div>
+      <div className="lesson-task"><span>REAL-WORLD TASK</span><p>{a2PersonalGoalsLesson.realWorldTask}</p></div>
+      <div className="lesson-targets"><span>TARGET LANGUAGE</span><div>{a2PersonalGoalsLesson.targetLanguage.map((item) => <span className="word-chip" key={item}>{item}</span>)}</div></div>
+      <div className="lesson-stage-list"><span className="lesson-stage-label">THE 8-STAGE LEARNING SEQUENCE</span>{a2PersonalGoalsLesson.stages.map((stage, index) => <article className="lesson-stage" key={stage.type}><span className="lesson-stage-number">{String(index + 1).padStart(2, "0")}</span><div><h4>{stage.type.replaceAll("-", " ")}</h4><p>{stage.activity}</p><small>Evidence: {stage.expectedEvidence}</small></div></article>)}</div>
+      <div className="lesson-mastery"><strong>Mastery gate</strong><span>{a2PersonalGoalsLesson.mastery.minimumAttempts}+ attempts · {a2PersonalGoalsLesson.mastery.minimumScorePercent}% threshold · delayed recall required</span></div>
+      <p className="library-footnote">Original EnglishCode lesson sample. CEFR-informed, not an official CEFR examination or certified assessment.</p>
     </div>}
     <div className="library-attribution"><span>OPEN DATA · LOCAL DELIVERY · NO RUNTIME API CALLS</span><span>Content attribution is included in the repository.</span></div>
   </section>;
