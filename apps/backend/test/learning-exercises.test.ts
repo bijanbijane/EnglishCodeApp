@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import grammarExercisePack from "../../../packages/learning-core/examples/grammar-exercise-pack.json";
 import { validateExercisePack, validateLearningExercise } from "../../../packages/learning-core/src";
 
 const pack = {
@@ -40,6 +41,10 @@ const pack = {
 describe("learning-core exercise contracts", () => {
   it("accepts all supported exercise formats in a valid pack", () => {
     expect(validateExercisePack(pack)).toEqual({ valid: true, errors: [] });
+  });
+
+  it("validates the exact grammar exercise pack shipped to the Mini App", () => {
+    expect(validateExercisePack(grammarExercisePack)).toEqual({ valid: true, errors: [] });
   });
 
   it("rejects a multiple-choice answer key that is not present in the options", () => {
