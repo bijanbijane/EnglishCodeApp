@@ -9,23 +9,31 @@ This file records provenance, license, size, and quality constraints for vendore
 - Repository: https://github.com/carryword/english-vocabulary
 - File: `data/en-synonym-thesaurus.json`
 - Upstream version: `0.5.2`
+- Immutable upstream commit: `9ed91160134bda530534f082364b0b26ebc73f7c`
+- Upstream Git blob SHA-1: `43df6d926b21ace926205c62bfdde934d4c5f14d`
+- SHA-256: `f9d97aa55587a6b94fe6699034456c727348b5f1a115ec596803d35095c99618`
 - Imported entries: 2,138
-- Upstream file size: 591,072 bytes
+- Upstream file size: 591,077 UTF-8 bytes
 - License: MIT; license text is preserved beside the data.
 - Intended use: supplementary, sense-aware synonym lookup.
 - Quality caveat: upstream metadata says the data is an AI-assisted draft pending verification. The upstream `verified` field reflects its own automated/AI-assisted audit, not independent pedagogical or lexicographic certification. Human review is required before a record becomes authoritative lesson content.
 - Retrieved: 2026-11-27.
+- Exact source file at pinned revision: https://github.com/carryword/english-vocabulary/blob/9ed91160134bda530534f082364b0b26ebc73f7c/data/en-synonym-thesaurus.json
 
 ### Elispeak Common English Mistakes
 
 - Repository: https://github.com/elispeak/elispeak-common-english-mistakes
 - File: `data/common-english-mistakes.jsonl`
+- Immutable upstream commit: `1552b3216ad47f15f64e36f4b38d8fcd9dd8e123`
+- Upstream Git blob SHA-1: `d3a84c88e0dced5f393eff3a37f9840f304c8976`
+- SHA-256: `7b73eb42ac98eac0e96932ef9c3aec4cd9acc55f575ea248b99bc76884c5f789`
 - Imported records: 40
-- Upstream file size: 14,943 bytes
+- Upstream file size: 14,943 UTF-8 bytes
 - License: MIT; license text is preserved beside the data.
 - Intended use: optional practice seeds for noticing, correction, and production.
 - Quality caveat: the repository is a small companion dataset, not a comprehensive grammar corpus or a validated CEFR assessment instrument. Review examples before publication.
 - Retrieved: 2026-11-27.
+- Exact source file at pinned revision: https://github.com/elispeak/elispeak-common-english-mistakes/blob/1552b3216ad47f15f64e36f4b38d8fcd9dd8e123/data/common-english-mistakes.jsonl
 
 ## Candidate sources — not vendored
 
