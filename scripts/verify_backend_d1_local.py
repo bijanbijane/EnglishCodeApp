@@ -238,7 +238,7 @@ def main():
             ])
 
             transcription_payload = {
-                "audioBase64": "AQID",
+                "audioBase64": "GkXfowA=",
                 "mimeType": "audio/webm",
                 "durationSeconds": 1,
             }
