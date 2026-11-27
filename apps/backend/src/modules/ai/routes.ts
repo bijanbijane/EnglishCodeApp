@@ -19,7 +19,15 @@ function parsePayload(value: unknown): { audioBase64: string; durationSeconds: n
   const body = value as Record<string, unknown>;
   const declaredMime = typeof body.mimeType === "string" ? body.mimeType.trim().toLowerCase() : "";
   const mimeType = declaredMime.split(";")[0]?.trim() ?? "";
-  const codecParameter = declaredMime.match(/(?:^|;)\\s*codecs\\s*=\\s*"?([^";\\s]+)"?/i)?.[1];
+  const codecParameter = declaredMime
+    .split(";")
+    .slice(1)
+    .map((parameter) => parameter.trim())
+    .find((parameter) => parameter.toLowerCase().startsWith("codecs="))
+    ?.slice("codecs=".length)
+    .replaceAll('"', "")
+    .trim()
+    .toLowerCase();
 
   if (
     typeof body.audioBase64 !== "string" ||
