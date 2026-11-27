@@ -396,9 +396,16 @@ it("does not show a previous course's lessons after the next course request fail
   };
 
   vi.spyOn(api, "courses").mockResolvedValue([course, secondCourse]);
+  const retryLesson: Lesson = {
+    ...lesson,
+    id: "lesson-retry-001",
+    course_id: secondCourse.id,
+    title: "Recovered lesson",
+  };
   vi.spyOn(api, "lessons")
     .mockResolvedValueOnce([lesson])
-    .mockRejectedValueOnce(new Error("Temporary lesson service failure"));
+    .mockRejectedValueOnce(new Error("Temporary lesson service failure"))
+    .mockResolvedValueOnce([retryLesson]);
 
   const { default: App } = await import("../src/App");
   const container = document.createElement("div");
@@ -425,6 +432,53 @@ it("does not show a previous course's lessons after the next course request fail
     expect(container.textContent).toContain("Temporary lesson service failure");
     expect(container.textContent).toContain("Lessons could not be loaded");
     expect(container.textContent).not.toContain("Greetings and Introductions");
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[aria-label="Dismiss error"]')?.click();
+    });
+    expect(container.textContent).toContain("Retry loading lessons");
+    await act(async () => {
+      findButton(container, "Retry loading lessons").click();
+    });
+    expect(container.textContent).toContain("Recovered lesson");
+    expect(container.textContent).not.toContain("Greetings and Introductions");
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+
+it("keeps the course-catalogue failure state after dismissing the alert and can retry", async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  vi.spyOn(api, "courses")
+    .mockRejectedValueOnce(new Error("Temporary catalogue service failure"))
+    .mockResolvedValueOnce([course]);
+
+  const { default: App } = await import("../src/App");
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+
+  try {
+    await act(async () => {
+      root.render(<App />);
+      await Promise.resolve();
+    });
+    expect(container.textContent).toContain("Temporary catalogue service failure");
+    expect(container.textContent).toContain("The course catalogue could not be loaded.");
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[aria-label="Dismiss error"]')?.click();
+    });
+    expect(container.textContent).toContain("The course catalogue could not be loaded.");
+    expect(container.textContent).toContain("Retry loading courses");
+
+    await act(async () => {
+      findButton(container, "Retry loading courses").click();
+    });
+    expect(container.textContent).toContain("English Foundations");
+    expect(container.textContent).not.toContain("The course catalogue could not be loaded.");
   } finally {
     await act(async () => root.unmount());
     container.remove();
