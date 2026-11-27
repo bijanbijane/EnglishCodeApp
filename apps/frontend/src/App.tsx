@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, ApiError, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
+import { api, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
+import { restoreSession, revokeSession } from "./auth";
 
 type TelegramSecureStorage = {
   getItem: (key: string, callback: (error: string | null, value: string | null, canRestore?: boolean) => void) => void;
@@ -59,49 +60,16 @@ function App() {
       return;
     }
 
-    const readToken = () => new Promise<string | null>((resolve, reject) => {
-      secureStorage.getItem("englishcode_session", (storageError, value) => {
-        if (storageError) reject(new Error("Could not read the secure session."));
-        else resolve(value);
-      });
+    void restoreSession({
+      storage: secureStorage,
+      initData: telegram.initData,
+      profile: api.profile,
+      login: api.login,
+      setToken: setAccessToken,
+    }).then(setProfile).catch((e: unknown) => {
+      setAccessToken(null);
+      setNotice(e instanceof Error ? e.message : "Telegram sign-in is unavailable.");
     });
-    const saveToken = (token: string) => new Promise<void>((resolve, reject) => {
-      secureStorage.setItem("englishcode_session", token, (storageError, stored) => {
-        if (storageError || stored === false) reject(new Error("Could not save the secure session."));
-        else resolve();
-      });
-    });
-    const removeToken = () => new Promise<void>((resolve) => {
-      secureStorage.removeItem("englishcode_session", () => resolve());
-    });
-
-    void (async () => {
-      try {
-        const savedToken = await readToken();
-        if (savedToken) {
-          setAccessToken(savedToken);
-          try {
-            setProfile(await api.profile());
-            return;
-          } catch (error) {
-            // Only an explicit authentication failure invalidates a saved session.
-            // Network errors and server failures must not erase a valid token.
-            if (!(error instanceof ApiError) || error.status !== 401) throw error;
-            await removeToken();
-            setAccessToken(null);
-          }
-        }
-
-        if (!telegram.initData) throw new Error("Telegram did not provide authentication data.");
-        const result = await api.login(telegram.initData);
-        await saveToken(result.accessToken);
-        setAccessToken(result.accessToken);
-        setProfile(await api.profile());
-      } catch (e) {
-        setAccessToken(null);
-        setNotice(e instanceof Error ? e.message : "Telegram sign-in is unavailable.");
-      }
-    })();
   }, [loadCourses]);
 
   const openCourse = async (course: Course) => {
@@ -170,12 +138,13 @@ function App() {
   const logout = async () => {
     setBusy(true); setError("");
     try {
-      await api.logout();
-      await new Promise<void>((resolve) => {
-        telegram?.SecureStorage?.removeItem("englishcode_session", () => resolve());
-        if (!telegram?.SecureStorage) resolve();
+      if (!telegram?.SecureStorage) throw new Error("Secure session storage is unavailable.");
+      await revokeSession({
+        storage: telegram.SecureStorage,
+        logout: api.logout,
+        setToken: setAccessToken,
       });
-      setAccessToken(null); setProfile(null); setProgress([]); setNotice("You have signed out.");
+      setProfile(null); setProgress([]); setNotice("You have signed out.");
     } catch (e) { setError(e instanceof Error ? e.message : "Could not sign out."); }
     finally { setBusy(false); }
   };
