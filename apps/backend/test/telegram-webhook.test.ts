@@ -5,7 +5,7 @@ const webhookSecret = "test-webhook-secret";
 const setupKey = "test-one-time-setup-key";
 const botToken = "123456:TEST_BOT_TOKEN";
 const webhookUrl = "https://englishcode-backend-dev.bijanbijane-1.workers.dev/api/v1/telegram/webhook";
-const miniAppUrl = "https://englishcode-frontend-dev.bijanbijane-1.workers.dev";
+const miniAppUrl = new URL("https://englishcode-frontend-dev.bijanbijane-1.workers.dev").toString();
 function createD1Mock() {
   const updates = new Map<number, { status: string; updatedAt: number }>();
   return {
