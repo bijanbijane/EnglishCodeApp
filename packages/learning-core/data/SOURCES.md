@@ -66,3 +66,56 @@ The framework is freely accessible for consultation, but Council of Europe publi
 ## Update policy
 
 Every imported source must have a pinned upstream revision or release, checksum, retrieval date, license copy, record count, and validation report. Updates must be reviewed as a content change, not silently pulled at runtime.
+
+
+## Vendored course samples
+
+### The Complete English Course — From Zero to Fluent
+
+- Repository: https://github.com/sazardev/english-from-zero-to-fluent
+- Pinned upstream commit: `714b2212b9ab1d95eb220eca0033d681ca7c9212` (2026-09-29).
+- License: MIT; the original license is preserved at `data/vendor/english-from-zero-to-fluent/LICENSE`.
+- Imported samples: `book/01-02-the-sentence.mdx` and `book/02-01-the-present.mdx`.
+- Upstream describes 118 documents and a 12-week/84-day self-study track. Its own plan records unfinished areas, including some reading extracts and exercises; treat it as a useful reference/course source, not a complete independently certified curriculum.
+- Intended use: grammar explanations and reference material for adaptation into original, interactive EnglishCode lessons.
+- Content is preserved as upstream MDX. It is not rendered directly in the app; custom MDX components and pedagogical level claims require review before conversion.
+
+### Read English — research-backed reading course
+
+- Repository: https://github.com/oyekamal/english-reading-course
+- Pinned upstream commit: `b80948b69135c9de7cbb1cd778deecf0b05463e8` (2026-09-28).
+- License: course content, research, and documentation are CC BY 4.0; tools are MIT. The complete upstream license notice is preserved at `data/vendor/english-reading-course/LICENSE`.
+- Imported samples: one lesson each from Level 5 (A2–B1), Level 6 (B1–B2), and Level 7 (C1–C2).
+- Attribution: “Read English — oyekamal, https://github.com/oyekamal/english-reading-course, CC BY 4.0.” Any future adaptations must identify changes and retain attribution and the license link.
+- Intended use: reading fluency, morphology, comprehension, text structure, and critical-reading lesson references. The course includes phonics and literacy instruction as well as L2 reading; it is not a general-purpose speaking/listening curriculum.
+- Quality gate: independently review research claims, factual content, answer keys, adult suitability, and CEFR mapping before exposing lessons to learners.
+
+## Exercise-format reference — not vendored
+
+### Grammar Drill Yard / Polyglot Grammar Forge
+
+- Repository: https://github.com/galvarezz09/Grammar-Drill-Yard
+- Pinned upstream commit inspected: `7740040bdcdc3cf22fb32d1dbf4af1c94cf60fcc` (2026-11-27).
+- Its README declares MIT, but the repository tree inspected for this integration does not contain a standalone `LICENSE` file. The root `index.html` is an obfuscated/encoded shell rather than an auditable exercise implementation; no reusable lesson pack was found.
+- No upstream code or lesson content has been copied. EnglishCode implements its own validated exercise contract for multiple choice, gap fill, reorder, transformation, error spotting, matching, and flashcards, based on common exercise formats described in the README.
+- Reuse gate: request a canonical license file and readable source before considering direct code reuse.
+
+## Additional repositories found during the second search
+
+### English Pathway
+
+- Repository: https://github.com/Eljethao/english-pathway
+- Public README reports 144 lessons across 12 B1–C1 skill courses, 12 timed practice sets, a placement test, 14 grammar topics, and 195 vocabulary items. Its content-review report describes 3,727 checked items and 512 fixes.
+- No LICENSE file was found in the repository. Do not copy its code or content. Use as a quality and product-architecture benchmark only.
+
+### FreeLingo
+
+- Repository: https://github.com/ArtCC/freelingo
+- License: AGPL-3.0. Active project with CEFR A1–C2 study plans, competencies, flashcards, grammar/vocabulary references, reading/listening practice, and speaking/tutor workflows.
+- The full app includes a Python/Next.js stack and optional local/cloud LLM infrastructure. It is not a drop-in fit for the EnglishCode Cloudflare Workers/free-tier architecture. Do not copy its code unless the AGPL network-source obligations and product licensing strategy are explicitly accepted; use its curriculum and progression ideas as a reference.
+
+### LibreLingo
+
+- Repository: https://github.com/kantord/LibreLingo
+- License: AGPL-3.0; repository is archived. Despite its substantial community history, it is not a preferred implementation base for an actively maintained, Cloudflare-first product.
+
