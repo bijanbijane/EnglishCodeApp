@@ -543,7 +543,7 @@ def main():
             assert review_page_two["meta"]["nextCursor"] is None
 
             audit_page_one = expect_status(
-                request("GET", "/api/v1/admin/audit?limit=1", second_token),
+                request("GET", "/api/v1/admin/audit?limit=1&action=test.pagination&resourceType=test_resource", second_token),
                 200,
                 "audit first page",
             )
@@ -554,7 +554,7 @@ def main():
                 request(
                     "GET",
                     "/api/v1/admin/audit?" + urlencode({
-                        "limit": "1", "cursor": audit_cursor
+                        "limit": "1", "action": "test.pagination", "resourceType": "test_resource", "cursor": audit_cursor
                     }),
                     second_token,
                 ),
