@@ -2,25 +2,50 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import app from "../src/app";
 
 const webhookSecret = "test-webhook-secret";
-const setupKey = "test-one-time-setup-key";
 const botToken = "123456:TEST_BOT_TOKEN";
 const webhookUrl = "https://englishcode-backend-dev.bijanbijane-1.workers.dev/api/v1/telegram/webhook";
 const env = {
   TELEGRAM_BOT_TOKEN: botToken,
   TELEGRAM_WEBHOOK_SECRET: webhookSecret,
-  TELEGRAM_SETUP_KEY: setupKey,
 } as never;
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Telegram webhook setup", () => {
-  it("rejects requests without the one-time setup key", async () => {
+  it("does not re-register an already-correct webhook", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({
+        ok: true,
+        result: { url: webhookUrl, pending_update_count: 0, allowed_updates: ["message"] },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
     const response = await app.request("/api/v1/telegram/setup", { method: "GET" }, env);
-    expect(response.status).toBe(401);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      ok: true,
+      webhook: "already_registered",
+      url: webhookUrl,
+      pendingUpdateCount: 0,
+      allowedUpdates: ["message"],
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it("registers and verifies only the fixed Development webhook URL", async () => {
+  it("registers and verifies the fixed Development webhook URL when not configured", async () => {
     const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        ok: true,
+        result: { url: "", pending_update_count: 0, allowed_updates: [] },
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, result: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -34,11 +59,7 @@ describe("Telegram webhook setup", () => {
       }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const response = await app.request(
-      `/api/v1/telegram/setup?key=${setupKey}`,
-      { method: "GET" },
-      env,
-    );
+    const response = await app.request("/api/v1/telegram/setup", { method: "GET" }, env);
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
@@ -48,8 +69,8 @@ describe("Telegram webhook setup", () => {
       pendingUpdateCount: 0,
       allowedUpdates: ["message"],
     });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    const [setUrl, setInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const [setUrl, setInit] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(setUrl).toBe(`https://api.telegram.org/bot${botToken}/setWebhook`);
     expect(JSON.parse(String(setInit.body))).toEqual({
       url: webhookUrl,
@@ -57,8 +78,6 @@ describe("Telegram webhook setup", () => {
       allowed_updates: ["message"],
       drop_pending_updates: false,
     });
-    const [infoUrl] = fetchMock.mock.calls[1] as [string, RequestInit | undefined];
-    expect(infoUrl).toBe(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
   });
 });
 
