@@ -7,6 +7,7 @@ import contentRoutes from "./modules/content/routes";
 import authRoutes from "./modules/auth/routes";
 import userRoutes from "./modules/users/routes";
 import learningRoutes from "./modules/learning/routes";
+import telegramRoutes from "./modules/telegram/webhook";
 import { adminRoutes } from "./modules/admin/routes";
 import adminReadRoutes from "./modules/admin/audit-routes";
 
@@ -87,6 +88,7 @@ app.route("/api/v1", contentRoutes);
 app.route("/api/v1", authRoutes);
 app.route("/api/v1", userRoutes);
 app.route("/api/v1", learningRoutes);
+app.route("/api/v1", telegramRoutes);
 app.route("/api/v1/admin", adminRoutes);
 app.route("/api/v1/admin", adminReadRoutes);
 

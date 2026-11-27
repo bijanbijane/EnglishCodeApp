@@ -3,7 +3,7 @@
   "name": "englishcode-backend-dev",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-26",
-  "workers_dev": false,
+  "workers_dev": true,
   "preview_urls": true,
   "observability": {
     "enabled": true
