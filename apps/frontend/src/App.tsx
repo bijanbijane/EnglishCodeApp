@@ -38,6 +38,7 @@ function App() {
   const [answer, setAnswer] = useState<string | null>(null);
   const [questionIndex, setQuestionIndex] = useState(0);
   const [score, setScore] = useState<number | null>(null);
+  const [signedOut, setSignedOut] = useState(false);
   const authStarted = useRef(false);
 
   const loadCourses = useCallback(async () => {
@@ -166,7 +167,7 @@ function App() {
         logout: api.logout,
         setToken: setAccessToken,
       });
-      setProfile(null); setProgress([]); setNotice("You have signed out.");
+      setProfile(null); setProgress([]); setSignedOut(true); setNotice("You have signed out. Close and reopen the Mini App to start a new Telegram sign-in session.");
     } catch (e) { setError(e instanceof Error ? e.message : "Could not sign out."); }
     finally { setBusy(false); }
   };
@@ -174,7 +175,7 @@ function App() {
   return <main className="app-shell">
     <header className="topbar">
       <button className="brand" onClick={goHome} aria-label="English Code home"><span className="brand-mark">EC</span><span>english<span className="brand-accent">code</span></span></button>
-      <div className="account">{profile ? <><span className="status-dot" />{profile.display_name || "Learner"}<button className="text-button account-action" onClick={() => void logout()} disabled={busy}>Sign out</button></> : telegram ? <button className="text-button account-action" onClick={() => void signIn()} disabled={busy}>{busy ? "Connecting…" : "Sign in"}</button> : <span className="muted">Preview mode</span>}</div>
+      <div className="account">{profile ? <><span className="status-dot" />{profile.display_name || "Learner"}<button className="text-button account-action" onClick={() => void logout()} disabled={busy}>Sign out</button></> : telegram ? signedOut ? <span className="muted">Reopen app to sign in</span> : <button className="text-button account-action" onClick={() => void signIn()} disabled={busy}>{busy ? "Connecting…" : "Sign in"}</button> : <span className="muted">Preview mode</span>}</div>
     </header>
 
     <section className="hero">
