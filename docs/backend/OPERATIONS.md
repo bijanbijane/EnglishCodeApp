@@ -5,7 +5,7 @@
 - Local development uses Wrangler local mode and an isolated D1 database.
 - Staging must have its own Worker name, D1 database, secrets and exact origin allowlist.
 - Production bindings and secrets must never be copied into local or preview environments.
-- Current Wrangler config contains a local placeholder D1 ID; no deploy target or production resource is provisioned.
+- Development backend and frontend Workers and a dedicated Development D1 database are provisioned. Production resources and bindings are not provisioned or authorized by this workflow.
 
 ## Local workflow
 
@@ -21,12 +21,12 @@ npm run db:seed:local
 npm run dev
 ```
 
-The Python script exercises migrations and core SQLite transaction/trigger invariants. It is compatibility evidence, not a substitute for Local D1 or concurrent Worker tests. Use synthetic records only.
+The Python SQLite verifier exercises migrations and core transaction/trigger invariants. `npm run test:d1-local` starts Wrangler with a fresh local D1 database, applies migrations and synthetic seeds, and exercises authenticated flows, concurrent completion, exactly-once learning-event persistence, and admin/reviewer workflows. These are local-only tests; use synthetic records only.
 
 ## Migration policy
 
 1. Review SQL, foreign keys, triggers and indexes.
-2. Apply migrations `0001`–`0010` to fresh Local D1.
+2. Apply migrations `0001`–`0016` to fresh Wrangler Local D1.
 3. Apply migrations to a copy of the previous supported schema.
 4. Verify indexes, constraints and representative query plans.
 5. Record exact migration version and evidence.
@@ -42,7 +42,7 @@ Never edit a migration applied to a shared database. Prefer forward-only migrati
 - Local D1 migration and synthetic seed.
 - Later: Worker integration tests, security tests, frontend contract compatibility and migration-upgrade tests.
 
-Current GitHub Actions runs fail before runner allocation (`runner_id=0`, no steps). This is not a code-test failure or a passing result. The connected Mac was also offline during the latest work session.
+GitHub Actions has intermittently failed before runner allocation (`runner_id=0`, no steps); this is an infrastructure/runner failure, not a code-test result. The equivalent backend validation suite has passed through Cloudflare Build Runner on exact feature commits. The validation-only build trigger must retain its echo-only deploy command and must not be repurposed for deployment.
 
 ## Observability
 
