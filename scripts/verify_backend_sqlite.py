@@ -123,6 +123,7 @@ def main() -> None:
         ).fetchone()
         assert published_detail["description"] == "Practice common greetings and polite introductions."
         assert published_detail["description"] != "Stale legacy description"
+        db.commit()
 
         # Attempt creation pins a published lesson and assessment policy, then snapshots
         # the exact published question versions and their weights in one transaction.
