@@ -37,7 +37,7 @@
 - [x] Conditional completion and progress upsert in one D1 batch.
 - [x] Current-user progress endpoint.
 - [x] Verify answer/complete races and exactly-once progress against Local D1 (Wrangler Local D1 integration now asserts one completion event for concurrent duplicate completion and two events for two distinct attempts).
-- [x] Add immutable attempt-result/progress-event facts and deterministic projection rebuild (migration 0016, completion write path, maintenance SQL; validation pending).
+- [x] Add immutable attempt-result/progress-event facts and deterministic projection rebuild (migration 0016, completion write path, maintenance SQL; validated by Cloudflare validation-only Build c9f28ecf-361d-47b0-9126-f07294e267f1 on code commit 5dc565e72b54639c0f72067dacd780c10d4e7ce0).
 - [ ] Finalize pass thresholds, retry policy and future question types.
 
 ## B3 — Content governance and administration
@@ -74,7 +74,7 @@
 1. GitHub Actions jobs currently fail before runner allocation (`runner_id=0`, no steps); typecheck, Vitest and CI SQL script have not run.
 2. The connected Mac is offline, so no local npm/Wrangler execution is available.
 3. Migrations `0001`–`0010` have not been applied to a fresh Cloudflare Local D1 in this session.
-4. D1 `batch()` and SQLite `changes()` invariants are covered by a committed SQLite compatibility script but still need real Local D1/concurrency verification.
+4. D1 `batch()` and SQLite `changes()` invariants are covered by SQLite compatibility verification and Wrangler Local D1 concurrency tests, including exactly-once event persistence.
 5. Production origin values and first-admin bootstrap remain owner-controlled and unset.
 
-No deployment, remote migration, production secret change, paid resource or production role grant has been performed. Migration 0016 adds an append-only completion-event ledger, backfills historical completed attempts, and the completion transaction appends one idempotent event before updating the derived progress projection. A transactional maintenance SQL script rebuilds user_progress from events. Exact-commit test and fresh-Local-D1 validation remain pending.
+No deployment, remote migration, production secret change, paid resource or production role grant has been performed. Migration 0016 adds an append-only completion-event ledger, backfills historical completed attempts, and the completion transaction appends one idempotent event before updating the derived progress projection. A transactional maintenance SQL script rebuilds user_progress from events. Exact-code-commit typecheck, 80-test Vitest suite, SQLite verifier, Wrangler Local D1 integration, and deploy dry-run passed in Cloudflare validation-only Build c9f28ecf-361d-47b0-9126-f07294e267f1. No deployment or remote migration was run.
