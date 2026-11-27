@@ -137,7 +137,7 @@ it("rejects a recording larger than the upload cap before calling the API", asyn
   originalRevokeObjectURL = Object.getOwnPropertyDescriptor(URL, "revokeObjectURL");
   Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:too-large") });
   Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
-  MockMediaRecorder.nextBlob = new Blob([new Uint8Array(96 * 1024 + 1)], { type: "audio/webm;codecs=opus" });
+  MockMediaRecorder.nextBlob = new Blob([new Uint8Array(1024 * 1024 + 1)], { type: "audio/webm;codecs=opus" });
   const transcribe = vi.spyOn(api, "transcribeAudio");
   const view = mount();
 
@@ -149,7 +149,7 @@ it("rejects a recording larger than the upload cap before calling the API", asyn
     button(view, "Stop recording").click();
   });
 
-  expect(view.textContent).toContain("exceeded the 96 KiB upload limit");
+  expect(view.textContent).toContain("exceeded the 1 MiB upload limit");
   expect(transcribe).not.toHaveBeenCalled();
   MockMediaRecorder.nextBlob = audioBlob;
 });
