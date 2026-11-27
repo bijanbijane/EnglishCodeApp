@@ -121,4 +121,46 @@ describe("secure session lifecycle", () => {
     expect(setToken).toHaveBeenCalledWith(null);
     expect(store.value()).toBe("saved-token");
   });
+  it("fails closed when Telegram does not provide fresh initData", async () => {
+    const store = makeStorage(null);
+    const login = vi.fn();
+
+    await expect(restoreSession({
+      storage: store.storage, initData: "",
+      profile: vi.fn(), login, setToken: vi.fn(),
+    })).rejects.toThrow("Telegram did not provide authentication data.");
+
+    expect(login).not.toHaveBeenCalled();
+    expect(store.storage.setItem).not.toHaveBeenCalled();
+  });
+
+  it("does not log in when secure storage cannot read the saved token", async () => {
+    const store = makeStorage(null);
+    store.storage.getItem = vi.fn((_key, callback) => callback("Storage unavailable", null));
+    const login = vi.fn();
+
+    await expect(restoreSession({
+      storage: store.storage, initData: "telegram-init-data",
+      profile: vi.fn(), login, setToken: vi.fn(),
+    })).rejects.toThrow("Could not read the secure session.");
+
+    expect(login).not.toHaveBeenCalled();
+  });
+
+  it("does not activate a session when secure storage cannot persist a new token", async () => {
+    const store = makeStorage(null);
+    store.storage.setItem = vi.fn((_key, _value, callback) => callback("Storage unavailable", false));
+    const setToken = vi.fn();
+    const login = vi.fn().mockResolvedValue({ accessToken: "fresh-token" });
+
+    await expect(restoreSession({
+      storage: store.storage, initData: "telegram-init-data",
+      profile: vi.fn(), login, setToken,
+    })).rejects.toThrow("Could not save the secure session.");
+
+    expect(login).toHaveBeenCalledOnce();
+    expect(setToken).not.toHaveBeenCalled();
+    expect(store.storage.setItem).toHaveBeenCalledOnce();
+  });
+
 });
