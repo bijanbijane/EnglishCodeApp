@@ -130,11 +130,10 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
 
   vi.spyOn(api, "courses").mockResolvedValue([course]);
   vi.spyOn(api, "lessons").mockResolvedValue([lesson]);
-  vi.spyOn(api, "login").mockResolvedValue({
-    accessToken: "local-integration-session",
-    expiresAt: "2026-12-04T00:00:00.000Z",
-    user: { id: profile.id, displayName: profile.display_name },
-  });
+  let resolveLogin: ((value: Awaited<ReturnType<typeof api.login>>) => void) | null = null;
+  vi.spyOn(api, "login").mockImplementation(() => new Promise((resolve) => {
+    resolveLogin = resolve;
+  }));
   vi.spyOn(api, "profile").mockResolvedValue(profile);
   vi.spyOn(api, "progress").mockImplementation(async () => {
     progressReads += 1;
@@ -173,10 +172,28 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
   try {
     await act(async () => {
       root.render(<App />);
+      // Allow the secure-storage read to resolve and start automatic login.
+      await Promise.resolve();
     });
 
     expect(telegramReady).toHaveBeenCalledOnce();
     expect(telegramExpand).toHaveBeenCalledOnce();
+    expect(api.login).toHaveBeenCalledOnce();
+    const signInButton = container.querySelector<HTMLButtonElement>(".account-action");
+    expect(signInButton?.disabled).toBe(true);
+    signInButton?.click();
+
+    await act(async () => {
+      resolveLogin?.({
+        accessToken: "local-integration-session",
+        expiresAt: "2026-12-04T00:00:00.000Z",
+        user: { id: profile.id, displayName: profile.display_name },
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(api.login).toHaveBeenCalledOnce();
     expect(secureValues.get("englishcode_session")).toBe("local-integration-session");
     expect(container.textContent).toContain("English Foundations");
 
