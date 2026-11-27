@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import stylesheet from "../src/styles.css?raw";
+import stylesheet from "../src/styles.css?inline";
 
 describe("Telegram mobile layout contracts", () => {
   it("accounts for both device and Telegram content safe areas", () => {
