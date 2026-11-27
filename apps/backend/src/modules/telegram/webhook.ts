@@ -184,6 +184,47 @@ telegram.post("/telegram/webhook", async (c) => {
   if (typeof update !== "object" || update === null) {
     return c.json({ error: "Invalid update." }, 400);
   }
+  if (!Number.isSafeInteger(update.update_id) || (update.update_id ?? -1) < 0) {
+    return c.json({ error: "A valid Telegram update_id is required." }, 400);
+  }
+
+  const updateId = update.update_id as number;
+  const claim = await c.env.DB.prepare(
+    `INSERT INTO telegram_webhook_updates (update_id, status, updated_at)
+     VALUES (?, 'processing', unixepoch())
+     ON CONFLICT(update_id) DO UPDATE SET
+       status = 'processing',
+       updated_at = unixepoch()
+     WHERE telegram_webhook_updates.status = 'processing'
+       AND telegram_webhook_updates.updated_at < unixepoch() - 300`,
+  ).bind(updateId).run();
+
+  if (claim.meta.changes !== 1) {
+    const existing = await c.env.DB.prepare(
+      "SELECT status FROM telegram_webhook_updates WHERE update_id = ? LIMIT 1",
+    ).bind(updateId).first<{ status: string }>();
+    if (existing?.status === "processed") {
+      return c.json({ ok: true, duplicate: true });
+    }
+    return c.json({ error: "Telegram update is already being processed." }, 503);
+  }
+
+  const completeUpdate = async () => {
+    const result = await c.env.DB.prepare(
+      `UPDATE telegram_webhook_updates
+       SET status = 'processed', updated_at = unixepoch()
+       WHERE update_id = ? AND status = 'processing'`,
+    ).bind(updateId).run();
+    if (result.meta.changes !== 1) {
+      throw new Error("Telegram update claim could not be completed.");
+    }
+  };
+
+  const releaseUpdate = async () => {
+    await c.env.DB.prepare(
+      "DELETE FROM telegram_webhook_updates WHERE update_id = ? AND status = 'processing'",
+    ).bind(updateId).run();
+  };
 
   const message = update.message;
   const chatId = message?.chat?.id;
@@ -195,28 +236,36 @@ telegram.post("/telegram/webhook", async (c) => {
     text.length === 0 ||
     message?.chat?.type !== "private"
   ) {
+    await completeUpdate();
     return c.json({ ok: true });
   }
 
-  const telegramResponse = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: responseText(text.slice(0, 4096)),
-      disable_web_page_preview: true,
-    }),
-  });
-
-  if (!telegramResponse.ok) {
+  let telegramResponse: Response;
+  try {
+    telegramResponse = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: responseText(text.slice(0, 4096)),
+        disable_web_page_preview: true,
+      }),
+    });
+    if (!telegramResponse.ok) {
+      await releaseUpdate();
+      return c.json({ error: "Telegram delivery failed." }, 502);
+    }
+    const result = await telegramResponse.json() as { ok?: boolean };
+    if (result.ok !== true) {
+      await releaseUpdate();
+      return c.json({ error: "Telegram delivery failed." }, 502);
+    }
+  } catch {
+    await releaseUpdate();
     return c.json({ error: "Telegram delivery failed." }, 502);
   }
 
-  const result = await telegramResponse.json() as { ok?: boolean };
-  if (result.ok !== true) {
-    return c.json({ error: "Telegram delivery failed." }, 502);
-  }
-
+  await completeUpdate();
   return c.json({ ok: true });
 });
 
