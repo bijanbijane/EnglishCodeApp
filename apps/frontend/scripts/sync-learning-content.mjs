@@ -1,4 +1,5 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,6 +8,18 @@ const frontendRoot = resolve(scriptDir, "..");
 const repositoryRoot = resolve(frontendRoot, "../..");
 const sourceRoot = resolve(repositoryRoot, "packages/learning-core/data/vendor");
 const outputRoot = resolve(frontendRoot, "src/features/learning-content/data");
+
+const SOURCE_SHA256 = {
+  carryword: "f9d97aa55587a6b94fe6699034456c727348b5f1a115ec596803d35095c99618",
+  elispeak: "7b73eb42ac98eac0e96932ef9c3aec4cd9acc55f575ea248b99bc76884c5f789",
+};
+
+function assertSourceChecksum(label, content, expected) {
+  const actual = createHash("sha256").update(content, "utf8").digest("hex");
+  if (actual !== expected) {
+    throw new Error(`${label} source SHA-256 mismatch; refusing to generate learner-facing content.`);
+  }
+}
 
 function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
@@ -54,12 +67,16 @@ function validateMistakes(records) {
   }
 }
 
-const carryword = JSON.parse(await readFile(resolve(sourceRoot, "carryword/en-synonym-thesaurus.json"), "utf8"));
+const carrywordRaw = await readFile(resolve(sourceRoot, "carryword/en-synonym-thesaurus.json"), "utf8");
+assertSourceChecksum("Carryword", carrywordRaw, SOURCE_SHA256.carryword);
+const carryword = JSON.parse(carrywordRaw);
 validateCarryword(carryword.entries);
 const vocabulary = carryword.entries.map(({ word, sense, pos, definition, level, synonyms, related }) => ({
   word, sense, pos, definition, level, synonyms, related: related ?? [],
 }));
-const mistakeLines = (await readFile(resolve(sourceRoot, "elispeak/common-english-mistakes.jsonl"), "utf8"))
+const mistakesRaw = await readFile(resolve(sourceRoot, "elispeak/common-english-mistakes.jsonl"), "utf8");
+assertSourceChecksum("Elispeak", mistakesRaw, SOURCE_SHA256.elispeak);
+const mistakeLines = mistakesRaw
   .split(/\r?\n/)
   .filter((line) => line.trim());
 const mistakes = mistakeLines.map((line, index) => {
