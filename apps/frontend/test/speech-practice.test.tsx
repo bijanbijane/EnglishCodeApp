@@ -308,6 +308,60 @@ it("discards a microphone permission response when the learner signs out", async
   expect(view.textContent).toContain("Sign in to your Telegram account");
 });
 
+it("does not submit audio when logout occurs while Blob data is being encoded", async () => {
+  const stopTrack = vi.fn();
+  const stream = { getTracks: () => [{ stop: stopTrack }] } as unknown as MediaStream;
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+  });
+  vi.stubGlobal("MediaRecorder", MockMediaRecorder);
+  MockMediaRecorder.nextBlob = audioBlob;
+  MockMediaRecorder.lastInstance = null;
+  originalCreateObjectURL = Object.getOwnPropertyDescriptor(URL, "createObjectURL");
+  originalRevokeObjectURL = Object.getOwnPropertyDescriptor(URL, "revokeObjectURL");
+  Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:pending-encoding") });
+  Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+
+  let resolveArrayBuffer!: (value: ArrayBuffer) => void;
+  const pendingArrayBuffer = new Promise<ArrayBuffer>((resolve) => {
+    resolveArrayBuffer = resolve;
+  });
+  originalBlobArrayBuffer = Object.getOwnPropertyDescriptor(Blob.prototype, "arrayBuffer");
+  Object.defineProperty(Blob.prototype, "arrayBuffer", {
+    configurable: true,
+    value: vi.fn(() => pendingArrayBuffer),
+  });
+  const transcribe = vi.spyOn(api, "transcribeAudio");
+  const view = mount();
+
+  await act(async () => {
+    button(view, "Start recording").click();
+    await Promise.resolve();
+  });
+  await act(async () => {
+    button(view, "Stop recording").click();
+  });
+  await act(async () => {
+    button(view, "Transcribe audio").click();
+    await Promise.resolve();
+  });
+  expect(view.textContent).toContain("Transcribing your recording");
+
+  await act(async () => {
+    root?.render(<SpeechPractice isAuthenticated={false} />);
+  });
+  resolveArrayBuffer(new Uint8Array([0x1a, 0x45, 0xdf, 0xa3]).buffer);
+  await act(async () => {
+    await pendingArrayBuffer;
+    await Promise.resolve();
+  });
+
+  expect(transcribe).not.toHaveBeenCalled();
+  expect(view.textContent).toContain("Sign in to your Telegram account");
+  expect(stopTrack).toHaveBeenCalledOnce();
+});
+
 it("ignores an AI response that arrives after the learner signs out", async () => {
   const stopTrack = vi.fn();
   const stream = { getTracks: () => [{ stop: stopTrack }] } as unknown as MediaStream;
