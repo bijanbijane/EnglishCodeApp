@@ -42,6 +42,7 @@ function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const authStarted = useRef(false);
   const authInFlight = useRef(false);
+  const courseRequestId = useRef(0);
 
   const loadCourses = useCallback(async () => {
     setLoading(true); setError("");
@@ -82,11 +83,29 @@ function App() {
   }, [loadCourses]);
 
   const openCourse = async (course: Course) => {
-    setSelectedCourse(course); setSelectedLesson(null); setError("");
+    const requestId = ++courseRequestId.current;
+    setSelectedCourse(course); setSelectedLesson(null); setLessons([]); setError("");
     setLoading(true);
-    try { setLessons(await api.lessons(course.id)); }
-    catch (e) { setError(e instanceof Error ? e.message : "Could not load lessons."); }
-    finally { setLoading(false); }
+    try {
+      const nextLessons = await api.lessons(course.id);
+      if (requestId === courseRequestId.current) setLessons(nextLessons);
+    } catch (e) {
+      if (requestId === courseRequestId.current) {
+        setError(e instanceof Error ? e.message : "Could not load lessons.");
+      }
+    } finally {
+      if (requestId === courseRequestId.current) setLoading(false);
+    }
+  };
+
+  const showCourses = () => {
+    // Invalidate any lesson request still in flight before returning to the course list.
+    courseRequestId.current += 1;
+    setSelectedCourse(null);
+    setSelectedLesson(null);
+    setLessons([]);
+    setLoading(false);
+    setError("");
   };
 
   const startLesson = async (lesson: Lesson) => {
@@ -219,7 +238,7 @@ function App() {
       </section>}
       <section className="content-section">
       <div className="section-heading"><div><p className="eyebrow">YOUR LEARNING SPACE</p><h2>{selectedCourse ? selectedCourse.title : "Choose your path"}</h2></div>
-        {selectedCourse && <button className="text-button" onClick={() => { setSelectedCourse(null); setLessons([]); }}>All courses ←</button>}
+        {selectedCourse && <button className="text-button" onClick={showCourses}>All courses ←</button>}
       </div>
       {loading ? <div className="loading"><span className="spinner" />Loading your learning space…</div> :
         selectedCourse ? <div className="lesson-list">{lessons.length ? lessons.map((lesson, index) =>
@@ -228,7 +247,7 @@ function App() {
             <div className="lesson-info"><h3>{lesson.title}</h3><p>{lesson.description || "A focused practice session"}{lesson.level ? ` · ${lesson.level}` : ""}</p></div>
             <button className="round-button" disabled={busy} onClick={() => void startLesson(lesson)} aria-label={`Start ${lesson.title}`}>↗</button>
           </article>
-        ) : <div className="empty-state">No published lessons are available in this course yet.</div>}</div>
+        ) : <div className="empty-state">{error ? "Lessons could not be loaded. Return to all courses and try again." : "No published lessons are available in this course yet."}</div>}</div>
         : <div className="course-grid">{courses.length ? courses.map((course, index) =>
           <button className={`course-card course-${index % 3}`} key={course.id} onClick={() => void openCourse(course)}>
             <span className="course-index">COURSE {String(index + 1).padStart(2, "0")}</span>
