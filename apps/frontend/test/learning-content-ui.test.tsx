@@ -60,3 +60,21 @@ it("previews the original eight-stage A2 communicative lesson", async () => {
   expect(container.textContent).toContain("delayed recall required");
   expect(container.querySelectorAll(".lesson-stage")).toHaveLength(8);
 });
+
+
+it("runs the new grammar exercise pack and reveals a checked answer", async () => {
+  container = document.createElement("div");
+  document.body.append(container);
+  root = createRoot(container);
+  await act(async () => root?.render(<LearningContentModule onBack={() => undefined} />));
+  const exercisesTab = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("Grammar practice"));
+  await act(async () => exercisesTab?.click());
+  expect(container.textContent).toContain("Grammar Foundations: Present Simple and Sentence Order");
+  expect(container.textContent).toContain("Choose the correct sentence.");
+  const correctOption = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("She goes to work by bus."));
+  await act(async () => correctOption?.click());
+  const reveal = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("Check / reveal answer"));
+  await act(async () => reveal?.click());
+  expect(container.textContent).toContain("ANSWER / FEEDBACK");
+  expect(container.textContent).toContain("Use -s with he, she, and it in the present simple.");
+});
