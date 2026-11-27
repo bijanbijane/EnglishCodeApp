@@ -323,7 +323,7 @@ adminRoutes.get(
   requireRole("content_author"),
   async (c) => {
     if (!c.env.DB) return c.json(errorBody("DATABASE_UNAVAILABLE", "Content storage is unavailable.", c.get("requestId")), 503);
-    const limit = Number(c.req.query("limit") ?? 20);
+    const limit = Number(c.req.query("limit") ?? 50);
     const rawCursor = c.req.query("cursor");
     const cursor = rawCursor ? decodeAuthorVersionCursor(rawCursor) : null;
     if (!Number.isInteger(limit) || limit < 1 || limit > 50 ||
