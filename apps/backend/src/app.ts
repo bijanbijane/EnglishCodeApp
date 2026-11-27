@@ -29,7 +29,7 @@ app.use("*", async (c, next) => {
 });
 
 app.use("/api/v1/*", bodyLimit({
-  maxSize: 256 * 1024,
+  maxSize: 2 * 1024 * 1024,
   onError: (context) => context.json({
     error: {
       code: "PAYLOAD_TOO_LARGE",
