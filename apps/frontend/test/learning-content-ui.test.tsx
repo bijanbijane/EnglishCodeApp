@@ -73,7 +73,7 @@ it("runs the new grammar exercise pack and reveals a checked answer", async () =
   expect(container.textContent).toContain("Choose the correct sentence.");
   const correctOption = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("She goes to work by bus."));
   await act(async () => correctOption?.click());
-  const reveal = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("Check / reveal answer"));
+  const reveal = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("Check answer"));
   await act(async () => reveal?.click());
   expect(container.textContent).toContain("ANSWER / FEEDBACK");
   expect(container.textContent).toContain("Use -s with he, she, and it in the present simple.");
