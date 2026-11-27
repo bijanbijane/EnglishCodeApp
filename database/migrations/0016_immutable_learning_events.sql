@@ -53,8 +53,11 @@ BEGIN
   SELECT RAISE(ABORT, 'learning events are immutable');
 END;
 
+-- Direct event deletion is blocked, while the parent user's ON DELETE CASCADE
+-- remains available for the controlled account-erasure workflow.
 CREATE TRIGGER IF NOT EXISTS trg_learning_events_no_delete
 BEFORE DELETE ON learning_events
+WHEN EXISTS (SELECT 1 FROM users WHERE id = OLD.user_id)
 BEGIN
   SELECT RAISE(ABORT, 'learning events cannot be deleted directly');
 END;
