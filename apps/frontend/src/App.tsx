@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
-import { restoreSession, revokeSession } from "./auth";
+import { getSessionErrorMessage, restoreSession, revokeSession } from "./auth";
 
 type TelegramSecureStorage = {
   getItem: (key: string, callback: (error: string | null, value: string | null, canRestore?: boolean) => void) => void;
@@ -39,7 +39,9 @@ function App() {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [score, setScore] = useState<number | null>(null);
   const [signedOut, setSignedOut] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
   const authStarted = useRef(false);
+  const authInFlight = useRef(false);
 
   const loadCourses = useCallback(async () => {
     setLoading(true); setError("");
@@ -61,6 +63,9 @@ function App() {
       return;
     }
 
+    // Prevent a manual sign-in click from racing this automatic restore/login.
+    authInFlight.current = true;
+    setAuthLoading(true);
     void restoreSession({
       storage: secureStorage,
       initData: telegram.initData,
@@ -69,7 +74,10 @@ function App() {
       setToken: setAccessToken,
     }).then(setProfile).catch((e: unknown) => {
       setAccessToken(null);
-      setNotice(e instanceof Error ? e.message : "Telegram sign-in is unavailable.");
+      setNotice(getSessionErrorMessage(e));
+    }).finally(() => {
+      authInFlight.current = false;
+      setAuthLoading(false);
     });
   }, [loadCourses]);
 
@@ -137,10 +145,13 @@ function App() {
   const goHome = () => { setScreen("home"); setSelectedLesson(null); setAttempt(null); setNotice(""); setError(""); };
 
   const signIn = async () => {
+    if (authInFlight.current) return;
     if (!telegram?.SecureStorage || !telegram.isVersionAtLeast?.("9.0")) {
       setError("Secure sign-in requires a recent Telegram app with Secure Storage support.");
       return;
     }
+    authInFlight.current = true;
+    setAuthLoading(true);
     setBusy(true); setError(""); setNotice("");
     try {
       const restored = await restoreSession({
@@ -154,8 +165,12 @@ function App() {
       setNotice("You are signed in.");
     } catch (e) {
       setAccessToken(null);
-      setError(e instanceof Error ? e.message : "Telegram sign-in is unavailable.");
-    } finally { setBusy(false); }
+      setError(getSessionErrorMessage(e));
+    } finally {
+      authInFlight.current = false;
+      setAuthLoading(false);
+      setBusy(false);
+    }
   };
 
   const logout = async () => {
@@ -178,7 +193,7 @@ function App() {
   return <main className="app-shell">
     <header className="topbar">
       <button className="brand" onClick={goHome} aria-label="English Code home"><span className="brand-mark">EC</span><span>english<span className="brand-accent">code</span></span></button>
-      <div className="account">{profile ? <><span className="status-dot" />{profile.display_name || "Learner"}<button className="text-button account-action" onClick={() => void logout()} disabled={busy}>Sign out</button></> : telegram ? signedOut ? <span className="muted">Reopen app to sign in</span> : <button className="text-button account-action" onClick={() => void signIn()} disabled={busy}>{busy ? "Connecting…" : "Sign in"}</button> : <span className="muted">Preview mode</span>}</div>
+      <div className="account">{profile ? <><span className="status-dot" />{profile.display_name || "Learner"}<button className="text-button account-action" onClick={() => void logout()} disabled={busy}>Sign out</button></> : telegram ? signedOut ? <span className="muted">Reopen app to sign in</span> : <button className="text-button account-action" onClick={() => void signIn()} disabled={busy || authLoading}>{busy || authLoading ? "Connecting…" : "Sign in"}</button> : <span className="muted">Preview mode</span>}</div>
     </header>
 
     <section className="hero">

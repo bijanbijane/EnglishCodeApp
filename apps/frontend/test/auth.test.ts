@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ApiError, type Profile } from "../src/api";
-import { restoreSession, revokeSession, type SessionStorage } from "../src/auth";
+import { getSessionErrorMessage, restoreSession, revokeSession, type SessionStorage } from "../src/auth";
 
 const profile: Profile = { id: "user-1", display_name: "Learner", created_at: "2026-11-27T00:00:00.000Z" };
 
@@ -13,6 +13,23 @@ function makeStorage(initial: string | null = null) {
   };
   return { storage, value: () => token };
 }
+
+describe("session error guidance", () => {
+  it("explains how to recover from expired or replayed Telegram initData", () => {
+    const guidance = "Telegram sign-in data has expired or was already used. Close and reopen the Mini App to refresh it.";
+    expect(getSessionErrorMessage(new ApiError("Unauthorized", 401, "UNAUTHENTICATED"))).toBe(guidance);
+    expect(getSessionErrorMessage(new ApiError("Already used", 409, "CONFLICT"))).toBe(guidance);
+  });
+
+  it("gives network recovery guidance without exposing transport details", () => {
+    expect(getSessionErrorMessage(new TypeError("Failed to fetch"))).toContain("Check your connection");
+    expect(getSessionErrorMessage(new TypeError("Failed to fetch"))).toContain("close and reopen");
+  });
+
+  it("preserves non-network secure-storage errors", () => {
+    expect(getSessionErrorMessage(new Error("Could not read the secure session."))).toBe("Could not read the secure session.");
+  });
+});
 
 describe("secure session lifecycle", () => {
   it("restores a valid saved session without logging in again", async () => {
