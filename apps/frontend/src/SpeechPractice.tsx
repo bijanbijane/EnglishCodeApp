@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "./api";
 
-const MAX_AUDIO_BYTES = 96 * 1024;
+const MAX_AUDIO_BYTES = 1024 * 1024;
 const MAX_DURATION_SECONDS = 60;
-const REQUESTED_AUDIO_BITRATE = 10_000;
+const REQUESTED_AUDIO_BITRATE = 16_000;
 
 type RecordingState = "idle" | "recording" | "ready" | "transcribing" | "done" | "failed";
 
@@ -113,18 +113,15 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
 
       const supportedTypes = [
         "audio/webm;codecs=opus",
-        "audio/ogg;codecs=opus",
-        "audio/mp4",
         "audio/webm",
-        "audio/ogg",
       ];
       const mimeType = supportedTypes.find((type) => MediaRecorder.isTypeSupported(type));
       const recorder = mimeType
         ? new MediaRecorder(stream, { mimeType, audioBitsPerSecond: REQUESTED_AUDIO_BITRATE })
         : new MediaRecorder(stream, { audioBitsPerSecond: REQUESTED_AUDIO_BITRATE });
       const baseMimeType = recorder.mimeType.split(";")[0].trim().toLowerCase();
-      if (!["audio/webm", "audio/ogg", "audio/mp4"].includes(baseMimeType)) {
-        throw new Error("This browser selected an unsupported recording format. Use a browser that supports WebM, Ogg Opus, or MP4 audio.");
+      if (baseMimeType !== "audio/webm") {
+        throw new Error("This browser cannot record the required WebM audio format. Use a recent browser with WebM/Opus support.");
       }
 
       chunksRef.current = [];
@@ -158,7 +155,7 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
         if (overflowRef.current || blob.size > MAX_AUDIO_BYTES) {
           setRecording(null);
           setState("failed");
-          setError("This recording exceeded the 96 KiB upload limit. Record a shorter clip and try again.");
+          setError("This recording exceeded the 1 MiB upload limit. Record a shorter clip and try again.");
           return;
         }
         if (blob.size === 0) {
@@ -220,7 +217,7 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
           <h2>Practice speaking out loud</h2>
           <p>Record a short English response, listen to it, then get a written transcription.</p>
         </div>
-        <span className="speech-limit">60 sec max · 96 KiB max</span>
+        <span className="speech-limit">60 sec max · 1 MiB max</span>
       </div>
 
       {!isAuthenticated ? (
