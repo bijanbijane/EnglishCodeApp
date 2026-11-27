@@ -2,7 +2,7 @@
 
 پلتفرم آموزش زبان انگلیسی با محوریت Telegram Bot و Telegram Mini App؛ با مسیر توسعهٔ تدریجی به وب‌اپلیکیشن و اپلیکیشن موبایل.
 
-> **وضعیت مخزن (۲۶ نوامبر ۲۰۲۶):** پایهٔ اجرایی بک‌اند روی `main` ثبت شده است: Worker/Hono، health/readiness، API خواندنی محتوای منتشرشده، migration اولیه D1، seed محلی، تست اولیه و workflow CI. ورود تلگرام و صدور نشست هنوز کامل نیست؛ middleware نشست، پروفایل، attempt/answer، grading سمت سرور و ثبت progress پیاده‌سازی شده‌اند، اما رفتار D1 و هم‌زمانی آن‌ها هنوز integration-test نشده است. تست‌ها و Local D1 هنوز اجرا و تأیید نشده‌اند؛ هیچ remote migration یا deployment انجام نشده است.
+> **وضعیت مخزن (۲۷ نوامبر ۲۰۲۶):** main شامل Worker/Hono، API نسخه‌بندی‌شده، احراز هویت Telegram با اعتبارسنجی سمت سرور، session، مسیرهای attempt/answer و grading سمت سرور، progress، نقش‌های مدیریتی و گردش کار author/reviewer/publisher است. زنجیرهٔ migration موجود در main تا 0015 است. وضعیت پیاده‌سازی را با وضعیت اعتبارسنجی اشتباه نگیرید: GitHub Actions در اجراهای بررسی‌شده پیش از تخصیص runner متوقف شده (runner_id=0 و بدون step)، بنابراین این اجراها نه شکست تست‌های کد را ثابت می‌کنند و نه موفقیت آن‌ها را. شواهد Build مربوط به PRها فقط به commit و آزمون‌های مشخص‌شده در همان PR محدود است. PRهای باز #19 تا #22 هنوز بخشی از main نیستند. هیچ Production deployment یا remote migration از این روند مجاز یا انجام نشده است.
 
 ## هدف محصول
 
@@ -133,27 +133,29 @@ EnglishCodeApp/
 
 ## ترتیب اجرای باقی‌مانده
 
-1. اجرای typecheck، تست‌ها و workflow CI روی commit جاری؛ اصلاح خطاها.
-2. اجرای migration و seed روی Local D1 تازه و ثبت شواهد.
-3. تکمیل Telegram HMAC، replay protection اتمیک و session lifecycle.
-4. پیاده‌سازی attempt، ثبت پاسخ idempotent، grading سمت سرور و progress اتمیک.
-5. تکمیل rate limiting، origin policy، امنیت cross-user و retention/export/delete.
-6. افزودن قابلیت‌های content authoring و administration بر اساس نیاز.
-7. ارزیابی R2، Queues و AI فقط پس از اثبات use case و بررسی هزینه.
-8. آزمون بازیابی، بار و سهمیه؛ سپس بررسی جداگانهٔ staging. Production نیازمند تأیید صریح است.
+1. رفع مشکل تخصیص GitHub Actions runner و اجرای typecheck، تست‌ها و workflowها روی commit دقیق main.
+2. اجرای migration و seed روی Local D1 تازه و ثبت شواهد؛ سپس تست upgrade و هم‌زمانی.
+3. تکمیل آزمون‌های امنیتی cross-user، role revocation، idempotency و پاسخ/تکمیل هم‌زمان.
+4. تکمیل owner-operated bootstrap و مستندات export/delete و backup/restore.
+5. تکمیل تست‌های چرخهٔ author → reviewer → publisher و صفحه‌بندی تاریخچه/صف بازبینی.
+6. ارزیابی R2، Queues و AI فقط پس از اثبات use case، بررسی حریم خصوصی و هزینهٔ جاری.
+7. آزمون بازیابی، بار و سهمیه؛ سپس بررسی جداگانهٔ Development/Staging. Production نیازمند تأیید صریح و مستقل است.
+
+قابلیت‌های موجود در PRهای باز را تا زمان ادغام و اعتبارسنجی روی commit نهایی، قابلیت main فرض نکنید.
 
 ## وضعیت قابلیت‌ها
 
-- [x] ثبت سیاست Free-first و معماری Modular Monolith
-- [x] Worker/Hono پایه و endpointهای health/readiness
-- [x] API خواندنی دوره و درس؛ حذف answer key از DTO عمومی
-- [x] migration اولیه و seed مصنوعی (فایل‌ها ثبت شده‌اند؛ Local D1 هنوز اجرا نشده)
-- [x] تست اولیه و workflow CI (نتیجهٔ اجرا هنوز تأیید نشده)
-- [ ] Telegram authentication و session
-- [x] attempt، answer، grading و progress write (کد ثبت شده؛ D1 integration/concurrency هنوز تأیید نشده)
-- [ ] rate limit، RBAC، retention و export/delete
-- [ ] آزمون یکپارچگی D1/Workers، امنیت و بار
-- [ ] انتشار عملیاتی
+- [x] سیاست Free-first و معماری Modular Monolith
+- [x] Worker/Hono و endpointهای health/readiness
+- [x] API نسخه‌بندی‌شده و خواندن محتوای منتشرشده بدون افشای answer key
+- [x] Telegram authentication، session lifecycle و rate limiting در کد main
+- [x] attempt، answer، grading سمت سرور و progress write در کد main
+- [x] RBAC، author/reviewer workflow، انتشار کنترل‌شده و audit events
+- [x] migrationهای SQL و seed مصنوعی؛ زنجیرهٔ main تا 0015
+- [ ] اجرای موفق GitHub Actions روی commit دقیق main؛ runner allocation هنوز مسدود است
+- [ ] ثبت نتیجهٔ fresh Local D1 و تست‌های concurrency روی commit دقیق main
+- [ ] owner-operated bootstrap، export/delete و backup/restore کامل
+- [ ] آزمون یکپارچگی، امنیت cross-user، بار و آمادگی انتشار عملیاتی
 
 ## اسناد
 
