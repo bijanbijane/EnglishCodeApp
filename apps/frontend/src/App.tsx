@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, ApiError, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
+import { api, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
 import { getSessionErrorMessage, restoreSession, revokeSession } from "./auth";
 
 type TelegramSecureStorage = {
