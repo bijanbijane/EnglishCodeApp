@@ -22,6 +22,8 @@
 - Per-user maximum: 2 reservations per UTC day.
 - Account-wide maximum: 60 reservations per UTC day.
 - D1 stores quota reservations only; audio bytes are not persisted.
+- Expired quota reservations are pruned by the existing daily maintenance Cron in bounded batches (500 rows per run), retaining seven days of operational quota history.
+- The AI quota migration is numbered `0017` so it can follow the learning-event migration `0016` when both PRs are integrated.
 - Quota exhaustion returns HTTP 429. No paid-provider fallback.
 - Workers AI free allocation is shared across the Cloudflare account. Other account workloads also consume the shared daily allocation.
 
