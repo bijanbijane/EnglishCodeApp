@@ -113,3 +113,13 @@ This checkpoint records repository-observed state only. It is not a claim that t
 ## Resume point
 
 Resume by refreshing main, PR #17–#25, PR comments/reviews, and exact-head workflow runs. The next PR #25 item is executable validation of head `4f54396c42e04e9b994f8cdc55adcc1fb425a9e4`; the next infrastructure item is owner inspection of GitHub Actions runner settings. Continue independent GitHub-only review while CI is blocked. Keep all changes on focused branches in this repository; no merge, deployment, remote migration, secret mutation, or paid resource action is authorized by this checkpoint.
+
+
+## Follow-up static review — PR #25 — 2026-11-28
+
+- Refreshed PR #21–#25 metadata: all remain open and Draft; none is merged. PR #25 remains based on `main` at `f3671f2194e562fc194d23e9602b768455d8e483`, with head `dc9db06f23e3d1b90a02698e586e18ef845c1c6c`.
+- Re-read migration `0016_immutable_learning_events.sql`, the Worker completion batch, SQLite verifier, and Local D1 integration fixture. No new confirmed defect was found in the event uniqueness, append-only triggers, completion/progress ordering, or the account-deletion cascade test design.
+- Confirmed the Worker and SQLite verifier use attempt UPDATE → progress upsert gated by the immediately preceding `changes() = 1` → event INSERT. The Local D1 fixture deliberately pre-creates the deterministic event key for an in-progress attempt, then checks that progress still advances when the event INSERT conflicts.
+- Fresh exact-head Backend CI query returned run #328 (`46027745390`), conclusion `failure`. The latest job record is ID `140649485772` with `steps: []` and `logs_url: null`; no code-level test result is available.
+- No local commands, tests, Wrangler Local D1 execution, remote migration, deployment, or production operation was performed.
+- PR #23 documentation was corrected to remove the stale claim that PR #25 still performs the event INSERT before the progress upsert.
