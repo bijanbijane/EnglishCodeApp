@@ -31,6 +31,9 @@
 - Quota exhaustion returns HTTP 429. No paid-provider fallback.
 - Quota reservations are retained after inference failures so retries cannot bypass the daily cap.
 - Workers AI free allocation is shared across the Cloudflare account. Other account workloads also consume the shared daily allocation.
+- On the Workers Free plan, Cloudflare documents a shared allowance of 10,000 Workers AI Neurons per UTC day. The allowance resets at 00:00 UTC; on Free, inference calls fail after the allowance is exhausted rather than automatically converting to paid usage.
+- Cloudflare lists Whisper Large V3 Turbo at 46.63 Neurons per audio minute. The theoretical ceiling from 10,000 Neurons is about 214 audio minutes only when no other workload consumes the account allowance; this is not a reserved quota for EnglishCodeApp.
+- The application request cap (60 reservations/day) is a separate abuse-control limit, not a substitute for Cloudflare's Neuron accounting. Client-declared duration is not independently verified by a media parser.
 
 ## Upgrade path
 Measure usage and latency before considering paid Workers AI, higher quotas, R2 retention, or queue consumers. No automatic paid upgrade or paid fallback is allowed.
