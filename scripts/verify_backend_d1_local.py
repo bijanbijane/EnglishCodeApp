@@ -391,7 +391,8 @@ def main():
             grant_file.write_text(
                 "INSERT INTO user_roles (id,user_id,role,granted_by) VALUES "
                 f"('local-admin-role','{second_user_id}','admin',NULL),"
-                f"('local-reviewer-role','{second_user_id}','content_reviewer',NULL);",
+                f"('local-reviewer-role','{second_user_id}','content_reviewer',NULL),"
+                f"('local-author-role','{user_id}','content_author',NULL);",
                 encoding="utf-8",
             )
             run([
@@ -408,6 +409,95 @@ def main():
                 200,
                 "reviewer role grant",
             )
+
+            draft = expect_status(
+                request(
+                    "POST", "/api/v1/admin/content/lessons/lesson-greetings-001/versions",
+                    token,
+                    {
+                        "title": "Greetings — reviewed local release",
+                        "level": "A1",
+                        "questions": [
+                            {
+                                "type": "multiple_choice",
+                                "prompt": "Which greeting is appropriate in the morning?",
+                                "options": [
+                                    {"id": "a", "text": "Good morning"},
+                                    {"id": "b", "text": "Good night"},
+                                ],
+                                "answerKey": "a",
+                                "explanation": "Use good morning in the morning.",
+                                "weight": 2,
+                                "position": 1,
+                            }
+                        ],
+                    },
+                ),
+                201,
+                "create content draft",
+            )
+            lesson_version_id = draft["data"]["lessonVersionId"]
+            assert draft["data"]["version"] == 2
+            assert draft["data"]["questionCount"] == 1
+
+            submitted = expect_status(
+                request(
+                    "POST",
+                    f"/api/v1/admin/content/lessons/lesson-greetings-001/versions/{lesson_version_id}/submit-review",
+                    token,
+                    {},
+                ),
+                201,
+                "submit content review",
+            )
+            review_request_id = submitted["data"]["reviewRequestId"]
+            review_detail = expect_status(
+                request(
+                    "GET", f"/api/v1/admin/content/reviews/{review_request_id}",
+                    second_token,
+                ),
+                200,
+                "read submitted review",
+            )
+            assert review_detail["data"]["status"] == "pending"
+            assert review_detail["data"]["lesson"]["version"] == 2
+            assert review_detail["data"]["questions"][0]["answerKey"] == "a"
+
+            decision = expect_status(
+                request(
+                    "POST", f"/api/v1/admin/content/reviews/{review_request_id}/decision",
+                    second_token,
+                    {"decision": "approve"},
+                ),
+                200,
+                "approve content review",
+            )
+            assert decision["data"]["status"] == "approved"
+
+            published = expect_status(
+                request(
+                    "POST", f"/api/v1/admin/content/reviews/{review_request_id}/publish",
+                    second_token,
+                    {},
+                ),
+                200,
+                "publish approved content",
+            )
+            assert published["data"]["status"] == "published"
+            assert published["data"]["lessonVersionId"] == lesson_version_id
+
+            released_lesson = expect_status(
+                request("GET", "/api/v1/lessons/lesson-greetings-001"),
+                200,
+                "read newly published lesson",
+            )
+            assert released_lesson["data"]["title"] == "Greetings — reviewed local release"
+            assert len(released_lesson["data"]["questions"]) == 1
+            assert released_lesson["data"]["questions"][0]["prompt"] == (
+                "Which greeting is appropriate in the morning?"
+            )
+            assert "answer_key" not in json.dumps(released_lesson)
+            assert "answerKey" not in json.dumps(released_lesson)
 
             pagination_sql = PERSIST_DIR / "admin-pagination-fixtures.sql"
             pagination_sql.write_text(
