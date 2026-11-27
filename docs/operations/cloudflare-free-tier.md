@@ -18,22 +18,20 @@
 ## Speech transcription guardrails
 - Authenticated users only; English transcription in this first iteration.
 - Request maximum 192 KiB; decoded audio maximum 96 KiB.
-- Client-declared duration maximum 60 seconds. This is a client-side/UX guardrail, not a trusted media parser; byte limit is enforced server-side.
-- **Deployment blocker:** actual media duration is not parsed or verified server-side. Never treat `durationSeconds` as a cost-control boundary. Implement trusted duration validation (or a strictly constrained, server-verifiable audio representation) before exposing this endpoint to production traffic.
-- Each inference attempt consumes an application reservation even when Workers AI returns an error. Do not release quota after an upstream inference attempt; doing so enables unlimited retry attempts against the free allocation.
-- Cloudflare Workers AI Free currently includes 10,000 Neurons per account per day. Whisper Large V3 Turbo is listed at 46.63 Neurons per audio minute (pricing docs last updated 2026-11-12). At a verified maximum of 60 seconds, 60 daily requests would use at most 2,797.8 Neurons. This estimate is only valid when actual duration is verified and no other account workload consumes the shared allocation. See https://developers.cloudflare.com/workers-ai/platform/pricing/.
-- Wrangler local-mode Workers AI inferences also count toward the account's AI limits; integration tests must deny requests before inference rather than call the real model. See https://developers.cloudflare.com/workers-ai/platform/limits/.
+- The server checks a basic container signature against the declared MIME type, including the common browser value `audio/webm;codecs=opus`. This is format sniffing, not full media validation.
+- Client-declared duration maximum 60 seconds. This is a client-side/UX guardrail, not a trusted media parser.
+- **Production deployment blocker:** actual media duration is not parsed or verified server-side. Never treat `durationSeconds` as a cost-control boundary. Implement trusted duration validation (or a strictly constrained, server-verifiable audio representation) before exposing this endpoint to production traffic.
+- Each inference attempt consumes an application reservation even when Workers AI returns an error. Reservations are deliberately retained after inference failures to prevent retries bypassing daily caps.
+- The Workers Free plan includes 10,000 Workers AI Neurons per account per UTC day, resetting at 00:00 UTC. On Free, further inference requests fail after the allowance is exhausted; the platform does not automatically convert them into paid usage.
+- Cloudflare lists Whisper Large V3 Turbo at 46.63 Neurons per audio minute (pricing documentation last updated 2026-11-18). That gives about 214.4 audio minutes if the entire account allowance were available to this model. At 60 verified 60-second requests, the app would use at most 2,797.8 Neurons. This is an estimate, not a reservation: other account workloads share the same allowance, and the 60-second cap is not yet verified by the server. See https://developers.cloudflare.com/workers-ai/platform/pricing/.
+- Wrangler local-mode Workers AI inferences also count toward the account's AI limits. Tests must reject quota-full requests before calling the real model. See https://developers.cloudflare.com/workers-ai/platform/limits/.
 - Per-user maximum: 2 reservations per UTC day.
-- Account-wide maximum: 60 reservations per UTC day.
-- D1 stores quota reservations only; audio bytes are not persisted.
-- Expired quota reservations are pruned by the existing daily maintenance Cron in bounded batches (500 rows per run), retaining seven days of operational quota history.
-- The AI quota migration is numbered `0017` so it can follow the learning-event migration `0016` when both PRs are integrated.
+- Account-wide application maximum: 60 reservations per UTC day.
+- Local D1 integration tests exercise eight concurrent requests against exhausted per-user and account-wide quotas and verify the stored reservation counts do not exceed those limits.
+- D1 stores quota reservations only; raw audio bytes are not persisted.
+- Expired reservations are pruned by the existing daily maintenance Cron in bounded batches (500 rows per run), retaining seven days of operational quota history.
+- Migration `0017` follows learning-event migration `0016` when both PRs are integrated.
 - Quota exhaustion returns HTTP 429. No paid-provider fallback.
-- Quota reservations are retained after inference failures so retries cannot bypass the daily cap.
-- Workers AI free allocation is shared across the Cloudflare account. Other account workloads also consume the shared daily allocation.
-- On the Workers Free plan, Cloudflare documents a shared allowance of 10,000 Workers AI Neurons per UTC day. The allowance resets at 00:00 UTC; on Free, inference calls fail after the allowance is exhausted rather than automatically converting to paid usage.
-- Cloudflare lists Whisper Large V3 Turbo at 46.63 Neurons per audio minute. The theoretical ceiling from 10,000 Neurons is about 214 audio minutes only when no other workload consumes the account allowance; this is not a reserved quota for EnglishCodeApp.
-- The application request cap (60 reservations/day) is a separate abuse-control limit, not a substitute for Cloudflare's Neuron accounting. Client-declared duration is not independently verified by a media parser.
-
+- Cloudflare's free allocation is shared across the entire account; the application quota does not reserve or isolate neurons from other account workloads.
 ## Upgrade path
 Measure usage and latency before considering paid Workers AI, higher quotas, R2 retention, or queue consumers. No automatic paid upgrade or paid fallback is allowed.
