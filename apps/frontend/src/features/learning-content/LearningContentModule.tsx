@@ -25,6 +25,18 @@ export default function LearningContentModule({ onBack }: { onBack: () => void }
   const [exerciseRevealed, setExerciseRevealed] = useState(false);
   const exercises = grammarExercisePack.items as ExerciseItem[];
   const currentExercise = exercises[exerciseIndex];
+  const normalizeExerciseAnswer = (value: string) => value.trim().replace(/\s+/g, " ").toLowerCase();
+  const exerciseIsCorrect = currentExercise.type === "multiple-choice"
+    ? exerciseAnswer === currentExercise.correctOptionId
+    : currentExercise.type === "gap-fill"
+      ? (currentExercise.acceptedAnswers ?? []).some((answer) => normalizeExerciseAnswer(answer) === normalizeExerciseAnswer(exerciseAnswer))
+      : currentExercise.type === "reorder"
+        ? normalizeExerciseAnswer(exerciseAnswer) === normalizeExerciseAnswer((currentExercise.correctOrder ?? []).join(" "))
+        : currentExercise.type === "transformation"
+          ? (currentExercise.acceptedAnswers ?? []).some((answer) => normalizeExerciseAnswer(answer) === normalizeExerciseAnswer(exerciseAnswer))
+          : currentExercise.type === "error-spotting"
+            ? normalizeExerciseAnswer(exerciseAnswer) === normalizeExerciseAnswer(currentExercise.correctedText ?? "")
+            : false;
   const filteredWords = useMemo(() => {
     const q = query.trim().toLowerCase();
     return words.filter((entry) => (level === "all" || String(entry.level) === level)
@@ -96,8 +108,8 @@ export default function LearningContentModule({ onBack }: { onBack: () => void }
         {(currentExercise.type === "transformation" || currentExercise.type === "error-spotting") && <><p className="exercise-source">{currentExercise.sourceText}</p>{currentExercise.instruction && <p className="exercise-instruction">{currentExercise.instruction}</p>}<input className="exercise-input" value={exerciseAnswer} onChange={(event) => { setExerciseAnswer(event.target.value); setExerciseRevealed(false); }} placeholder="Write your answer" aria-label="Your answer" /></>}
         {currentExercise.type === "matching" && <div className="exercise-pairs">{currentExercise.pairs?.map((pair) => <div key={pair.left}><span>{pair.left}</span><span>{exerciseRevealed ? pair.right : "•••"}</span></div>)}</div>}
         {currentExercise.type === "flashcard" && <div className="exercise-flashcard"><strong>{currentExercise.front}</strong>{exerciseRevealed && <p>{currentExercise.back}</p>}</div>}
-        {exerciseRevealed && <div className="exercise-answer"><span>ANSWER / FEEDBACK</span><p>{currentExercise.type === "multiple-choice" ? currentExercise.options?.find((option) => option.id === currentExercise.correctOptionId)?.text : currentExercise.type === "gap-fill" ? currentExercise.acceptedAnswers?.join(" / ") : currentExercise.type === "reorder" ? currentExercise.correctOrder?.join(" ") : currentExercise.type === "transformation" ? currentExercise.acceptedAnswers?.join(" / ") : currentExercise.type === "error-spotting" ? currentExercise.correctedText : currentExercise.type === "matching" ? "The matching pairs are shown above." : currentExercise.back}</p>{currentExercise.explanation && <p>{currentExercise.explanation}</p>}{currentExercise.feedback && <p>{currentExercise.feedback}</p>}</div>}
-        {currentExercise.type !== "matching" && currentExercise.type !== "flashcard" && <button className="exercise-reveal" onClick={() => setExerciseRevealed(true)} disabled={!exerciseAnswer.trim()}>Check / reveal answer</button>}
+        {exerciseRevealed && <div className="exercise-answer"><span>ANSWER / FEEDBACK</span>{currentExercise.type !== "matching" && currentExercise.type !== "flashcard" && <p className={exerciseIsCorrect ? "exercise-correct" : "exercise-incorrect"}>{exerciseIsCorrect ? "Your answer matches an accepted answer." : "Review the correct answer and feedback."}</p>}<p>{currentExercise.type === "multiple-choice" ? currentExercise.options?.find((option) => option.id === currentExercise.correctOptionId)?.text : currentExercise.type === "gap-fill" ? currentExercise.acceptedAnswers?.join(" / ") : currentExercise.type === "reorder" ? currentExercise.correctOrder?.join(" ") : currentExercise.type === "transformation" ? currentExercise.acceptedAnswers?.join(" / ") : currentExercise.type === "error-spotting" ? currentExercise.correctedText : currentExercise.type === "matching" ? "The matching pairs are shown above." : currentExercise.back}</p>{currentExercise.explanation && <p>{currentExercise.explanation}</p>}{currentExercise.feedback && <p>{currentExercise.feedback}</p>}</div>}
+        {currentExercise.type !== "matching" && currentExercise.type !== "flashcard" && <button className="exercise-reveal" onClick={() => setExerciseRevealed(true)} disabled={!exerciseAnswer.trim()}>Check answer</button>}
         {(currentExercise.type === "matching" || currentExercise.type === "flashcard") && <button className="exercise-reveal" onClick={() => setExerciseRevealed((value) => !value)}>{exerciseRevealed ? "Hide answer" : "Reveal answer"}</button>}
       </article>
       <div className="exercise-navigation"><button disabled={exerciseIndex === 0} onClick={() => { setExerciseIndex((i) => Math.max(0, i - 1)); setExerciseAnswer(""); setExerciseRevealed(false); }}>Previous</button><button disabled={exerciseIndex >= exercises.length - 1} onClick={() => { setExerciseIndex((i) => Math.min(exercises.length - 1, i + 1)); setExerciseAnswer(""); setExerciseRevealed(false); }}>Next exercise →</button></div>
