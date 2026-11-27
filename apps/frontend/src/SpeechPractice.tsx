@@ -80,6 +80,7 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
       if (recorder && recorder.state !== "inactive") {
         recorder.ondataavailable = null;
         recorder.onstop = null;
+        recorder.onerror = null;
         recorder.stop();
       }
       streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -160,10 +161,13 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
 
       recorder.onerror = () => {
         recorderFailedRef.current = true;
-        setError("The browser could not record this clip. Check microphone access and try again.");
-        setState("failed");
         stream.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
+        recorderRef.current = null;
+        chunksRef.current = [];
+        if (!mountedRef.current) return;
+        setError("The browser could not record this clip. Check microphone access and try again.");
+        setState("failed");
       };
 
       recorder.onstop = () => {
