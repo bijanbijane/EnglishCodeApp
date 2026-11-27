@@ -13,15 +13,16 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("Telegram webhook setup", () => {
   it("does not re-register an already-correct webhook", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({
-        ok: true,
-        result: { url: webhookUrl, pending_update_count: 0, allowed_updates: ["message"] },
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
+    const makeInfoResponse = () => new Response(JSON.stringify({
+      ok: true,
+      result: { url: webhookUrl, pending_update_count: 0, allowed_updates: ["message"] },
+    }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(makeInfoResponse())
+      .mockResolvedValueOnce(makeInfoResponse());
     vi.stubGlobal("fetch", fetchMock);
 
     const response = await app.request("/api/v1/telegram/setup", { method: "GET" }, env);
