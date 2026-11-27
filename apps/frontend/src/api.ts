@@ -18,6 +18,7 @@ export type Attempt = {
 };
 export type Profile = { id: string; display_name: string | null; created_at: string };
 export type ProgressEntry = { lesson_id: string; course_id: string; best_score: number; completed_count: number; lesson_title: string; last_completed_at: string };
+export type TranscriptionResult = { transcription: string; wordCount: number; language: string; durationSeconds: number; model: string };
 
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number, public readonly code?: string) {
@@ -71,6 +72,9 @@ export const api = {
   ),
   complete: (attemptId: string) => request<{ status: string; score: number; completedAt: string }>(
     `/attempts/${encodeURIComponent(attemptId)}/complete`, { method: "POST", body: "{}" },
+  ),
+  transcribeAudio: (payload: { audioBase64: string; mimeType: string; durationSeconds: number }) => request<TranscriptionResult>(
+    "/ai/transcriptions", { method: "POST", body: JSON.stringify(payload) },
   ),
   progress: () => request<ProgressEntry[]>("/me/progress"),
   logout: () => request<{ loggedOut: boolean }>("/auth/logout", { method: "POST", body: "{}" }),
