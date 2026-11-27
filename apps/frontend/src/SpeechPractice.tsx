@@ -90,6 +90,35 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
     };
   }, []);
 
+  useEffect(() => {
+    if (isAuthenticated) return;
+
+    // A revoked session must release the microphone and invalidate any
+    // pending getUserMedia or transcription response.
+    permissionRequestRef.current += 1;
+    const recorder = recorderRef.current;
+    if (recorder) {
+      recorder.ondataavailable = null;
+      recorder.onstop = null;
+      recorder.onerror = null;
+      if (recorder.state !== "inactive") recorder.stop();
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    recorderRef.current = null;
+    chunksRef.current = [];
+    bytesRecordedRef.current = 0;
+    overflowRef.current = false;
+    recorderFailedRef.current = false;
+    setRecording(null);
+    setRecordingMimeType("");
+    setTranscription("");
+    setWordCount(0);
+    setElapsedSeconds(0);
+    setError("");
+    setState("idle");
+  }, [isAuthenticated]);
+
   const resetRecording = () => {
     setRecording(null);
     setRecordingMimeType("");
@@ -224,6 +253,7 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
 
   const transcribe = async () => {
     if (!recording || !recordingMimeType || state !== "ready") return;
+    const requestId = permissionRequestRef.current;
     setState("transcribing");
     setError("");
     try {
@@ -232,12 +262,12 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
         mimeType: recordingMimeType,
         durationSeconds: elapsedSeconds,
       });
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || requestId !== permissionRequestRef.current) return;
       setTranscription(result.transcription);
       setWordCount(result.wordCount);
       setState("done");
     } catch (cause) {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || requestId !== permissionRequestRef.current) return;
       setState("failed");
       setError(cause instanceof Error ? cause.message : "Speech transcription failed. Record a new clip to try again.");
     }
