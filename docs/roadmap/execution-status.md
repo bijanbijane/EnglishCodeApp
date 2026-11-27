@@ -123,3 +123,13 @@ Resume by refreshing main, PR #17–#25, PR comments/reviews, and exact-head wor
 - Fresh exact-head Backend CI query returned run #328 (`46027745390`), conclusion `failure`. The latest job record is ID `140649485772` with `steps: []` and `logs_url: null`; no code-level test result is available.
 - No local commands, tests, Wrangler Local D1 execution, remote migration, deployment, or production operation was performed.
 - PR #23 documentation was corrected to remove the stale claim that PR #25 still performs the event INSERT before the progress upsert.
+
+
+## Follow-up review — PR #22 and PR #24 — 2026-11-28
+
+- Refreshed PR #22 and #24 metadata: both remain open, Draft, and unmerged. PR #22 remains stacked on PR #21; PR #24 remains based on main.
+- PR #22 frontend review reconfirmed that `grammarExercisePack` is imported into `LearningContentModule.tsx`, including `correctOptionId`, `acceptedAnswers`, `correctOrder`, and correction keys. The component evaluates learner responses locally. Do not treat this as authoritative grading or persisted assessment. The `matching` item only reveals supplied pairs and has no learner response interaction; it is a worked example, not an interactive matching exercise. Existing PR comments already record both issues; no duplicate comment was added.
+- PR #22 exact-head Backend CI run #315 (`46021620038`) and Frontend CI run #111 (`46021620040`) both concluded failure with job `steps: null` and `logs_url: null`. No executable test evidence is available.
+- PR #24 exact-head Backend CI run #311 (`46017731985`) likewise concluded failure with job `steps: null` and `logs_url: null`. Static review of the four-file patch reconfirmed HTTPS-only URL validation, rejection of embedded credentials/fragments/whitespace-padded values, private-chat-only replies, safe no-button fallback, and regression tests for valid/invalid configuration. No additional confirmed defect was found in this limited review.
+- No local tests, builds, browser tests, Telegram device tests, deployments, Worker configuration changes, or remote operations were performed.
+- Keep PR #22 Draft until answer-key handling and grading authority are corrected or the feature is explicitly constrained to non-assessed reference-only content; implement matching interaction or label it as a worked example. Keep PR #24 Draft until exact-head CI can execute and pass.
