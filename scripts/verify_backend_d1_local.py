@@ -2,6 +2,7 @@
 """Run the backend against Wrangler's local D1 runtime and verify critical flows."""
 
 from concurrent.futures import ThreadPoolExecutor
+import base64
 from datetime import datetime, timezone
 import hashlib
 import hmac
@@ -69,6 +70,45 @@ def request(
     if include_headers:
         return status, parsed, response_headers
     return status, parsed
+
+
+def ebml_element(element_id, payload):
+    identifier_length = max(1, (element_id.bit_length() + 7) // 8)
+    identifier = element_id.to_bytes(identifier_length, "big")
+    size = len(payload)
+    for length in range(1, 9):
+        marker = 1 << (7 * length)
+        if size < marker - 1:
+            encoded = (size + marker).to_bytes(length, "big")
+            return identifier + encoded + payload
+    raise ValueError("EBML fixture is too large")
+
+
+def unsigned_bytes(value):
+    length = max(1, (value.bit_length() + 7) // 8)
+    return value.to_bytes(length, "big")
+
+
+def local_webm_opus_fixture():
+    header = ebml_element(0x1A45DFA3, ebml_element(0x4282, b"webm"))
+    info = ebml_element(0x1549A966, ebml_element(0x2AD7B1, unsigned_bytes(1_000_000)))
+    opus_head = b"OpusHead" + bytes([1, 1, 0, 0]) + bytes([0x80, 0xBB, 0, 0]) + bytes([0, 0, 0])
+    track = ebml_element(
+        0xAE,
+        ebml_element(0xD7, unsigned_bytes(1))
+        + ebml_element(0x83, unsigned_bytes(2))
+        + ebml_element(0x86, b"A_OPUS")
+        + ebml_element(0x63A2, opus_head),
+    )
+    tracks = ebml_element(0x1654AE6B, track)
+    # One CELT 20 ms Opus packet in a WebM SimpleBlock.
+    simple_block = bytes([0x81, 0, 0, 0, 0x98, 0])
+    cluster = ebml_element(
+        0x1F43B675,
+        ebml_element(0xE7, unsigned_bytes(0)) + ebml_element(0xA3, simple_block),
+    )
+    segment = ebml_element(0x18538067, info + tracks + cluster)
+    return base64.b64encode(header + segment).decode("ascii")
 
 
 def expect_status(result, expected, label):
@@ -238,7 +278,7 @@ def main():
             ])
 
             transcription_payload = {
-                "audioBase64": "GkXfowA=",
+                "audioBase64": local_webm_opus_fixture(),
                 "mimeType": "audio/webm;codecs=opus",
                 "durationSeconds": 1,
             }
