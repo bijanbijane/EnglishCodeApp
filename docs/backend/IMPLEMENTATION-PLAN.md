@@ -50,7 +50,7 @@
 - [x] Append-only audit events with metadata allowlist.
 - [x] Admin-only keyset-paginated audit feed.
 - [ ] Implement owner-operated bootstrap/grant/revoke maintenance script; no public role grant endpoint.
-- [ ] Add cursor pagination to review queue and author version history.
+- [x] Add cursor pagination to review queue and author version history.
 - [ ] Add integration tests for full author → reviewer → admin publish lifecycle on Local D1.
 
 ## B4 — Privacy, reliability and operations
@@ -77,4 +77,4 @@
 4. D1 `batch()` and SQLite `changes()` invariants are covered by a committed SQLite compatibility script but still need real Local D1/concurrency verification.
 5. Production origin values and first-admin bootstrap remain owner-controlled and unset.
 
-No deployment, remote migration, production secret change, paid resource or production role grant has been performed.
+No deployment, remote migration, production secret change, paid resource or production role grant has been performed. Author lesson-version history now uses bounded keyset pagination (default 20, maximum 50) with a stable created_at/id cursor; regression tests cover continuation, malformed cursors, limits and role enforcement. This change is awaiting CI/Build Runner validation.
