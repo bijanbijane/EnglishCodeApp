@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import a2PersonalGoalsLesson from "../../../packages/learning-core/examples/a2-personal-goals";
 import {
   filterErrorCorrections,
   getSenseSynonyms,
@@ -101,6 +102,12 @@ describe("learning-core open content", () => {
     const result = validateLessonBlueprint(invalid);
     expect(result.valid).toBe(false);
     expect(result.errors.length).toBeGreaterThan(2);
+  });
+
+  it("validates the original A2 communicative lesson sample", () => {
+    expect(validateLessonBlueprint(a2PersonalGoalsLesson)).toEqual({ valid: true, errors: [] });
+    expect(a2PersonalGoalsLesson.stages).toHaveLength(8);
+    expect(a2PersonalGoalsLesson.mastery.requireDelayedRecall).toBe(true);
   });
 
   it("caps result limits to avoid unbounded response sizes", () => {
