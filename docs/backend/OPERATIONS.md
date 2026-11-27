@@ -39,9 +39,10 @@ Never edit a migration applied to a shared database. Use forward-only migrations
 ## Static review checkpoint — 2026-11-27
 
 - Refreshed main at `f3671f2194e562fc194d23e9602b768455d8e483`; open PRs #21–#25 remain Draft and are not part of main.
-- PR #25's completion batch was statically reviewed. Its current statement order is attempt UPDATE → learning-event INSERT → progress upsert → SELECT. The progress upsert is gated by `changes() = 1`, so it observes the immediately preceding event INSERT rather than the attempt UPDATE. This creates an avoidable coupling between event insertion and progress projection.
-- A review comment was added to PR #25 recommending UPDATE → progress upsert → event INSERT → SELECT, preserving the original single-winner gate while keeping all writes in the same D1 batch. The suggested order and its idempotency/concurrency behavior still require Local D1 verification.
-- PR #25 workflow run 314 (commit `d079b201b9ba95fff7b9d23355a8d3e9d34d52d9`) is reported failed before job steps; this is not a code-test result. No tests were run in this session.
+- PR #25's current completion batch was re-read at head `dc9db06f23e3d1b90a02698e586e18ef845c1c6c`. Its statement order is attempt UPDATE → progress upsert → learning-event INSERT → SELECT. The progress upsert is immediately adjacent to the conditional attempt UPDATE, so `changes() = 1` gates the winning state transition rather than depending on whether the later event insert succeeds.
+- `scripts/verify_backend_sqlite.py` now mirrors that ordering for first and repeated completion. `scripts/verify_backend_d1_local.py` includes a pre-existing event-key fixture to exercise the event-insert conflict path while requiring the progress projection to update. These changes are source-read-back verified only; neither verifier was executed in this session.
+- Static review of migration `0016_immutable_learning_events.sql` and both verifier paths found explicit update/direct-delete guards, idempotent event uniqueness, and a parent-user cascade fixture. Actual Wrangler Local D1 execution remains required to establish runtime behavior.
+- Exact-head Backend CI run #328 (`46027745390`) for `dc9db06f23e3d1b90a02698e586e18ef845c1c6c` failed before exposing any steps. The latest job record returned ID `140649485772`, `steps: []`, and `logs_url: null`. This is not a code-test result; no tests were executed in this session.
 - PR #24's webhook handler was checked for Mini App launch behavior; it ignores non-private chats before sending Web App buttons. No new defect was confirmed in that path by this limited static review.
 
 ## Observability
