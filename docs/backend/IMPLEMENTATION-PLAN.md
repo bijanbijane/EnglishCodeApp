@@ -42,7 +42,7 @@
 - [x] Admin-only publication of approved versions.
 - [x] Append-only audit events with metadata allowlist and admin-only audit feed.
 - [ ] Owner-operated bootstrap/grant/revoke maintenance procedure.
-- [ ] Complete and validate cursor pagination for reviewer queue and author version history on main.
+- [ ] Validate reviewer-queue pagination and add/validate author-owned lesson version history pagination on main.
 - [ ] Local D1 integration tests for the full author → reviewer → admin publication lifecycle.
 
 ## B4 — Privacy, reliability, and operations
