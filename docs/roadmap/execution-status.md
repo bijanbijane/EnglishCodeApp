@@ -10,7 +10,7 @@ This checkpoint records repository-observed state only. It is not a claim that t
 - Documentation branch: `docs/backend-status-refresh-2026-11-27`
 - Documentation branch starting point: `f3671f2194e562fc194d23e9602b768455d8e483`
 - Documentation PR: #23 (open, Draft; do not merge without required review and approval)
-- Last source commit reviewed: `f3671f2194e562fc194d23e9602b768455d8e483`
+- Last source commits reviewed: main `f3671f2194e562fc194d23e9602b768455d8e483`; PR #25 `d079b201b9ba95fff7b9d23355a8d3e9d34d52d9`; PR #24 `10ccf3721aa37ae6e2b7d551b854064bc9ff1839`
 - Last test-verified commit: **none established in this execution session**
 
 ## Baseline verified from main
@@ -40,9 +40,9 @@ This checkpoint records repository-observed state only. It is not a claim that t
 - GitHub Actions runs inspected for PR #20 and PR #25 ended with failure before job execution/runner allocation in the earlier recorded evidence. This is not a code-test failure and is not a passing result.
 - No local typecheck, unit tests, SQLite verifier, Wrangler Local D1 test, frontend build, or E2E test was run in this session.
 - Static source review was performed on the Telegram initData verifier, login route/tests, learning routes, frontend app, package scripts, and migration files.
-- No new code defect was confirmed by this limited static review.
+- Static review identified a maintainability/correctness coupling in PR #25: the progress upsert uses `changes() = 1`, but an event INSERT now sits between the attempt UPDATE and progress upsert. The gate therefore observes the event INSERT's row count rather than the attempt transition. A review comment recommends reordering the batch to UPDATE → progress → event INSERT → SELECT; runtime behavior remains unverified.
 
-## Security and data implications
+## Latest review actions — 2026-11-27\n\n- Added PR #25 conversation comment `7222284886` documenting the `changes()` ordering concern and requesting Local D1 coverage for first completion, repeated completion, and a pre-existing-event edge case.\n- Updated `docs/backend/OPERATIONS.md` with the same checkpoint and exact resume constraints.\n- PR #25 review-thread listing was empty before the comment; no code was changed on that PR branch.\n- PR #24's webhook handler was checked: non-private chats are ignored before a Mini App Web App button can be sent. No defect was confirmed in that path by this limited review.\n\n## Security and data implications
 
 - No application source code or SQL migration was changed in this documentation batch.
 - No database was modified.
@@ -63,7 +63,7 @@ This checkpoint records repository-observed state only. It is not a claim that t
 
 1. Obtain runner-allocation evidence from repository/account Actions settings; do not edit workflows merely to hide the failure.
 2. Once a real runner is available, run backend typecheck, Vitest, SQLite verifier, fresh Local D1 migration/seed and D1 integration tests on the exact main/PR head.
-3. Complete static review and exact-head verification of PR #25; compare against #19 and retain only one migration-0016 path.
+3. Resolve PR #25's completion-batch statement ordering concern; then run exact-head CI and Wrangler Local D1 tests when a runner is available. Keep #19 and #25 as alternative migration-0016 paths.
 4. Review PR #24's complete diff and exact-head checks; retain Draft until tests pass.
 5. Resolve the server-side grading/answer-key boundary in the PR #22 proposal before any learner-facing release.
 6. Complete cross-user/role-revocation tests and owner-operated admin bootstrap.
@@ -71,4 +71,4 @@ This checkpoint records repository-observed state only. It is not a claim that t
 
 ## Resume point
 
-Resume by refreshing main, PR #17–#25, PR comments/reviews, and exact-head workflow runs. Then address the Actions runner blocker without weakening tests. Continue independent GitHub-only static review while CI is blocked. Keep all changes on focused branches in this repository; no merge, deployment, remote migration, secret mutation, or paid resource action is authorized by this checkpoint.
+Resume by refreshing main, PR #17–#25, PR comments/reviews, and exact-head workflow runs. The next code-review item is PR #25's `changes()`/event ordering finding; the next infrastructure item is owner inspection of GitHub Actions runner settings. Continue independent GitHub-only review while CI is blocked. Keep all changes on focused branches in this repository; no merge, deployment, remote migration, secret mutation, or paid resource action is authorized by this checkpoint.
