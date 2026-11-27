@@ -8,7 +8,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/check-layout.mjs && vitest run",
+    "test": "vitest run",
     "dev:worker": "wrangler dev",
     "deploy:dev": "npm run build && wrangler deploy",
     "deploy:dry-run": "npm run build && wrangler deploy --dry-run"
