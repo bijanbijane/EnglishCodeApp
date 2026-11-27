@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import stylesheet from "../src/styles.css?inline";
+
+const stylesheet = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
 
 describe("Telegram mobile layout contracts", () => {
   it("accounts for both device and Telegram content safe areas", () => {
