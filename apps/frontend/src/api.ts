@@ -19,6 +19,13 @@ export type Attempt = {
 export type Profile = { id: string; display_name: string | null; created_at: string };
 export type ProgressEntry = { lesson_id: string; course_id: string; best_score: number; completed_count: number; lesson_title: string; last_completed_at: string };
 
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number, public readonly code?: string) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
 let accessToken: string | null = null;
 
@@ -37,7 +44,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     | null;
   if (!response.ok) {
     const message = payload?.error?.message ?? `Request failed (${response.status})`;
-    throw new Error(payload?.error?.requestId ? `${message} [${payload.error.requestId}]` : message);
+    throw new ApiError(
+      payload?.error?.requestId ? `${message} [${payload.error.requestId}]` : message,
+      response.status,
+      payload?.error?.code,
+    );
   }
   if (!payload || !("data" in payload)) throw new Error("The server returned an invalid response.");
   return payload.data as T;
