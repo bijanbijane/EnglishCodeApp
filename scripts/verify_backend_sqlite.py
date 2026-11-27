@@ -213,6 +213,18 @@ def main() -> None:
                ), 0),
                completed_at = ?
            WHERE id = ? AND user_id = ? AND status = 'in_progress'"""
+        event_sql = """INSERT INTO learning_events
+             (event_id,user_id,event_type,aggregate_id,lesson_id,score,occurred_at,payload_json)
+           SELECT 'attempt-completed:' || a.id,a.user_id,'lesson_attempt_completed',a.id,
+                  a.lesson_id,a.score,a.completed_at,
+                  json_object('attemptId',a.id,'lessonId',a.lesson_id,
+                    'lessonVersion',a.lesson_version,'lessonVersionId',a.lesson_version_id,
+                    'assessmentPolicyVersionId',a.assessment_policy_version_id,
+                    'score',a.score,'completedAt',a.completed_at)
+           FROM lesson_attempts a
+           WHERE a.id=? AND a.user_id=? AND a.status='completed'
+             AND a.completed_at=? AND a.score IS NOT NULL
+           ON CONFLICT(event_type,aggregate_id) DO NOTHING"""
         progress_sql = """INSERT INTO user_progress
              (user_id, lesson_id, best_score, completed_count, last_completed_at)
            SELECT user_id, lesson_id, score, 1, completed_at FROM lesson_attempts
@@ -223,22 +235,55 @@ def main() -> None:
              last_completed_at = excluded.last_completed_at"""
         completion_results = run_batch(db, [
             (completion_sql, (completed_at, attempt_id, user_id)),
+            (event_sql, (attempt_id, user_id, completed_at)),
             (progress_sql, (attempt_id, completed_at)),
         ])
-        assert completion_results[0].rowcount == 1
-        assert completion_results[1].rowcount == 1
-        # Repeating completion must not increment completed_count.
+        assert [result.rowcount for result in completion_results] == [1, 1, 1]
+        event = db.execute(
+            "SELECT event_type,aggregate_id,score,json_extract(payload_json,'$.attemptId') AS payload_attempt_id FROM learning_events"
+        ).fetchone()
+        assert event["event_type"] == "lesson_attempt_completed"
+        assert event["aggregate_id"] == attempt_id and event["payload_attempt_id"] == attempt_id
+        try:
+            db.execute("UPDATE learning_events SET score=0 WHERE aggregate_id=?", (attempt_id,))
+            raise AssertionError("learning events must be immutable")
+        except sqlite3.IntegrityError:
+            db.rollback()
+        try:
+            db.execute("DELETE FROM learning_events WHERE aggregate_id=?", (attempt_id,))
+            raise AssertionError("learning events must not be directly deleted")
+        except sqlite3.IntegrityError:
+            db.rollback()
+        # Repeating completion must not create another event or increment progress.
         repeated_results = run_batch(db, [
             (completion_sql, ("2026-11-26T15:02:00.000Z", attempt_id, user_id)),
+            (event_sql, (attempt_id, user_id, "2026-11-26T15:02:00.000Z")),
             (progress_sql, (attempt_id, "2026-11-26T15:02:00.000Z")),
         ])
-        assert repeated_results[0].rowcount == 0
-        assert repeated_results[1].rowcount == 0
+        assert [result.rowcount for result in repeated_results] == [0, 0, 0]
         progress = db.execute(
             "SELECT completed_count, best_score FROM user_progress WHERE user_id = ? AND lesson_id = ?",
             (user_id, lesson_id),
         ).fetchone()
         assert progress["completed_count"] == 1, "duplicate completion must not double-count progress"
+        assert db.execute("SELECT COUNT(*) FROM learning_events").fetchone()[0] == 1
+
+        # Parent-user deletion must cascade despite the direct-delete guard trigger.
+        db.execute("INSERT INTO users (id,display_name) VALUES (?,?)", ("cascade-user-1", "Cascade User"))
+        db.execute(
+            """INSERT INTO learning_events
+                 (event_id,user_id,event_type,aggregate_id,lesson_id,score,occurred_at,payload_json)
+               VALUES (?,?,?,?,?,?,?,json_object('attemptId',?))""",
+            ("cascade-event-1", "cascade-user-1", "lesson_attempt_completed", "cascade-attempt-1",
+             lesson_id, 75, completed_at, "cascade-attempt-1"),
+        )
+        db.commit()
+        db.execute("DELETE FROM users WHERE id=?", ("cascade-user-1",))
+        assert db.execute(
+            "SELECT COUNT(*) FROM learning_events WHERE user_id=?",
+            ("cascade-user-1",),
+        ).fetchone()[0] == 0, "parent user deletion must cascade learning events"
+        db.commit()
 
         # RBAC, append-only audit, no-self-review and publish state machine.
         db.execute("INSERT INTO users (id,display_name) VALUES (?,?)", ("reviewer-1", "Reviewer"))
@@ -401,7 +446,7 @@ def main() -> None:
         db.close()
 
     print("SQLite migration, replay gate, immutable attempt snapshot, answer idempotency,")
-    print("completion/progress single-winner behavior, ownership, and integrity checks passed.")
+    print("completion/progress single-winner behavior, immutable events, user-delete cascade, ownership, and integrity checks passed.")
     print("Note: this is SQLite compatibility evidence, not a Cloudflare Local D1 concurrency test.")
 
 
