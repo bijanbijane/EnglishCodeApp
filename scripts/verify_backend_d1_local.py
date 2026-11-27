@@ -380,7 +380,28 @@ def main():
                 event_count_rows = event_count_payload["results"]
             assert event_count_rows[0]["event_count"] == 2, event_count_rows
 
-            # Account erasure must cascade learning events while direct event deletion remains guarded.
+            # Direct event deletion must be rejected by the immutable-ledger trigger.
+            direct_delete_sql = PERSIST_DIR / "direct-learning-event-delete.sql"
+            direct_delete_sql.write_text(
+                f"DELETE FROM learning_events WHERE aggregate_id='{attempt_id}';",
+                encoding="utf-8",
+            )
+            direct_delete = subprocess.run(
+                [
+                    "npx", "wrangler", "d1", "execute", DATABASE,
+                    "--local", "--persist-to", persist, f"--file={direct_delete_sql}",
+                ],
+                cwd=BACKEND,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+            assert direct_delete.returncode != 0, (
+                "direct deletion of an immutable learning event unexpectedly succeeded"
+            )
+
+            # Parent-user deletion must still cascade its learning events.
             cascade_insert_sql = PERSIST_DIR / "cascade-event-fixture.sql"
             cascade_insert_sql.write_text(
                 "INSERT INTO users (id,display_name) VALUES ('cascade-user-001','Cascade User');"
