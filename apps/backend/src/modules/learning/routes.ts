@@ -271,6 +271,31 @@ learning.post("/attempts/:attemptId/complete", requireSession, async (c) => {
        WHERE id = ? AND user_id = ? AND status = 'in_progress'`,
     ).bind(completedAt, attemptId, userId),
     c.env.DB.prepare(
+      `INSERT INTO learning_events
+         (event_id, user_id, event_type, aggregate_id, lesson_id, score, occurred_at, payload_json)
+       SELECT
+         'attempt-completed:' || a.id,
+         a.user_id,
+         'lesson_attempt_completed',
+         a.id,
+         a.lesson_id,
+         a.score,
+         a.completed_at,
+         json_object(
+           'attemptId', a.id,
+           'lessonId', a.lesson_id,
+           'lessonVersion', a.lesson_version,
+           'lessonVersionId', a.lesson_version_id,
+           'assessmentPolicyVersionId', a.assessment_policy_version_id,
+           'score', a.score,
+           'completedAt', a.completed_at
+         )
+       FROM lesson_attempts a
+       WHERE a.id = ? AND a.user_id = ? AND a.status = 'completed'
+         AND a.completed_at = ? AND a.score IS NOT NULL
+       ON CONFLICT(event_type, aggregate_id) DO NOTHING`,
+    ).bind(attemptId, userId, completedAt),
+    c.env.DB.prepare(
       `INSERT INTO user_progress
          (user_id, lesson_id, best_score, completed_count, last_completed_at)
        SELECT user_id, lesson_id, score, 1, completed_at
