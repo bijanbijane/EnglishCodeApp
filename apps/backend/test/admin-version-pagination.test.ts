@@ -35,7 +35,7 @@ function makeDatabase(roles: string[] = ["content_author"]) {
         },
         async all<T>() {
           if (sql.includes("FROM lesson_versions lv LEFT JOIN content_review_requests")) {
-            const rows = statement.values[5] === "version-1" ? [versionRows[1]] : versionRows;
+            const rows = statement.values[5] === "version-2" ? [versionRows[1]] : versionRows;
             return { results: rows as T[] };
           }
           return { results: [] as T[] };
