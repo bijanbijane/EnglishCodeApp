@@ -43,7 +43,7 @@ function getMiniAppUrl(value?: string): string | null {
 }
 
 function getCommand(text: string): string | null {
-  const firstToken = text.trim().split(/\\s+/, 1)[0] ?? "";
+  const firstToken = text.trim().split(/\s+/, 1)[0] ?? "";
   if (!firstToken.startsWith("/")) return null;
   return firstToken.slice(1).split("@", 1)[0].toLowerCase();
 }
