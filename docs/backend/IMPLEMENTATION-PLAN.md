@@ -34,10 +34,10 @@
 - [x] Attempt creation pins lesson/policy versions and snapshots question content and weights.
 - [x] Owner-scoped attempt retrieval without answer-key disclosure.
 - [x] Server-side answer validation and grading; idempotent same-answer retry.
-- [x] Conditional completion and progress upsert in one D1 batch.
+- [x] Conditional completion, immutable completion-event append, and derived progress upsert in one D1 batch.
 - [x] Current-user progress endpoint.
-- [ ] Verify answer/complete races and exactly-once progress against Local D1.
-- [ ] Add immutable attempt-result/progress-event facts and deterministic projection rebuild.
+- [ ] Verify answer/complete races, event immutability, parent-user cascade, and exactly-once progress against Wrangler Local D1.
+- [ ] Provide a D1-compatible deterministic progress projection rebuild; current rebuild SQL is explicitly SQLite-only.
 - [ ] Finalize pass thresholds, retry policy and future question types.
 
 ## B3 — Content governance and administration
