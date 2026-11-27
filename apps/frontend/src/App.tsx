@@ -24,6 +24,8 @@ function App() {
   const telegram = window.Telegram?.WebApp;
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [coursesLoadFailed, setCoursesLoadFailed] = useState(false);
+  const [lessonsLoadFailed, setLessonsLoadFailed] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -45,10 +47,12 @@ function App() {
   const courseRequestId = useRef(0);
 
   const loadCourses = useCallback(async () => {
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setCoursesLoadFailed(false);
     try { setCourses(await api.courses()); }
-    catch (e) { setError(e instanceof Error ? e.message : "Could not load courses."); }
-    finally { setLoading(false); }
+    catch (e) {
+      setCoursesLoadFailed(true);
+      setError(e instanceof Error ? e.message : "Could not load courses.");
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => {
@@ -85,12 +89,14 @@ function App() {
   const openCourse = async (course: Course) => {
     const requestId = ++courseRequestId.current;
     setSelectedCourse(course); setSelectedLesson(null); setLessons([]); setError("");
+    setLessonsLoadFailed(false);
     setLoading(true);
     try {
       const nextLessons = await api.lessons(course.id);
       if (requestId === courseRequestId.current) setLessons(nextLessons);
     } catch (e) {
       if (requestId === courseRequestId.current) {
+        setLessonsLoadFailed(true);
         setError(e instanceof Error ? e.message : "Could not load lessons.");
       }
     } finally {
@@ -104,6 +110,7 @@ function App() {
     setSelectedCourse(null);
     setSelectedLesson(null);
     setLessons([]);
+    setLessonsLoadFailed(false);
     setLoading(false);
     setError("");
   };
@@ -247,7 +254,7 @@ function App() {
             <div className="lesson-info"><h3>{lesson.title}</h3><p>{lesson.description || "A focused practice session"}{lesson.level ? ` · ${lesson.level}` : ""}</p></div>
             <button className="round-button" disabled={busy} onClick={() => void startLesson(lesson)} aria-label={`Start ${lesson.title}`}>↗</button>
           </article>
-        ) : <div className="empty-state">{error ? "Lessons could not be loaded. Return to all courses and try again." : "No published lessons are available in this course yet."}</div>}</div>
+        ) : lessonsLoadFailed ? <div className="empty-state"><span>Lessons could not be loaded.</span><button className="text-button" onClick={() => selectedCourse && void openCourse(selectedCourse)}>Retry loading lessons</button></div> : <div className="empty-state">No published lessons are available in this course yet.</div>}</div>
         : <div className="course-grid">{courses.length ? courses.map((course, index) =>
           <button className={`course-card course-${index % 3}`} key={course.id} onClick={() => void openCourse(course)}>
             <span className="course-index">COURSE {String(index + 1).padStart(2, "0")}</span>
@@ -255,7 +262,7 @@ function App() {
             <span className="course-description">{course.description || `Build your ${course.target_language} skills step by step.`}</span>
             <span className="course-link">Explore course <b>↗</b></span>
           </button>
-        ) : <div className="empty-state">{error ? "The course catalogue could not be loaded." : "No published courses yet. Check back soon."}</div>}</div>}
+        ) : coursesLoadFailed ? <div className="empty-state"><span>The course catalogue could not be loaded.</span><button className="text-button" onClick={() => void loadCourses()}>Retry loading courses</button></div> : <div className="empty-state">No published courses yet. Check back soon.</div>}</div>}
       </section>
     </>}
 
