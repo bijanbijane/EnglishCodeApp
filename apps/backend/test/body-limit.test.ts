@@ -28,8 +28,16 @@ describe("API request body limits", () => {
   it("allows the larger transcription request through the API-wide guard but keeps parsing before D1", async () => {
     const token = await createSessionToken();
     const DB = {
-      prepare() {
-        throw new Error("database must not be touched for an invalid audio container");
+      prepare(sql: string) {
+        return {
+          bind() {
+            return {
+              first: async () => sql.includes("FROM sessions")
+                ? { id: "session-1", user_id: "user-1" }
+                : null,
+            };
+          },
+        };
       },
       batch() {
         throw new Error("quota must not be reserved for an invalid audio container");
