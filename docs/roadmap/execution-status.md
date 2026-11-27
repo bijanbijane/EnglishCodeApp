@@ -59,6 +59,16 @@ This checkpoint records repository-observed state only. It is not a claim that t
 - Exact-head Backend CI run #325 (`46027047367`) concluded failure before job steps; steps array is empty, logs return `404 BlobNotFound`. This is not a code-test result.
 - No local commands or D1 tests were executed. PR #25 remains Draft and unmerged.
 
+## PR #22 follow-up review — 2026-11-27
+
+- Refreshed PR #22: still open/Draft, head `88613a8d6f08e37430e579daada63689f34d0df8`, based on PR #21 branch, mergeable flag true (metadata only).
+- Re-read the full PR patch and the learner-facing exercise UI test.
+- Confirmed existing architecture concern remains: the browser imports the pack containing answer keys and performs local correctness evaluation. Existing comment `7221651318` remains unresolved; no backend grading endpoint is present in this PR's diff.
+- New UX finding: the `matching` exercise type only masks/shows the supplied right-hand answers; it provides no learner matching input or submitted response. Added PR comment `7222402332`. Treat as a worked-example card or implement accessible matching interaction without client-authoritative scoring.
+- The shipped-pack validator test requested earlier is now present in the PR patch. This closes that specific test-coverage request at source level; CI has not provided executable evidence.
+- PR #21 remains open/Draft at `e1564cf4a89e4600d91744afe4e80acf7d1a9231`. Strict record validation was added, but immutable upstream revision + SHA-256 pinning and sync-time checksum verification remain unresolved. Existing review comments remain unanswered.
+- No tests were executed in this session; no PR bases, branch histories, or merge states were changed.
+
 ## Security and data implications
 
 - No application source code or SQL migration was changed in this documentation batch.
