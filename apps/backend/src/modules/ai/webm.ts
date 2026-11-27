@@ -386,7 +386,7 @@ function parseCluster(
  * not from the client-supplied duration or the optional WebM Info/Duration field.
  */
 export function getWebmOpusDurationSeconds(bytes: Uint8Array): number {
-  if (bytes.length < 32 || bytes.length > 96 * 1024) invalidAudio();
+  if (bytes.length < 32 || bytes.length > 1024 * 1024) invalidAudio();
 
   const topLevel = childElements(bytes, 0, bytes.length);
   const header = topLevel.find((element) => element.id === EBML_HEADER_ID);
