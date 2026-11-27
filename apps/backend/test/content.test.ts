@@ -8,7 +8,7 @@ describe("public lesson content", () => {
       course_id: "course-1",
       slug: "greetings",
       title: "Greetings",
-      description: null,
+      description: "Published version description",
       level: "A1",
       position: 1,
       version: 1,
@@ -42,6 +42,7 @@ describe("public lesson content", () => {
 
     expect(response.status).toBe(200);
     expect(body).toContain('"text":"Hello"');
+    expect(body).toContain('"description":"Published version description"');
     expect(body).not.toContain("answer_key");
     expect(body).not.toContain("Hello is a greeting.");
     expect(body).not.toContain('"answer":"a"');
