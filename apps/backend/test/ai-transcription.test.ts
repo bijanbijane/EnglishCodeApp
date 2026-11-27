@@ -3,6 +3,122 @@ import app from "../src/app";
 import { createSessionToken } from "../src/modules/auth/session";
 import { cleanupExpiredAuthState } from "../src/modules/maintenance/cleanup";
 
+function concatBytes(...parts: Uint8Array[]): Uint8Array {
+  const output = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
+  let offset = 0;
+  for (const part of parts) {
+    output.set(part, offset);
+    offset += part.length;
+  }
+  return output;
+}
+
+function encodeSizeVint(value: number): Uint8Array {
+  for (let length = 1; length <= 8; length += 1) {
+    const marker = 2 ** (7 * length);
+    if (value < marker - 1) {
+      const encoded = value + marker;
+      const result = new Uint8Array(length);
+      let current = encoded;
+      for (let index = length - 1; index >= 0; index -= 1) {
+        result[index] = current & 0xff;
+        current = Math.floor(current / 256);
+      }
+      return result;
+    }
+  }
+  throw new Error("Fixture element is too large.");
+}
+
+function ebmlElement(id: number, data: Uint8Array): Uint8Array {
+  const idLength = id <= 0xff ? 1 : id <= 0xffff ? 2 : id <= 0xffffff ? 3 : 4;
+  const idBytes = new Uint8Array(idLength);
+  let current = id;
+  for (let index = idLength - 1; index >= 0; index -= 1) {
+    idBytes[index] = current & 0xff;
+    current = Math.floor(current / 256);
+  }
+  return concatBytes(idBytes, encodeSizeVint(data.length), data);
+}
+
+function unsigned(value: number): Uint8Array {
+  if (value === 0) return new Uint8Array([0]);
+  const bytes: number[] = [];
+  let current = value;
+  while (current > 0) {
+    bytes.unshift(current & 0xff);
+    current = Math.floor(current / 256);
+  }
+  return new Uint8Array(bytes);
+}
+
+function textBytes(value: string): Uint8Array {
+  return new TextEncoder().encode(value);
+}
+
+function opusHead(): Uint8Array {
+  const header = new Uint8Array(19);
+  header.set(textBytes("OpusHead"), 0);
+  header[8] = 1;
+  header[9] = 1;
+  header[12] = 0x80;
+  header[13] = 0xbb;
+  return header;
+}
+
+function opusPacket(): Uint8Array {
+  // CELT 20 ms, one frame per Opus packet.
+  return new Uint8Array([0x98, 0x00]);
+}
+
+function makeSimpleBlock(relativeTimestamp: number): Uint8Array {
+  const timestamp = new Uint8Array([
+    (relativeTimestamp >> 8) & 0xff,
+    relativeTimestamp & 0xff,
+  ]);
+  return concatBytes(new Uint8Array([0x81]), timestamp, new Uint8Array([0]), opusPacket());
+}
+
+function makeWebm(clusters: Array<{ timecode: number; relativeTimestamps: number[] }>): Uint8Array {
+  const header = ebmlElement(
+    0x1a45dfa3,
+    ebmlElement(0x4282, textBytes("webm")),
+  );
+  const info = ebmlElement(
+    0x1549a966,
+    ebmlElement(0x2ad7b1, unsigned(1_000_000)),
+  );
+  const trackEntry = ebmlElement(
+    0xae,
+    concatBytes(
+      ebmlElement(0xd7, unsigned(1)),
+      ebmlElement(0x83, unsigned(2)),
+      ebmlElement(0x86, textBytes("A_OPUS")),
+      ebmlElement(0x63a2, opusHead()),
+    ),
+  );
+  const tracks = ebmlElement(0x1654ae6b, trackEntry);
+  const clusterElements = clusters.map(({ timecode, relativeTimestamps }) =>
+    ebmlElement(
+      0x1f43b675,
+      concatBytes(
+        ebmlElement(0xe7, unsigned(timecode)),
+        ...relativeTimestamps.map(makeSimpleBlock).map((block) => ebmlElement(0xa3, block)),
+      ),
+    ),
+  );
+  return concatBytes(
+    header,
+    ebmlElement(0x18538067, concatBytes(info, tracks, ...clusterElements)),
+  );
+}
+
+function toBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
 function makeDb(quotaGranted = true) {
   const statements: string[] = [];
   const db = {
@@ -29,9 +145,8 @@ function makeDb(quotaGranted = true) {
 }
 
 const validPayload = {
-  audioBase64: "GkXfowA=",
+  audioBase64: toBase64(makeWebm([{ timecode: 0, relativeTimestamps: [0] }])),
   mimeType: "audio/webm;codecs=opus",
-  durationSeconds: 10,
 };
 
 describe("AI speech transcription API", () => {
@@ -94,7 +209,7 @@ describe("AI speech transcription API", () => {
     expect(db.batch).not.toHaveBeenCalled();
   });
 
-  it("rejects audio whose signature does not match the declared MIME type", async () => {
+  it("rejects formats other than WebM/Opus without consuming quota", async () => {
     const token = await createSessionToken();
     const { db } = makeDb();
     const response = await app.request(
@@ -105,7 +220,7 @@ describe("AI speech transcription API", () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...validPayload, audioBase64: "AQID" }),
+        body: JSON.stringify({ ...validPayload, mimeType: "audio/ogg" }),
       },
       { DB: db, AI: { run: vi.fn() } } as never,
     );
@@ -114,7 +229,7 @@ describe("AI speech transcription API", () => {
     expect(db.batch).not.toHaveBeenCalled();
   });
 
-  it("rejects unsupported audio formats without consuming quota", async () => {
+  it("rejects malformed WebM containers before consuming quota", async () => {
     const token = await createSessionToken();
     const { db } = makeDb();
     const response = await app.request(
@@ -125,7 +240,7 @@ describe("AI speech transcription API", () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...validPayload, mimeType: "video/mp4" }),
+        body: JSON.stringify({ ...validPayload, audioBase64: toBase64(new Uint8Array([0x1a, 0x45, 0xdf, 0xa3])) }),
       },
       { DB: db, AI: { run: vi.fn() } } as never,
     );
@@ -134,7 +249,35 @@ describe("AI speech transcription API", () => {
     expect(db.batch).not.toHaveBeenCalled();
   });
 
-  it("returns the transcription and quota metadata on success", async () => {
+  it("rejects recordings longer than 60 seconds using container timestamps, not client claims", async () => {
+    const token = await createSessionToken();
+    const { db } = makeDb();
+    const tooLong = makeWebm([
+      { timecode: 0, relativeTimestamps: [0] },
+      { timecode: 60_000, relativeTimestamps: [0] },
+    ]);
+    const response = await app.request(
+      "/api/v1/ai/transcriptions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...validPayload,
+          audioBase64: toBase64(tooLong),
+          durationSeconds: 1,
+        }),
+      },
+      { DB: db, AI: { run: vi.fn() } } as never,
+    );
+
+    expect(response.status).toBe(400);
+    expect(db.batch).not.toHaveBeenCalled();
+  });
+
+  it("returns the transcription and the server-measured duration on success", async () => {
     const token = await createSessionToken();
     const { db } = makeDb();
     const AI = {
@@ -152,14 +295,19 @@ describe("AI speech transcription API", () => {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(validPayload),
+        body: JSON.stringify({ ...validPayload, durationSeconds: 59 }),
       },
       { DB: db, AI } as never,
     );
 
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
-      data: { transcription: "Good morning", wordCount: 2, language: "en" },
+      data: {
+        transcription: "Good morning",
+        wordCount: 2,
+        language: "en",
+        durationSeconds: 0.02,
+      },
       meta: { quota: { userDailyLimit: 2, globalDailyLimit: 60 } },
     });
     expect(AI.run).toHaveBeenCalledOnce();
