@@ -397,8 +397,11 @@ def main():
                 stderr=subprocess.STDOUT,
                 check=False,
             )
-            assert direct_delete.returncode != 0, (
-                "direct deletion of an immutable learning event unexpectedly succeeded"
+            assert direct_delete.returncode != 0 and (
+                "learning events cannot be deleted directly" in direct_delete.stdout.lower()
+            ), (
+                "direct event deletion did not fail for the expected immutability trigger: "
+                + direct_delete.stdout[-2000:]
             )
 
             # Parent-user deletion must still cascade its learning events.
