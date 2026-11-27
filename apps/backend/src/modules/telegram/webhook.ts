@@ -107,42 +107,27 @@ telegram.post("/telegram/setup", async (c) => {
     return c.json({ error: "Unauthorized." }, 401);
   }
 
-  const infoUrl = `https://api.telegram.org/bot${token}/getWebhookInfo`;
-  const infoResponse = await fetch(infoUrl);
-  if (!infoResponse.ok) {
-    return c.json({ error: "Telegram webhook status could not be read." }, 502);
+  // Always reapply the configured secret token. getWebhookInfo does not expose
+  // the currently configured secret, so URL equality alone cannot prove auth works.
+  const setResponse = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: WEBHOOK_URL,
+      secret_token: webhookSecret,
+      allowed_updates: ["message"],
+      drop_pending_updates: false,
+    }),
+  });
+  if (!setResponse.ok) {
+    return c.json({ error: "Telegram webhook registration failed." }, 502);
   }
-  const info = await infoResponse.json() as {
-    ok?: boolean;
-    result?: { url?: string; pending_update_count?: number; allowed_updates?: string[] };
-  };
-  if (info.ok !== true) {
-    return c.json({ error: "Telegram webhook status could not be read." }, 502);
-  }
-
-  let status = "already_registered";
-  if (info.result?.url !== WEBHOOK_URL) {
-    const setResponse = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        url: WEBHOOK_URL,
-        secret_token: webhookSecret,
-        allowed_updates: ["message"],
-        drop_pending_updates: false,
-      }),
-    });
-    if (!setResponse.ok) {
-      return c.json({ error: "Telegram webhook registration failed." }, 502);
-    }
-    const setResult = await setResponse.json() as { ok?: boolean };
-    if (setResult.ok !== true) {
-      return c.json({ error: "Telegram webhook registration failed." }, 502);
-    }
-    status = "registered";
+  const setResult = await setResponse.json() as { ok?: boolean };
+  if (setResult.ok !== true) {
+    return c.json({ error: "Telegram webhook registration failed." }, 502);
   }
 
-  const verifiedResponse = await fetch(infoUrl);
+  const verifiedResponse = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
   if (!verifiedResponse.ok) {
     return c.json({ error: "Telegram webhook verification failed." }, 502);
   }
@@ -150,13 +135,17 @@ telegram.post("/telegram/setup", async (c) => {
     ok?: boolean;
     result?: { url?: string; pending_update_count?: number; allowed_updates?: string[] };
   };
-  if (verified.ok !== true || verified.result?.url !== WEBHOOK_URL) {
+  if (
+    verified.ok !== true ||
+    verified.result?.url !== WEBHOOK_URL ||
+    !verified.result.allowed_updates?.includes("message")
+  ) {
     return c.json({ error: "Telegram webhook verification failed." }, 502);
   }
 
   return c.json({
     ok: true,
-    webhook: status,
+    webhook: "registered",
     url: verified.result.url,
     pendingUpdateCount: verified.result.pending_update_count ?? 0,
     allowedUpdates: verified.result.allowed_updates ?? [],
