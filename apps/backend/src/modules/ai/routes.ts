@@ -60,7 +60,8 @@ ai.post("/ai/transcriptions", bodyLimit({ maxSize: 192 * 1024, onError: (c) => c
       meta: { requestId: c.get("requestId"), quota: { userDailyLimit: USER_DAILY_LIMIT, globalDailyLimit: GLOBAL_DAILY_LIMIT, resetsAt: "00:00 UTC" } },
     });
   } catch (error) {
-    await c.env.DB.prepare("DELETE FROM ai_transcription_reservations WHERE id IN (?, ?)").bind(globalId, userIdReservation).run();
+    // Keep the reservation after an inference attempt, including upstream failures.
+    // Releasing it here would let repeated failed calls bypass the daily free-tier cap.
     if (error instanceof AppError) throw error;
     throw new AppError("SERVICE_UNAVAILABLE", "Speech transcription is temporarily unavailable.", 503);
   }
