@@ -10,7 +10,7 @@ This checkpoint records repository-observed state only. It is not a claim that t
 - Documentation branch: `docs/backend-status-refresh-2026-11-27`
 - Documentation branch starting point: `f3671f2194e562fc194d23e9602b768455d8e483`
 - Documentation PR: #23 (open, Draft; do not merge without required review and approval)
-- Last source commits reviewed: main `f3671f2194e562fc194d23e9602b768455d8e483`; PR #25 `d079b201b9ba95fff7b9d23355a8d3e9d34d52d9`; PR #24 `10ccf3721aa37ae6e2b7d551b854064bc9ff1839`
+- Last source commits reviewed: main `f3671f2194e562fc194d23e9602b768455d8e483`; PR #25 latest `4f54396c42e04e9b994f8cdc55adcc1fb425a9e4`; PR #24 `10ccf3721aa37ae6e2b7d551b854064bc9ff1839`
 - Last test-verified commit: **none established in this execution session**
 
 ## Baseline verified from main
@@ -40,7 +40,7 @@ This checkpoint records repository-observed state only. It is not a claim that t
 - GitHub Actions runs inspected for PR #20 and PR #25 ended with failure before job execution/runner allocation in the earlier recorded evidence. This is not a code-test failure and is not a passing result.
 - No local typecheck, unit tests, SQLite verifier, Wrangler Local D1 test, frontend build, or E2E test was run in this session.
 - Static source review was performed on the Telegram initData verifier, login route/tests, learning routes, frontend app, package scripts, and migration files.
-- Static review identified a maintainability/correctness coupling in PR #25: the progress upsert uses `changes() = 1`, but an event INSERT now sits between the attempt UPDATE and progress upsert. The gate therefore observes the event INSERT's row count rather than the attempt transition. A review comment recommends reordering the batch to UPDATE → progress → event INSERT → SELECT; runtime behavior remains unverified.
+- Static review identified a coupling in PR #25: the progress upsert used `changes() = 1` after an event INSERT. This has been corrected on the PR branch by reordering the batch to UPDATE → progress → event INSERT → SELECT. A Local D1 regression fixture now pre-inserts the deterministic event key for an in-progress attempt; the existing progress-count assertion covers the event-insert conflict path. The change is read-back verified but runtime remains unverified.
 
 ## Latest review actions — 2026-11-27
 
@@ -48,6 +48,16 @@ This checkpoint records repository-observed state only. It is not a claim that t
 - Updated `docs/backend/OPERATIONS.md` with the same checkpoint and exact resume constraints.
 - PR #25 review-thread listing was empty before the comment; no code was changed on that PR branch.
 - PR #24's webhook handler was checked: non-private chats are ignored before a Mini App Web App button can be sent. No defect was confirmed in that path by this limited review.
+
+## Latest PR #25 implementation checkpoint — 2026-11-27
+
+- Updated PR #25 head to `4f54396c42e04e9b994f8cdc55adcc1fb425a9e4` (14 commits ahead, 0 behind main at last compare).
+- Changed `apps/backend/src/modules/learning/routes.ts` so the conditional attempt UPDATE is immediately followed by the progress upsert gated by `changes() = 1`; event append follows in the same D1 batch.
+- Changed `scripts/verify_backend_d1_local.py` to seed a deterministic event-key conflict for a still-in-progress attempt before completing it. The existing `completed_count == 2` assertion checks that progress is still updated when event insertion is a no-op.
+- Read-back verified both changes and their ordering.
+- Added PR #25 comment `7222361872` documenting the implementation and validation status.
+- Exact-head Backend CI run #325 (`46027047367`) concluded failure before job steps; steps array is empty, logs return `404 BlobNotFound`. This is not a code-test result.
+- No local commands or D1 tests were executed. PR #25 remains Draft and unmerged.
 
 ## Security and data implications
 
@@ -70,7 +80,7 @@ This checkpoint records repository-observed state only. It is not a claim that t
 
 1. Obtain runner-allocation evidence from repository/account Actions settings; do not edit workflows merely to hide the failure.
 2. Once a real runner is available, run backend typecheck, Vitest, SQLite verifier, fresh Local D1 migration/seed and D1 integration tests on the exact main/PR head.
-3. Resolve PR #25's completion-batch statement ordering concern; then run exact-head CI and Wrangler Local D1 tests when a runner is available. Keep #19 and #25 as alternative migration-0016 paths.
+3. Run PR #25's exact-head typecheck, Vitest, SQLite verifier and Wrangler Local D1 integration tests when GitHub Actions can allocate a runner. The statement-ordering correction is implemented but unverified. Keep #19 and #25 as alternative migration-0016 paths.
 4. Review PR #24's complete diff and exact-head checks; retain Draft until tests pass.
 5. Resolve the server-side grading/answer-key boundary in the PR #22 proposal before any learner-facing release.
 6. Complete cross-user/role-revocation tests and owner-operated admin bootstrap.
@@ -78,4 +88,4 @@ This checkpoint records repository-observed state only. It is not a claim that t
 
 ## Resume point
 
-Resume by refreshing main, PR #17–#25, PR comments/reviews, and exact-head workflow runs. The next code-review item is PR #25's `changes()`/event ordering finding; the next infrastructure item is owner inspection of GitHub Actions runner settings. Continue independent GitHub-only review while CI is blocked. Keep all changes on focused branches in this repository; no merge, deployment, remote migration, secret mutation, or paid resource action is authorized by this checkpoint.
+Resume by refreshing main, PR #17–#25, PR comments/reviews, and exact-head workflow runs. The next PR #25 item is executable validation of head `4f54396c42e04e9b994f8cdc55adcc1fb425a9e4`; the next infrastructure item is owner inspection of GitHub Actions runner settings. Continue independent GitHub-only review while CI is blocked. Keep all changes on focused branches in this repository; no merge, deployment, remote migration, secret mutation, or paid resource action is authorized by this checkpoint.
