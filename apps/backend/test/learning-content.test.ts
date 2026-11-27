@@ -80,7 +80,9 @@ describe("learning-core open content", () => {
       ...vocabularyInput,
       entries: [...vocabularyInput.entries, { ...vocabularyInput.entries[0] }],
     })).toThrow(/Duplicate vocabulary word\/sense key at index 2/);
-  });\n\n  it("rejects an invalid vocabulary envelope", () => {
+  });
+
+  it("rejects an invalid vocabulary envelope", () => {
     expect(() => parseVocabularyDataset({ entries: [] })).toThrow(TypeError);
   });
 
