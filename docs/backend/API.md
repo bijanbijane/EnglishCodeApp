@@ -25,7 +25,7 @@ Base path: `/api/v1`. Timestamps are UTC ISO-8601. Success and error responses i
 | Method | Path | Role | Purpose |
 |---|---|---|---|
 | POST | `/admin/content/lessons/:lessonId/versions` | content_author | Create draft lesson version |
-| GET | `/admin/content/lessons/:lessonId/versions` | content_author | List own versions |
+| GET | `/admin/content/lessons/:lessonId/versions` | content_author | Keyset-paginated own version history (`limit` 1–50, default 20; optional `cursor`) |
 | POST | `/admin/content/lessons/:lessonId/versions/:versionId/submit-review` | content_author | Submit own draft |
 | GET | `/admin/content/reviews` | content_reviewer | Keyset-paginated review queue (`limit` 1–50; optional `cursor`) |
 | GET | `/admin/content/reviews/:requestId` | content_reviewer | Review details including private answer key |
