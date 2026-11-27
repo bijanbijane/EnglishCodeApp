@@ -61,5 +61,11 @@ export async function revokeSession(deps: {
 }): Promise<void> {
   await deps.logout();
   deps.setToken(null);
-  await removeToken(deps.storage);
+  try {
+    await removeToken(deps.storage);
+    return { storageCleared: true };
+  } catch {
+    // The server session is already revoked; local UI must still transition to signed-out.
+    return { storageCleared: false };
+  }
 }
