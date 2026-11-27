@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import wordsData from "./data/vocabulary.json";
 import mistakesData from "./data/common-mistakes.json";
-import a2PersonalGoalsLesson from "../../../../../packages/learning-core/examples/a2-personal-goals";
+import a2PersonalGoalsLesson from "./data/a2-personal-goals.json";
 import "./learning-content.css";
 
 type WordEntry = { word: string; sense: string; pos: string; definition: string; level: 1 | 2 | 3; synonyms: string[]; related: string[] };
