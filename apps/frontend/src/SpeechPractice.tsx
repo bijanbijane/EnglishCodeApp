@@ -37,6 +37,8 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
   const overflowRef = useRef(false);
   const recorderFailedRef = useRef(false);
   const startedAtRef = useRef(0);
+  const mountedRef = useRef(false);
+  const permissionRequestRef = useRef(0);
 
   const canRecord =
     typeof MediaRecorder !== "undefined" &&
@@ -69,14 +71,22 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
     return () => window.clearInterval(timer);
   }, [state]);
 
-  useEffect(() => () => {
-    const recorder = recorderRef.current;
-    if (recorder && recorder.state !== "inactive") {
-      recorder.ondataavailable = null;
-      recorder.onstop = null;
-      recorder.stop();
-    }
-    streamRef.current?.getTracks().forEach((track) => track.stop());
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      permissionRequestRef.current += 1;
+      const recorder = recorderRef.current;
+      if (recorder && recorder.state !== "inactive") {
+        recorder.ondataavailable = null;
+        recorder.onstop = null;
+        recorder.stop();
+      }
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      recorderRef.current = null;
+      chunksRef.current = [];
+    };
   }, []);
 
   const resetRecording = () => {
@@ -102,6 +112,7 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
     resetRecording();
     setError("");
     setState("requesting");
+    const permissionRequestId = ++permissionRequestRef.current;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -111,6 +122,10 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
           autoGainControl: true,
         },
       });
+      if (!mountedRef.current || permissionRequestId !== permissionRequestRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       streamRef.current = stream;
 
       const supportedTypes = [
@@ -155,11 +170,14 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
         stream.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
         recorderRef.current = null;
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || mimeType || "" });
+        chunksRef.current = [];
+        bytesRecordedRef.current = 0;
+        if (!mountedRef.current) return;
         if (recorderFailedRef.current) {
           setState("failed");
           return;
         }
-        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || mimeType || "" });
         if (overflowRef.current || blob.size > MAX_AUDIO_BYTES) {
           setRecording(null);
           setState("failed");
@@ -186,6 +204,8 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
       recorderRef.current = null;
+      chunksRef.current = [];
+      if (!mountedRef.current || permissionRequestId !== permissionRequestRef.current) return;
       setState("idle");
       setError(cause instanceof Error
         ? cause.message
@@ -208,10 +228,12 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
         mimeType: recordingMimeType,
         durationSeconds: elapsedSeconds,
       });
+      if (!mountedRef.current) return;
       setTranscription(result.transcription);
       setWordCount(result.wordCount);
       setState("done");
     } catch (cause) {
+      if (!mountedRef.current) return;
       setState("failed");
       setError(cause instanceof Error ? cause.message : "Speech transcription failed. Record a new clip to try again.");
     }
