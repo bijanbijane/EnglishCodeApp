@@ -12,3 +12,27 @@
 
 .progress-section{padding:34px 0 0}.progress-heading{display:flex;align-items:end;justify-content:space-between;margin-bottom:16px}.progress-heading .eyebrow{margin-bottom:8px}.progress-heading h2{font-size:22px;letter-spacing:-.7px;margin:0;font-weight:800}.progress-caption{font-size:11px;color:#8a8e9e}.progress-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.progress-stat{background:#fff;border:1px solid #e9e9f1;border-radius:12px;padding:16px}.progress-stat span{display:block;font-size:9px;letter-spacing:1.2px;color:#8d90a0;font-weight:700}.progress-stat strong{display:block;font-size:30px;letter-spacing:-1px;margin:8px 0 2px;font-weight:800}.progress-stat strong i{font-size:14px;font-style:normal;margin-left:2px}.progress-stat small{font-size:10px;color:#9295a5}.recent-progress{margin-top:16px;padding:17px 19px;background:#fff;border:1px solid #e9e9f1;border-radius:12px}.recent-progress h3{font-size:12px;margin:0 0 12px}.recent-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid #f0f0f5;font-size:11px;color:#777b8d}.recent-row strong{color:#5f55c9}.account-action{padding:4px 0 4px 8px}.progress-section+.content-section{padding-top:36px}
 @media(max-width:700px){.progress-stats{gap:7px}.progress-stat{padding:12px 10px}.progress-stat strong{font-size:25px}.progress-stat small{font-size:9px}.progress-heading h2{font-size:19px}}
+
+
+/* Accessibility and narrow-screen hardening */
+.brand,.text-button{min-height:44px}
+.text-button{display:inline-flex;align-items:center;justify-content:center}
+.round-button{width:44px;height:44px;min-width:44px;min-height:44px;flex:0 0 44px}
+.account{min-height:44px;min-width:0;flex-wrap:wrap;overflow-wrap:anywhere;line-height:1.25}
+.section-heading>div,.progress-stat,.lesson-info{min-width:0}
+.section-heading h2,.course-title,.course-description,.lesson-info h3,.lesson-info p,.recent-row span,.exercise h2,.exercise-top>span{overflow-wrap:anywhere}
+.lesson-info{flex:1 1 auto}
+.recent-row span{min-width:0}
+.progress-stat small{display:block;overflow-wrap:anywhere}
+.exercise-top>span{min-width:0;text-align:right}
+.answer-option{line-height:1.45}
+@media(max-width:380px){
+  .app-shell{width:min(100% - 28px,540px)}
+  .topbar{gap:8px}
+  .brand{gap:8px;font-size:16px}
+  .account{font-size:11px;gap:5px}
+  .progress-stat{padding:10px 8px}
+  .progress-stat span{font-size:8px;letter-spacing:.8px}
+  .progress-stat strong{font-size:23px}
+  .hero-meta{gap:9px;letter-spacing:1px}
+}

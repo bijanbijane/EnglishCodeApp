@@ -19,9 +19,8 @@ declare global { interface Window { Telegram?: { WebApp?: TelegramWebApp } } }
 
 type Screen = "home" | "lesson" | "result";
 type ProgressEntry = { lesson_id: string; course_id: string; best_score: number; completed_count: number; lesson_title: string; last_completed_at: string };
-const telegram = window.Telegram?.WebApp;
-
 function App() {
+  const telegram = window.Telegram?.WebApp;
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
@@ -241,12 +240,12 @@ function App() {
 
     {screen === "lesson" && attempt && currentQuestion && <section className="exercise">
       <div className="exercise-top"><button className="text-button" onClick={goHome}>← Exit lesson</button><span>{selectedLesson?.title}</span></div>
-      <div className="progress-track"><span style={{ width: `${Math.min(100, completed / Math.max(1, attempt.questions.length) * 100)}%` }} /></div>
+      <div className="progress-track" role="progressbar" aria-label="Lesson progress" aria-valuemin={0} aria-valuemax={attempt.questions.length} aria-valuenow={completed}><span style={{ width: `${Math.min(100, completed / Math.max(1, attempt.questions.length) * 100)}%` }} /></div>
       <p className="eyebrow">QUESTION {String(questionIndex + 1).padStart(2, "0")} / {String(attempt.questions.length).padStart(2, "0")}</p>
       <h2>{currentQuestion.prompt}</h2>
       <div className="answer-list">{currentQuestion.options.map((option) =>
         <button key={option.id} className={`answer-option ${answer === option.id ? "selected" : ""} ${currentQuestion.submittedAnswer === option.id ? "submitted" : ""}`}
-          disabled={currentQuestion.submittedAnswer !== null || busy} onClick={() => setAnswer(option.id)}>
+          aria-pressed={answer === option.id} disabled={currentQuestion.submittedAnswer !== null || busy} onClick={() => setAnswer(option.id)}>
           <span className="option-marker">{String.fromCharCode(65 + currentQuestion.options.indexOf(option))}</span>{option.text}
           {currentQuestion.submittedAnswer === option.id && <span className="answer-check">✓</span>}
         </button>)}</div>

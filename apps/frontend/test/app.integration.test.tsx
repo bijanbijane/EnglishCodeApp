@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
 import {
   api,
+  setAccessToken,
   type Attempt,
   type Course,
   type Lesson,
@@ -90,6 +91,7 @@ function findButton(container: HTMLElement, label: string): HTMLButtonElement {
 }
 
 afterEach(() => {
+  setAccessToken(null);
   vi.restoreAllMocks();
   Reflect.deleteProperty(window, "Telegram");
 });
@@ -245,6 +247,67 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
     expect(api.logout).toHaveBeenCalledOnce();
     expect(secureValues.has("englishcode_session")).toBe(false);
     expect(container.textContent).toContain("Reopen app to sign in");
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+
+it("restores an existing Telegram Secure Storage session after a fresh app mount", async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  const secureValues = new Map<string, string>([["englishcode_session", "persisted-session-token"]]);
+  const secureStorage = {
+    getItem: vi.fn((key: string, callback: (error: string | null, value: string | null) => void) =>
+      callback(null, secureValues.get(key) ?? null)),
+    setItem: vi.fn((_key: string, _value: string, callback: (error: string | null, stored?: boolean) => void) =>
+      callback(null, true)),
+    removeItem: vi.fn((key: string, callback: (error: string | null, removed?: boolean) => void) => {
+      secureValues.delete(key);
+      callback(null, true);
+    }),
+  };
+  const telegramReady = vi.fn();
+  const telegramExpand = vi.fn();
+  Object.defineProperty(window, "Telegram", {
+    configurable: true,
+    value: {
+      WebApp: {
+        initData: "fresh-init-data-from-reopened-mini-app",
+        ready: telegramReady,
+        expand: telegramExpand,
+        isVersionAtLeast: () => true,
+        SecureStorage: secureStorage,
+      },
+    },
+  });
+
+  setAccessToken(null);
+  vi.spyOn(api, "courses").mockResolvedValue([course]);
+  const profileRequest = vi.spyOn(api, "profile").mockResolvedValue(profile);
+  const loginRequest = vi.spyOn(api, "login").mockRejectedValue(new Error("Login must not run when a saved session is valid."));
+  const progressRequest = vi.spyOn(api, "progress").mockResolvedValue([savedProgress]);
+
+  const { default: App } = await import("../src/App");
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+
+  try {
+    await act(async () => {
+      root.render(<App />);
+      for (let i = 0; i < 8; i += 1) await Promise.resolve();
+    });
+
+    expect(telegramReady).toHaveBeenCalledOnce();
+    expect(telegramExpand).toHaveBeenCalledOnce();
+    expect(secureStorage.getItem).toHaveBeenCalledWith("englishcode_session", expect.any(Function));
+    expect(profileRequest).toHaveBeenCalledOnce();
+    expect(loginRequest).not.toHaveBeenCalled();
+    expect(progressRequest).toHaveBeenCalledOnce();
+    expect(secureValues.get("englishcode_session")).toBe("persisted-session-token");
+    expect(container.textContent).toContain("Local Learner");
+    expect(container.textContent).toContain("1 lessons completed");
   } finally {
     await act(async () => root.unmount());
     container.remove();
