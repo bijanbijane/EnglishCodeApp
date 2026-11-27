@@ -13,6 +13,7 @@ const audioBlob = new Blob(
 
 class MockMediaRecorder {
   static nextBlob = audioBlob;
+  static lastInstance: MockMediaRecorder | null = null;
   static isTypeSupported(type: string) {
     return type === "audio/webm;codecs=opus";
   }
@@ -25,6 +26,7 @@ class MockMediaRecorder {
 
   constructor(_stream: MediaStream, options?: MediaRecorderOptions) {
     this.mimeType = options?.mimeType ?? "audio/webm;codecs=opus";
+    MockMediaRecorder.lastInstance = this;
   }
 
   start() {
@@ -168,6 +170,40 @@ it("requires an authenticated learner before recording", () => {
   expect(view.querySelector("button")).toBeNull();
 });
 
+
+
+it("detaches recorder event handlers when the component unmounts", async () => {
+  const stopTrack = vi.fn();
+  const stream = { getTracks: () => [{ stop: stopTrack }] } as unknown as MediaStream;
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+  });
+  vi.stubGlobal("MediaRecorder", MockMediaRecorder);
+
+  const view = mount();
+  await act(async () => {
+    button(view, "Start recording").click();
+    await Promise.resolve();
+  });
+
+  const recorder = MockMediaRecorder.lastInstance;
+  expect(recorder).not.toBeNull();
+  expect(recorder?.onerror).toBeTypeOf("function");
+  expect(recorder?.onstop).toBeTypeOf("function");
+
+  act(() => {
+    root?.unmount();
+    root = null;
+  });
+
+  expect(recorder?.onerror).toBeNull();
+  expect(recorder?.onstop).toBeNull();
+  expect(recorder?.ondataavailable).toBeNull();
+  expect(stopTrack).toHaveBeenCalledOnce();
+  view.remove();
+  container = null;
+});
 
 it("stops a microphone stream if permission resolves after the component unmounts", async () => {
   let resolvePermission!: (stream: MediaStream) => void;
