@@ -17,13 +17,15 @@
 
 ## Speech transcription guardrails
 - Authenticated users only; English transcription in this first iteration.
-- Request maximum 192 KiB; decoded audio maximum 96 KiB.
-- The server checks a basic container signature against the declared MIME type, including the common browser value `audio/webm;codecs=opus`. This is format sniffing, not full media validation.
-- Client-declared duration maximum 60 seconds. This is a client-side/UX guardrail, not a trusted media parser.
-- **Production deployment blocker:** actual media duration is not parsed or verified server-side. Never treat `durationSeconds` as a cost-control boundary. Implement trusted duration validation (or a strictly constrained, server-verifiable audio representation) before exposing this endpoint to production traffic.
+- Accept only single-track WebM audio containing an Opus track. Other formats (including Ogg and MP4) are rejected in this iteration; a browser client must feature-detect `audio/webm;codecs=opus`.
+- JSON request maximum: 1.5 MiB. Decoded audio maximum: 1 MiB. Cloudflare's Whisper tutorial demonstrates processing 1 MB audio chunks; the application imposes its own stricter per-request cap. See https://developers.cloudflare.com/workers-ai/guides/tutorials/build-a-workers-ai-whisper-with-chunking/.
+- The server parses the EBML structure, validates a single Opus audio track, walks Cluster/Block timestamps, and derives packet durations from Opus TOC values. It handles no lacing, Xiph lacing, fixed-size lacing, and EBML lacing. It does not rely on the optional WebM Info/Duration field.
+- Client-supplied `durationSeconds` is ignored. The server-derived duration must be greater than zero and no longer than 60 seconds before any quota reservation is created.
+- The parser is a bounded metadata/timeline parser, not a full Opus decoder. Browser-generated recordings have not yet been captured and tested end-to-end; validate representative Chrome, Android WebView, and Telegram Mini App recordings before production deployment. iOS browsers that do not support WebM/Opus need a separately implemented codec path, not a MIME spoof.
+- The 1 MiB byte cap corresponds to about 140 kbit/s average for a 60-second recording before container overhead. A recording that exceeds the byte cap is rejected even if its duration is valid; measure real browser output before changing this cap.
 - Each inference attempt consumes an application reservation even when Workers AI returns an error. Reservations are deliberately retained after inference failures to prevent retries bypassing daily caps.
 - The Workers Free plan includes 10,000 Workers AI Neurons per account per UTC day, resetting at 00:00 UTC. On Free, further inference requests fail after the allowance is exhausted; the platform does not automatically convert them into paid usage.
-- Cloudflare lists Whisper Large V3 Turbo at 46.63 Neurons per audio minute (pricing documentation last updated 2026-11-18). That gives about 214.4 audio minutes if the entire account allowance were available to this model. At 60 verified 60-second requests, the app would use at most 2,797.8 Neurons. This is an estimate, not a reservation: other account workloads share the same allowance, and the 60-second cap is not yet verified by the server. See https://developers.cloudflare.com/workers-ai/platform/pricing/.
+- Cloudflare lists Whisper Large V3 Turbo at 46.63 Neurons per audio minute. At 60 verified 60-second requests, the app would use at most 2,797.8 Neurons. This is an estimate, not a reservation: other account workloads share the same allowance. See https://developers.cloudflare.com/workers-ai/platform/pricing/.
 - Wrangler local-mode Workers AI inferences also count toward the account's AI limits. Tests must reject quota-full requests before calling the real model. See https://developers.cloudflare.com/workers-ai/platform/limits/.
 - Per-user maximum: 2 reservations per UTC day.
 - Account-wide application maximum: 60 reservations per UTC day.
