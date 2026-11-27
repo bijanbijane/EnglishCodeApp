@@ -167,3 +167,40 @@ it("requires an authenticated learner before recording", () => {
   expect(view.textContent).toContain("Sign in to your Telegram account");
   expect(view.querySelector("button")).toBeNull();
 });
+
+
+it("stops a microphone stream if permission resolves after the component unmounts", async () => {
+  let resolvePermission!: (stream: MediaStream) => void;
+  const permission = new Promise<MediaStream>((resolve) => {
+    resolvePermission = resolve;
+  });
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia: vi.fn(() => permission) },
+  });
+  vi.stubGlobal("MediaRecorder", MockMediaRecorder);
+
+  const view = mount();
+  await act(async () => {
+    button(view, "Start recording").click();
+    await Promise.resolve();
+  });
+  expect(view.textContent).toContain("Waiting for microphone access");
+
+  const stopTrack = vi.fn();
+  const stream = { getTracks: () => [{ stop: stopTrack }] } as unknown as MediaStream;
+  act(() => {
+    root?.unmount();
+    root = null;
+  });
+  view.remove();
+  container = null;
+
+  await act(async () => {
+    resolvePermission(stream);
+    await permission;
+    await Promise.resolve();
+  });
+
+  expect(stopTrack).toHaveBeenCalledOnce();
+});
