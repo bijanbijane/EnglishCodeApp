@@ -188,7 +188,7 @@ describe("AI speech transcription API", () => {
     expect(db.batch).not.toHaveBeenCalled();
   });
 
-  it("rejects audio larger than 96 KiB without consuming quota", async () => {
+  it("rejects audio larger than 1 MiB without consuming quota", async () => {
     const token = await createSessionToken();
     const { db } = makeDb();
     const oversizedAudio = btoa("x".repeat(1024 * 1024 + 1));
