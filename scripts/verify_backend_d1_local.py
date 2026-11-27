@@ -853,7 +853,9 @@ def main():
             print(
                 "Wrangler local D1 integration passed: Telegram HMAC/replay, "
                 "session issuance/revocation, content privacy, attempt ownership, "
-                "answer idempotency, concurrent completion, concurrent login replay, concurrent same-identity account convergence, admin/reviewer RBAC grant/revocation, review/audit cursor pagination, login rate limiting with Retry-After, and frontend API response-contract compatibility."
+                "answer idempotency, concurrent completion, concurrent login replay, concurrent same-identity account convergence, "
+                "concurrent AI transcription user/global quota enforcement, admin/reviewer RBAC grant/revocation, "
+                "review/audit cursor pagination, login rate limiting with Retry-After, and frontend API response-contract compatibility."
             )
         finally:
             process.terminate()
