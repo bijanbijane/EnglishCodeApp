@@ -214,26 +214,32 @@ describe("Telegram webhook", () => {
   });
 
   it.each([
-    ["missing", undefined],
-    ["non-HTTPS", "http://example.com"],
-    ["credential-bearing", "https://user:pass@example.com"],
-    ["fragment-bearing", "https://example.com/#section"],
-    ["whitespace-padded", " https://example.com "],
-  ])("does not expose a Mini App button for %s URL configuration", async (_label, configuredUrl) => {
+    ["missing", undefined, 90],
+    ["non-HTTPS", "http://example.com", 91],
+    ["credential-bearing", "https://user:pass@example.com", 92],
+    ["fragment-bearing", "https://example.com/#section", 93],
+    ["whitespace-padded", " https://example.com ", 94],
+  ])("does not expose a Mini App button for %s URL configuration", async (_label, configuredUrl, updateId) => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ ok: true, result: { message_id: 9 } }), {
         status: 200, headers: { "Content-Type": "application/json" },
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
-    const invalidEnv = { ...env, TELEGRAM_MINI_APP_URL: configuredUrl } as never;
+    const invalidEnv = {
+      TELEGRAM_BOT_TOKEN: botToken,
+      TELEGRAM_WEBHOOK_SECRET: webhookSecret,
+      TELEGRAM_SETUP_KEY: setupKey,
+      TELEGRAM_MINI_APP_URL: configuredUrl,
+      DB: createD1Mock(),
+    } as never;
     const response = await app.request(
       "/api/v1/telegram/webhook",
       {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Telegram-Bot-Api-Secret-Token": webhookSecret },
         body: JSON.stringify({
-          update_id: 9, message: { text: "/app", chat: { id: 42, type: "private" } },
+          update_id: updateId, message: { text: "/app", chat: { id: 42, type: "private" } },
         }),
       },
       invalidEnv,
