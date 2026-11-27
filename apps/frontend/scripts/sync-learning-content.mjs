@@ -26,6 +26,11 @@ if (mistakes.length !== 40) {
   throw new Error("Unexpected Elispeak record count; refusing to overwrite generated content.");
 }
 await mkdir(outputRoot, { recursive: true });
+const sampleLesson = JSON.parse(await readFile(resolve(repositoryRoot, "packages/learning-core/examples/a2-personal-goals.json"), "utf8"));
+if (sampleLesson.id !== "a2-personal-goals-01" || sampleLesson.stages?.length !== 8) {
+  throw new Error("Unexpected sample lesson blueprint; refusing to overwrite generated content.");
+}
 await writeFile(resolve(outputRoot, "vocabulary.json"), JSON.stringify(vocabulary));
 await writeFile(resolve(outputRoot, "common-mistakes.json"), JSON.stringify(mistakes));
-process.stdout.write(`Synced ${vocabulary.length} vocabulary senses and ${mistakes.length} error-correction examples.\n`);
+await writeFile(resolve(outputRoot, "a2-personal-goals.json"), JSON.stringify(sampleLesson));
+process.stdout.write(`Synced ${vocabulary.length} vocabulary senses, ${mistakes.length} error-correction examples, and one A2 lesson.\n`);
