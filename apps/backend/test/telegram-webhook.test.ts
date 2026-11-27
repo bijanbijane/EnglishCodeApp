@@ -12,6 +12,30 @@ const env = {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Telegram webhook setup", () => {
+  it("rejects setup requests without the setup secret", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await app.request(
+      "/api/v1/telegram/setup",
+      { method: "POST" },
+      env,
+    );
+
+    expect(response.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not expose a side-effecting setup operation through GET", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const response = await app.request("/api/v1/telegram/setup", { method: "GET" }, env);
+
+    expect(response.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("does not re-register an already-correct webhook", async () => {
     const makeInfoResponse = () => new Response(JSON.stringify({
       ok: true,
@@ -25,7 +49,14 @@ describe("Telegram webhook setup", () => {
       .mockResolvedValueOnce(makeInfoResponse());
     vi.stubGlobal("fetch", fetchMock);
 
-    const response = await app.request("/api/v1/telegram/setup", { method: "GET" }, env);
+    const response = await app.request(
+      "/api/v1/telegram/setup",
+      {
+        method: "POST",
+        headers: { "X-EnglishCode-Setup-Token": webhookSecret },
+      },
+      env,
+    );
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
@@ -60,7 +91,14 @@ describe("Telegram webhook setup", () => {
       }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const response = await app.request("/api/v1/telegram/setup", { method: "GET" }, env);
+    const response = await app.request(
+      "/api/v1/telegram/setup",
+      {
+        method: "POST",
+        headers: { "X-EnglishCode-Setup-Token": webhookSecret },
+      },
+      env,
+    );
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
