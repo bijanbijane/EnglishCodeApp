@@ -235,8 +235,9 @@ def main() -> None:
              last_completed_at = excluded.last_completed_at"""
         completion_results = run_batch(db, [
             (completion_sql, (completed_at, attempt_id, user_id)),
-            (event_sql, (attempt_id, user_id, completed_at)),
+            # Keep changes() adjacent to the winning attempt transition, as in the Worker D1 batch.
             (progress_sql, (attempt_id, completed_at)),
+            (event_sql, (attempt_id, user_id, completed_at)),
         ])
         assert [result.rowcount for result in completion_results] == [1, 1, 1]
         event = db.execute(
@@ -257,8 +258,9 @@ def main() -> None:
         # Repeating completion must not create another event or increment progress.
         repeated_results = run_batch(db, [
             (completion_sql, ("2026-11-26T15:02:00.000Z", attempt_id, user_id)),
-            (event_sql, (attempt_id, user_id, "2026-11-26T15:02:00.000Z")),
+            # A no-op completion must leave changes() at zero for the progress projection.
             (progress_sql, (attempt_id, "2026-11-26T15:02:00.000Z")),
+            (event_sql, (attempt_id, user_id, "2026-11-26T15:02:00.000Z")),
         ])
         assert [result.rowcount for result in repeated_results] == [0, 0, 0]
         progress = db.execute(
