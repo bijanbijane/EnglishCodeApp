@@ -28,8 +28,8 @@ app.use("*", async (c, next) => {
   }
 });
 
-app.use("/api/v1/*", bodyLimit({
-  maxSize: 2 * 1024 * 1024,
+const standardApiBodyLimit = bodyLimit({
+  maxSize: 256 * 1024,
   onError: (context) => context.json({
     error: {
       code: "PAYLOAD_TOO_LARGE",
@@ -37,7 +37,17 @@ app.use("/api/v1/*", bodyLimit({
       requestId: context.get("requestId"),
     },
   }, 413),
-}));
+});
+
+// Speech transcription has its own 1.5 MiB route limit for the 1 MiB audio payload.
+// Keep the stricter 256 KiB ceiling on every other API route.
+app.use("/api/v1/*", async (context, next) => {
+  if (context.req.path === "/api/v1/ai/transcriptions") {
+    await next();
+    return;
+  }
+  await standardApiBodyLimit(context, next);
+});
 
 app.use("/api/v1/*", cors({
   origin: (origin, context) => {
