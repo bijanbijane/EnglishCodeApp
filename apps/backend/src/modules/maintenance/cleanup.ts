@@ -8,6 +8,7 @@ export async function cleanupExpiredAuthState(
   const nowIso = now.toISOString();
   const expiredSessionCutoff = new Date(now.getTime() - 7 * DAY_MS).toISOString();
   const revokedSessionCutoff = new Date(now.getTime() - 30 * DAY_MS).toISOString();
+  const expiredQuotaDay = new Date(now.getTime() - 7 * DAY_MS).toISOString().slice(0, 10);
 
   return db.batch([
     db.prepare(
@@ -50,5 +51,15 @@ export async function cleanupExpiredAuthState(
          LIMIT ${BATCH_LIMIT}
        )`,
     ).bind(revokedSessionCutoff),
+    db.prepare(
+      `DELETE FROM ai_transcription_reservations
+       WHERE id IN (
+         SELECT id
+         FROM ai_transcription_reservations
+         WHERE day_utc < ?
+         ORDER BY day_utc ASC, created_at ASC
+         LIMIT ${BATCH_LIMIT}
+       )`,
+    ).bind(expiredQuotaDay),
   ]);
 }
