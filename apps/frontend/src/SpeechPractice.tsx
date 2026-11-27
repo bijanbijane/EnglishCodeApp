@@ -5,7 +5,7 @@ const MAX_AUDIO_BYTES = 1024 * 1024;
 const MAX_DURATION_SECONDS = 60;
 const REQUESTED_AUDIO_BITRATE = 16_000;
 
-type RecordingState = "idle" | "recording" | "ready" | "transcribing" | "done" | "failed";
+type RecordingState = "idle" | "requesting" | "recording" | "ready" | "transcribing" | "done" | "failed";
 
 function formatTime(seconds: number): string {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
@@ -35,6 +35,7 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
   const chunksRef = useRef<Blob[]>([]);
   const bytesRecordedRef = useRef(0);
   const overflowRef = useRef(false);
+  const recorderFailedRef = useRef(false);
   const startedAtRef = useRef(0);
 
   const canRecord =
@@ -100,6 +101,7 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
 
     resetRecording();
     setError("");
+    setState("requesting");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -127,6 +129,7 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
       chunksRef.current = [];
       bytesRecordedRef.current = 0;
       overflowRef.current = false;
+      recorderFailedRef.current = false;
       startedAtRef.current = Date.now();
       recorderRef.current = recorder;
 
@@ -141,6 +144,7 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
       };
 
       recorder.onerror = () => {
+        recorderFailedRef.current = true;
         setError("The browser could not record this clip. Check microphone access and try again.");
         setState("failed");
         stream.getTracks().forEach((track) => track.stop());
@@ -151,6 +155,10 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
         stream.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
         recorderRef.current = null;
+        if (recorderFailedRef.current) {
+          setState("failed");
+          return;
+        }
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || mimeType || "" });
         if (overflowRef.current || blob.size > MAX_AUDIO_BYTES) {
           setRecording(null);
@@ -230,6 +238,10 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
             <button className="primary-button" onClick={() => void startRecording()}>
               Start recording
             </button>
+          )}
+
+          {state === "requesting" && (
+            <p className="speech-hint" role="status">Waiting for microphone access…</p>
           )}
 
           {state === "recording" && (
