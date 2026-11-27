@@ -30,7 +30,7 @@ function makeDb(quotaGranted = true) {
 
 const validPayload = {
   audioBase64: "GkXfowA=",
-  mimeType: "audio/webm",
+  mimeType: "audio/webm;codecs=opus",
   durationSeconds: 10,
 };
 
