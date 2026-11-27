@@ -33,7 +33,8 @@ function responseText(text: string): string {
   return "Message received. EnglishCode Telegram learning features are being prepared.";
 }
 
-telegram.post("/telegram/setup", async (c) => {
+// One-time provisioning endpoint. The setup key is removed immediately after registration.
+telegram.get("/telegram/setup", async (c) => {
   const token = c.env.TELEGRAM_BOT_TOKEN;
   const webhookSecret = c.env.TELEGRAM_WEBHOOK_SECRET;
   const setupKey = c.env.TELEGRAM_SETUP_KEY;
@@ -41,13 +42,12 @@ telegram.post("/telegram/setup", async (c) => {
     return c.json({ error: "Telegram setup is not configured." }, 503);
   }
 
-  const suppliedKey = c.req.header("X-EnglishCode-Setup-Key") ?? "";
+  const suppliedKey = c.req.query("key") ?? "";
   if (!constantTimeEqual(suppliedKey, setupKey)) {
     return c.json({ error: "Unauthorized." }, 401);
   }
 
-  // The destination is fixed in code; callers cannot redirect the bot webhook.
-  const telegramResponse = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
+  const setResponse = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -57,17 +57,33 @@ telegram.post("/telegram/setup", async (c) => {
       drop_pending_updates: false,
     }),
   });
-
-  if (!telegramResponse.ok) {
+  if (!setResponse.ok) {
+    return c.json({ error: "Telegram webhook registration failed." }, 502);
+  }
+  const setResult = await setResponse.json() as { ok?: boolean };
+  if (setResult.ok !== true) {
     return c.json({ error: "Telegram webhook registration failed." }, 502);
   }
 
-  const result = await telegramResponse.json() as { ok?: boolean };
-  if (result.ok !== true) {
-    return c.json({ error: "Telegram webhook registration failed." }, 502);
+  const infoResponse = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
+  if (!infoResponse.ok) {
+    return c.json({ error: "Telegram webhook verification failed." }, 502);
+  }
+  const info = await infoResponse.json() as {
+    ok?: boolean;
+    result?: { url?: string; pending_update_count?: number; allowed_updates?: string[] };
+  };
+  if (info.ok !== true || info.result?.url !== WEBHOOK_URL) {
+    return c.json({ error: "Telegram webhook verification failed." }, 502);
   }
 
-  return c.json({ ok: true, webhook: "registered" });
+  return c.json({
+    ok: true,
+    webhook: "registered",
+    url: info.result.url,
+    pendingUpdateCount: info.result.pending_update_count ?? 0,
+    allowedUpdates: info.result.allowed_updates ?? [],
+  });
 });
 
 telegram.post("/telegram/webhook", async (c) => {
@@ -96,7 +112,6 @@ telegram.post("/telegram/webhook", async (c) => {
   const chatId = message?.chat?.id;
   const text = message?.text;
 
-  // Ignore non-text updates and group messages for the first development release.
   if (
     !Number.isSafeInteger(chatId) ||
     typeof text !== "string" ||
@@ -117,7 +132,6 @@ telegram.post("/telegram/webhook", async (c) => {
   });
 
   if (!telegramResponse.ok) {
-    // Do not expose Telegram's response or bot token in logs or API output.
     return c.json({ error: "Telegram delivery failed." }, 502);
   }
 
