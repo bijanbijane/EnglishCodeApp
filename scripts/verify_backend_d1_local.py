@@ -222,21 +222,19 @@ def main():
             assert "display_name" in profile["data"] and "created_at" in profile["data"]
 
             # Exercise quota enforcement through the real Worker + Wrangler Local D1.
-            # These cases avoid invoking Workers AI: requests must be rejected before inference.
+            # Use Wrangler --command directly to avoid temporary SQL-file parsing issues.
             quota_day = datetime.now(timezone.utc).date().isoformat()
             safe_user_id = user_id.replace("'", "''")
-            user_quota_seed = PERSIST_DIR / "ai-user-quota-seed.sql"
-            user_quota_seed.write_text(
-                "DELETE FROM ai_transcription_reservations;\n"
+            user_quota_seed_sql = (
+                "DELETE FROM ai_transcription_reservations; "
                 "INSERT INTO ai_transcription_reservations (id,day_utc,user_id) VALUES "
                 f"('quota-user-seed-1','{quota_day}','{safe_user_id}'),"
-                f"('quota-user-seed-2','{quota_day}','{safe_user_id}');",
-                encoding="utf-8",
+                f"('quota-user-seed-2','{quota_day}','{safe_user_id}');"
             )
             run([
                 "npx", "wrangler", "d1", "execute", DATABASE,
                 "--local", "--persist-to", persist,
-                f"--file={user_quota_seed}",
+                "--command", user_quota_seed_sql,
             ])
 
             transcription_payload = {
@@ -259,18 +257,16 @@ def main():
                 denied = expect_status(result, 429, "concurrent exhausted user transcription quota")
                 assert denied.get("error", {}).get("code") == "RATE_LIMITED"
 
-            user_quota_check = PERSIST_DIR / "ai-user-quota-check.sql"
-            user_quota_check.write_text(
+            user_quota_check_sql = (
                 "SELECT "
                 "SUM(CASE WHEN user_id='*' AND day_utc='" + quota_day + "' THEN 1 ELSE 0 END) AS global_count, "
                 "SUM(CASE WHEN user_id='" + safe_user_id + "' AND day_utc='" + quota_day + "' THEN 1 ELSE 0 END) AS user_count "
-                "FROM ai_transcription_reservations;",
-                encoding="utf-8",
+                "FROM ai_transcription_reservations;"
             )
             user_quota_output = run([
                 "npx", "wrangler", "d1", "execute", DATABASE,
                 "--local", "--persist-to", persist,
-                f"--file={user_quota_check}", "--json",
+                "--command", user_quota_check_sql, "--json",
             ])
             user_quota_payload = json.loads(user_quota_output)
             user_quota_rows = (
@@ -283,21 +279,19 @@ def main():
 
             # A full global allowance must reject parallel requests without
             # creating user reservations or exceeding the account-wide limit.
-            global_quota_seed = PERSIST_DIR / "ai-global-quota-seed.sql"
             global_values = ",".join(
                 f"('quota-global-seed-{index}', '{quota_day}', '*')"
                 for index in range(60)
             )
-            global_quota_seed.write_text(
-                "DELETE FROM ai_transcription_reservations;\n"
+            global_quota_seed_sql = (
+                "DELETE FROM ai_transcription_reservations; "
                 "INSERT INTO ai_transcription_reservations (id,day_utc,user_id) VALUES "
-                + global_values + ";",
-                encoding="utf-8",
+                + global_values + ";"
             )
             run([
                 "npx", "wrangler", "d1", "execute", DATABASE,
                 "--local", "--persist-to", persist,
-                f"--file={global_quota_seed}",
+                "--command", global_quota_seed_sql,
             ])
 
             with ThreadPoolExecutor(max_workers=8) as pool:
@@ -308,18 +302,16 @@ def main():
                 denied = expect_status(result, 429, "concurrent exhausted global transcription quota")
                 assert denied.get("error", {}).get("code") == "RATE_LIMITED"
 
-            global_quota_check = PERSIST_DIR / "ai-global-quota-check.sql"
-            global_quota_check.write_text(
+            global_quota_check_sql = (
                 "SELECT "
                 "SUM(CASE WHEN user_id='*' AND day_utc='" + quota_day + "' THEN 1 ELSE 0 END) AS global_count, "
                 "SUM(CASE WHEN user_id='" + safe_user_id + "' AND day_utc='" + quota_day + "' THEN 1 ELSE 0 END) AS user_count "
-                "FROM ai_transcription_reservations;",
-                encoding="utf-8",
+                "FROM ai_transcription_reservations;"
             )
             global_quota_output = run([
                 "npx", "wrangler", "d1", "execute", DATABASE,
                 "--local", "--persist-to", persist,
-                f"--file={global_quota_check}", "--json",
+                "--command", global_quota_check_sql, "--json",
             ])
             global_quota_payload = json.loads(global_quota_output)
             global_quota_rows = (
@@ -331,11 +323,10 @@ def main():
             assert global_quota_rows[0]["user_count"] == 0, global_quota_rows
 
             # Leave the D1 test database clean for subsequent integration cases.
-            clear_quota = PERSIST_DIR / "ai-quota-clear.sql"
-            clear_quota.write_text("DELETE FROM ai_transcription_reservations;", encoding="utf-8")
             run([
                 "npx", "wrangler", "d1", "execute", DATABASE,
-                "--local", "--persist-to", persist, f"--file={clear_quota}",
+                "--local", "--persist-to", persist,
+                "--command", "DELETE FROM ai_transcription_reservations;",
             ])
 
             expired_token = secrets.token_urlsafe(32)
