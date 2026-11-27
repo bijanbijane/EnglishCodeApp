@@ -499,6 +499,28 @@ def main():
             assert "answer_key" not in json.dumps(released_lesson)
             assert "answerKey" not in json.dumps(released_lesson)
 
+            def assert_audit_event(action, resource_type, resource_id):
+                query = urlencode({
+                    "limit": "5",
+                    "action": action,
+                    "resourceType": resource_type,
+                })
+                audit = expect_status(
+                    request("GET", f"/api/v1/admin/audit?{query}", second_token),
+                    200,
+                    f"audit event {action}",
+                )
+                assert any(
+                    row["action"] == action and row["resourceType"] == resource_type
+                    and row["resourceId"] == resource_id
+                    for row in audit["data"]
+                ), f"Missing audit event: {action} / {resource_type} / {resource_id}"
+
+            assert_audit_event("content.version.created", "lesson_version", lesson_version_id)
+            assert_audit_event("content.review.submitted", "content_review", review_request_id)
+            assert_audit_event("content.review.approved", "content_review", review_request_id)
+            assert_audit_event("content.version.published", "lesson_version", lesson_version_id)
+
             pagination_sql = PERSIST_DIR / "admin-pagination-fixtures.sql"
             pagination_sql.write_text(
                 "INSERT INTO lesson_versions "
