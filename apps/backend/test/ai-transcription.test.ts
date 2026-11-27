@@ -167,7 +167,7 @@ describe("AI speech transcription API", () => {
     expect(AI.run).not.toHaveBeenCalled();
   });
 
-  it("releases quota reservations when Workers AI fails", async () => {
+  it("retains quota reservations when Workers AI fails to prevent retry abuse", async () => {
     const token = await createSessionToken();
     const { db } = makeDb();
     const AI = { run: vi.fn().mockRejectedValue(new Error("upstream unavailable")) };
@@ -185,7 +185,7 @@ describe("AI speech transcription API", () => {
     );
 
     expect(response.status).toBe(503);
-    expect(db.prepare.mock.calls.some(([sql]) => sql.includes("DELETE FROM ai_transcription_reservations WHERE id IN"))).toBe(true);
+    expect(db.prepare.mock.calls.some(([sql]) => sql.includes("DELETE FROM ai_transcription_reservations WHERE id IN"))).toBe(false);
   });
 });
 
