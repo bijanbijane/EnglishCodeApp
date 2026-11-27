@@ -371,7 +371,7 @@ function parseCluster(
   const timecodeElement = children.find((child) => child.id === CLUSTER_TIMECODE_ID);
   if (!timecodeElement) invalidAudio();
   const clusterTimecode = readUnsigned(bytes, timecodeElement);
-  const ranges: { startNs: number; endNs: number }[] = [];
+  const ranges: { startNs: number; endNs: number; durationNs: number }[] = [];
 
   for (const child of children) {
     if (child.id === SIMPLE_BLOCK_ID) {
