@@ -13,15 +13,15 @@ function normalize(value: string): string {
 function isVocabularyEntry(value: unknown): value is VocabularyEntry {
   if (!isRecord(value)) return false;
   return (
-    typeof value.word === "string" &&
-    typeof value.sense === "string" &&
-    typeof value.definition === "string" &&
-    typeof value.pos === "string" &&
-    PARTS_OF_SPEECH.has(value.pos) &&
+    typeof value.word === "string" && value.word.trim().length > 0 &&
+    typeof value.sense === "string" && value.sense.trim().length > 0 &&
+    typeof value.definition === "string" && value.definition.trim().length > 0 &&
+    typeof value.pos === "string" && PARTS_OF_SPEECH.has(value.pos) &&
     (value.level === 1 || value.level === 2 || value.level === 3) &&
     Array.isArray(value.synonyms) &&
-    value.synonyms.every((item) => typeof item === "string") &&
-    typeof value.verified === "boolean"
+    value.synonyms.every((item) => typeof item === "string" && item.trim().length > 0) &&
+    typeof value.verified === "boolean" &&
+    (value.related === undefined || (Array.isArray(value.related) && value.related.every((item) => typeof item === "string" && item.trim().length > 0)))
   );
 }
 
@@ -32,19 +32,31 @@ export function parseVocabularyDataset(input: unknown): VocabularyDataset {
 
   const { meta } = input;
   if (
-    typeof meta.title !== "string" ||
-    typeof meta.version !== "string" ||
-    typeof meta.license !== "string" ||
+    typeof meta.title !== "string" || meta.title.trim().length === 0 ||
+    typeof meta.version !== "string" || meta.version.trim().length === 0 ||
+    typeof meta.license !== "string" || meta.license.trim().length === 0 ||
     meta.language !== "en"
   ) {
     throw new TypeError("Invalid vocabulary dataset metadata.");
   }
 
-  const entries = input.entries.filter(isVocabularyEntry).map((entry) => ({
-    ...entry,
-    synonyms: [...entry.synonyms],
-    ...(Array.isArray(entry.related) ? { related: entry.related.filter((item): item is string => typeof item === "string") } : {}),
-  }));
+  const entries: VocabularyEntry[] = [];
+  const senseKeys = new Set<string>();
+  for (const [index, value] of input.entries.entries()) {
+    if (!isVocabularyEntry(value)) {
+      throw new TypeError(`Invalid vocabulary entry at index ${index}: one or more required fields are invalid.`);
+    }
+    const key = `${normalize(value.word)}\u0000${normalize(value.sense)}`;
+    if (senseKeys.has(key)) {
+      throw new TypeError(`Duplicate vocabulary word/sense key at index ${index}.`);
+    }
+    senseKeys.add(key);
+    entries.push({
+      ...value,
+      synonyms: [...value.synonyms],
+      ...(value.related ? { related: [...value.related] } : {}),
+    });
+  }
 
   return {
     meta: {
