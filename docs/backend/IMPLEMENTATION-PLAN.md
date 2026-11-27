@@ -10,8 +10,8 @@
 - [x] D1 migrations and synthetic seed.
 - [x] Public published course/lesson/question read API.
 - [x] API, architecture, data-model and operations docs.
-- [ ] Typecheck and Vitest pass on CI.
-- [ ] Fresh Local D1 migration/seed pass.
+- [x] Typecheck and Vitest pass on Cloudflare validation Build (21 files / 84 tests on code commit cb31ff26fab4e6c38f717014e5eddab0a0faedc0); GitHub Actions runner allocation remains separately unresolved.
+- [x] Fresh Wrangler Local D1 migrations 0001–0016 and synthetic seed pass.
 
 ## B1 — Identity and session security
 
@@ -23,8 +23,8 @@
 - [x] 20 KiB login body limit and 256 KiB global API body limit.
 - [x] Exact-origin CORS allowlist; no wildcard or credentials.
 - [x] Bounded daily cleanup for expired replay, rate-limit and stale session rows.
-- [ ] Verify duplicate login race and `changes()` behavior using real Local D1.
-- [ ] Verify expiry/revocation and malformed token cases on Local D1.
+- [x] Verify duplicate login race and `changes()` behavior using Wrangler Local D1.
+- [x] Verify expiry/revocation and malformed token cases on Wrangler Local D1.
 - [ ] Set the approved production `ALLOWED_ORIGINS` values.
 
 ## B2 — Learning and assessment
@@ -50,7 +50,7 @@
 - [x] Append-only audit events with metadata allowlist.
 - [x] Admin-only keyset-paginated audit feed.
 - [ ] Implement owner-operated bootstrap/grant/revoke maintenance script; no public role grant endpoint.
-- [ ] Add cursor pagination to review queue and author version history.
+- [x] Keyset cursor pagination for review queue and author-owned lesson version history.
 - [ ] Add integration tests for full author → reviewer → admin publish lifecycle on Local D1.
 
 ## B4 — Privacy, reliability and operations
@@ -71,10 +71,10 @@
 
 ## Current blockers
 
-1. GitHub Actions jobs currently fail before runner allocation (`runner_id=0`, no steps); typecheck, Vitest and CI SQL script have not run.
-2. The connected Mac is offline, so no local npm/Wrangler execution is available.
-3. Migrations `0001`–`0010` have not been applied to a fresh Cloudflare Local D1 in this session.
+1. GitHub Actions still fails before runner allocation (`runner_id=0`, no steps). Equivalent backend checks have passed on Cloudflare Build Runner; repair GitHub Actions separately.
+2. No connected Mac is required for current validation; Wrangler Local D1 is exercised on Cloudflare Build Runner.
+3. Fresh Wrangler Local D1 migration and seed verification for migrations `0001`–`0016` has passed.
 4. D1 `batch()` and SQLite `changes()` invariants are covered by SQLite compatibility verification and Wrangler Local D1 concurrency tests, including exactly-once event persistence.
 5. Production origin values and first-admin bootstrap remain owner-controlled and unset.
 
-No deployment, remote migration, production secret change, paid resource or production role grant has been performed. Migration 0016 adds an append-only completion-event ledger, backfills historical completed attempts, and the completion transaction appends one idempotent event before updating the derived progress projection. A transactional maintenance SQL script rebuilds user_progress from events. Exact-code-commit typecheck, 80-test Vitest suite, SQLite verifier, Wrangler Local D1 integration, and deploy dry-run passed in Cloudflare validation-only Build c9f28ecf-361d-47b0-9126-f07294e267f1. No deployment or remote migration was run.
+No Production deployment, Production remote migration, Production secret change, paid resource or Production role grant has been performed. Development validation builds used echo-only deploy commands; no remote database was mutated. Migration 0016 adds an append-only completion-event ledger, backfills historical completed attempts, and the completion transaction appends one idempotent event before updating the derived progress projection. A transactional maintenance SQL script rebuilds user_progress from events. Exact-code-commit typecheck, 80-test Vitest suite, SQLite verifier, Wrangler Local D1 integration, and deploy dry-run passed in Cloudflare validation-only Build c9f28ecf-361d-47b0-9126-f07294e267f1. No deployment or remote migration was run.
