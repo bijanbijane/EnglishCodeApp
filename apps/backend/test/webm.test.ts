@@ -39,6 +39,17 @@ function element(id: number, payload: Uint8Array): Uint8Array {
   return concatBytes(idBytes, encodeSizeVint(payload.length), payload);
 }
 
+function unknownSizeElement(id: number, payload: Uint8Array): Uint8Array {
+  const length = id <= 0xff ? 1 : id <= 0xffff ? 2 : id <= 0xffffff ? 3 : 4;
+  const idBytes = new Uint8Array(length);
+  let value = id;
+  for (let index = length - 1; index >= 0; index -= 1) {
+    idBytes[index] = value & 0xff;
+    value = Math.floor(value / 256);
+  }
+  return concatBytes(idBytes, new Uint8Array([0xff]), payload);
+}
+
 function uint(value: number): Uint8Array {
   const bytes: number[] = [];
   do {
@@ -48,7 +59,7 @@ function uint(value: number): Uint8Array {
   return new Uint8Array(bytes);
 }
 
-function webm(blocks: Uint8Array[]): Uint8Array {
+function webm(blocks: Uint8Array[], unknownSegment = false, unknownCluster = false): Uint8Array {
   const text = (value: string) => new TextEncoder().encode(value);
   const opusHead = new Uint8Array(19);
   opusHead.set(text("OpusHead"));
@@ -69,11 +80,18 @@ function webm(blocks: Uint8Array[]): Uint8Array {
       ),
     ),
   );
-  const cluster = element(
-    0x1f43b675,
-    concatBytes(element(0xe7, uint(0)), ...blocks.map((block) => element(0xa3, block))),
+  const clusterPayload = concatBytes(
+    element(0xe7, uint(0)),
+    ...blocks.map((block) => element(0xa3, block)),
   );
-  return concatBytes(header, element(0x18538067, concatBytes(info, tracks, cluster)));
+  const cluster = unknownCluster
+    ? unknownSizeElement(0x1f43b675, clusterPayload)
+    : element(0x1f43b675, clusterPayload);
+  const segmentPayload = concatBytes(info, tracks, cluster);
+  const segment = unknownSegment
+    ? unknownSizeElement(0x18538067, segmentPayload)
+    : element(0x18538067, segmentPayload);
+  return concatBytes(header, segment);
 }
 
 function block(flags: number, lacingHeader: Uint8Array, payload: Uint8Array): Uint8Array {
@@ -117,6 +135,11 @@ describe("WebM/Opus duration parser", () => {
       concatBytes(opusPacket, opusPacket),
     );
     expect(getWebmOpusDurationSeconds(webm([ebmlBlock]))).toBeCloseTo(0.04, 6);
+  });
+
+  it("parses MediaRecorder-style unknown-size Segment and Cluster elements", () => {
+    const singleBlock = block(0, new Uint8Array(), opusPacket);
+    expect(getWebmOpusDurationSeconds(webm([singleBlock], true, true))).toBeCloseTo(0.02, 6);
   });
 
   it("fails closed on truncated or unsupported containers", () => {
