@@ -23,14 +23,39 @@ function constantTimeEqual(left: string, right: string): boolean {
   return difference === 0;
 }
 
-function responseText(text: string): string {
-  if (text.trim() === "/start" || text.trim().startsWith("/start ")) {
-    return "Welcome to EnglishCode. Your Telegram bot is connected. Learning features are being prepared.";
+const WEB_APP_URL = "https://englishcode-frontend-dev.bijanbijane-1.workers.dev";
+
+function getCommand(text: string): string | null {
+  const firstToken = text.trim().split(/\\s+/, 1)[0] ?? "";
+  if (!firstToken.startsWith("/")) return null;
+  return firstToken.slice(1).split("@", 1)[0].toLowerCase();
+}
+
+function responsePayload(text: string): {
+  text: string;
+  reply_markup?: { inline_keyboard: Array<Array<{ text: string; web_app: { url: string } }>> };
+} {
+  const command = getCommand(text);
+  if (command === "start") {
+    return {
+      text: "Welcome to EnglishCode. Open the app to start your English learning journey.",
+      reply_markup: {
+        inline_keyboard: [[{ text: "Open EnglishCode", web_app: { url: WEB_APP_URL } }]],
+      },
+    };
   }
-  if (text.trim() === "/help") {
-    return "EnglishCode bot is online. Send /start to check the connection.";
+  if (command === "help") {
+    return { text: "EnglishCode helps you practise English. Send /start to open the learning app." };
   }
-  return "Message received. EnglishCode Telegram learning features are being prepared.";
+  if (command === "app") {
+    return {
+      text: "Open EnglishCode to continue learning.",
+      reply_markup: {
+        inline_keyboard: [[{ text: "Open EnglishCode", web_app: { url: WEB_APP_URL } }]],
+      },
+    };
+  }
+  return { text: "Message received. Send /start to open EnglishCode." };
 }
 
 const setupPage = `<!doctype html>
@@ -252,7 +277,7 @@ telegram.post("/telegram/webhook", async (c) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         chat_id: chatId,
-        text: responseText(text.slice(0, 4096)),
+        ...responsePayload(text.slice(0, 4096)),
         disable_web_page_preview: true,
       }),
     });
