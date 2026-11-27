@@ -42,7 +42,14 @@ This checkpoint records repository-observed state only. It is not a claim that t
 - Static source review was performed on the Telegram initData verifier, login route/tests, learning routes, frontend app, package scripts, and migration files.
 - Static review identified a maintainability/correctness coupling in PR #25: the progress upsert uses `changes() = 1`, but an event INSERT now sits between the attempt UPDATE and progress upsert. The gate therefore observes the event INSERT's row count rather than the attempt transition. A review comment recommends reordering the batch to UPDATE → progress → event INSERT → SELECT; runtime behavior remains unverified.
 
-## Latest review actions — 2026-11-27\n\n- Added PR #25 conversation comment `7222284886` documenting the `changes()` ordering concern and requesting Local D1 coverage for first completion, repeated completion, and a pre-existing-event edge case.\n- Updated `docs/backend/OPERATIONS.md` with the same checkpoint and exact resume constraints.\n- PR #25 review-thread listing was empty before the comment; no code was changed on that PR branch.\n- PR #24's webhook handler was checked: non-private chats are ignored before a Mini App Web App button can be sent. No defect was confirmed in that path by this limited review.\n\n## Security and data implications
+## Latest review actions — 2026-11-27
+
+- Added PR #25 conversation comment `7222284886` documenting the `changes()` ordering concern and requesting Local D1 coverage for first completion, repeated completion, and a pre-existing-event edge case.
+- Updated `docs/backend/OPERATIONS.md` with the same checkpoint and exact resume constraints.
+- PR #25 review-thread listing was empty before the comment; no code was changed on that PR branch.
+- PR #24's webhook handler was checked: non-private chats are ignored before a Mini App Web App button can be sent. No defect was confirmed in that path by this limited review.
+
+## Security and data implications
 
 - No application source code or SQL migration was changed in this documentation batch.
 - No database was modified.
