@@ -18,6 +18,7 @@ const BLOCK_GROUP_ID = 0xa0;
 const BLOCK_ID = 0xa1;
 const BLOCK_DURATION_ID = 0x9b;
 const NANOS_PER_SECOND = 1_000_000_000;
+const MAX_DURATION_NS = 60 * NANOS_PER_SECOND;
 
 type EbmlElement = {
   id: number;
@@ -274,7 +275,7 @@ function parseBlock(
   track: AudioTrack,
   timecodeScaleNs: number,
   declaredBlockDurationTicks: number | null,
-): { startNs: number; endNs: number } {
+): { startNs: number; endNs: number; durationNs: number } {
   const trackNumber = readBlockTrackNumber(bytes, start);
   let offset = trackNumber.nextOffset;
   if (offset + 3 > end) invalidAudio();
@@ -314,7 +315,7 @@ function parseBlock(
   ) {
     invalidAudio();
   }
-  return { startNs, endNs };
+  return { startNs, endNs, durationNs };
 }
 
 function parseAudioTrack(bytes: Uint8Array, element: EbmlElement): AudioTrack {
@@ -365,7 +366,7 @@ function parseCluster(
   element: EbmlElement,
   track: AudioTrack,
   timecodeScaleNs: number,
-): { startNs: number; endNs: number }[] {
+): { startNs: number; endNs: number; durationNs: number }[] {
   const children = childElements(bytes, element.dataStart, element.dataEnd);
   const timecodeElement = children.find((child) => child.id === CLUSTER_TIMECODE_ID);
   if (!timecodeElement) invalidAudio();
@@ -444,6 +445,7 @@ export function getWebmOpusDurationSeconds(bytes: Uint8Array): number {
 
   let minimumStartNs = Number.POSITIVE_INFINITY;
   let maximumEndNs = 0;
+  let accumulatedAudioDurationNs = 0;
   let blockCount = 0;
 
   for (const cluster of clusters) {
@@ -451,6 +453,8 @@ export function getWebmOpusDurationSeconds(bytes: Uint8Array): number {
     for (const range of ranges) {
       minimumStartNs = Math.min(minimumStartNs, range.startNs);
       maximumEndNs = Math.max(maximumEndNs, range.endNs);
+      accumulatedAudioDurationNs += range.durationNs;
+      if (!Number.isFinite(accumulatedAudioDurationNs) || accumulatedAudioDurationNs > MAX_DURATION_NS) invalidAudio("Audio packet duration exceeds 60 seconds.");
       blockCount += 1;
     }
   }
