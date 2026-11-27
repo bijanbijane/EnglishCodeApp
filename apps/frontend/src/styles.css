@@ -12,3 +12,28 @@
 
 .progress-section{padding:34px 0 0}.progress-heading{display:flex;align-items:end;justify-content:space-between;margin-bottom:16px}.progress-heading .eyebrow{margin-bottom:8px}.progress-heading h2{font-size:22px;letter-spacing:-.7px;margin:0;font-weight:800}.progress-caption{font-size:11px;color:#8a8e9e}.progress-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.progress-stat{background:#fff;border:1px solid #e9e9f1;border-radius:12px;padding:16px}.progress-stat span{display:block;font-size:9px;letter-spacing:1.2px;color:#8d90a0;font-weight:700}.progress-stat strong{display:block;font-size:30px;letter-spacing:-1px;margin:8px 0 2px;font-weight:800}.progress-stat strong i{font-size:14px;font-style:normal;margin-left:2px}.progress-stat small{font-size:10px;color:#9295a5}.recent-progress{margin-top:16px;padding:17px 19px;background:#fff;border:1px solid #e9e9f1;border-radius:12px}.recent-progress h3{font-size:12px;margin:0 0 12px}.recent-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid #f0f0f5;font-size:11px;color:#777b8d}.recent-row strong{color:#5f55c9}.account-action{padding:4px 0 4px 8px}.progress-section+.content-section{padding-top:36px}
 @media(max-width:700px){.progress-stats{gap:7px}.progress-stat{padding:12px 10px}.progress-stat strong{font-size:25px}.progress-stat small{font-size:9px}.progress-heading h2{font-size:19px}}
+
+.speech-practice{margin:30px 0 0;padding:22px 24px;background:#fff;border:1px solid #e7e8f0;border-radius:15px}
+.speech-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+.speech-heading .eyebrow{margin-bottom:8px}
+.speech-heading h2{font-size:22px;line-height:1.25;letter-spacing:-.6px;margin:0 0 8px}
+.speech-heading p:not(.eyebrow){font-size:12px;line-height:1.65;color:#7f8395;margin:0;max-width:560px}
+.speech-limit{flex:0 0 auto;padding:7px 10px;border-radius:20px;background:#f2f1fc;color:#6559c7;font-size:10px;font-weight:700;white-space:nowrap}
+.speech-controls{margin-top:17px}
+.speech-hint{font-size:11px;line-height:1.6;color:#838798;margin:10px 0 0}
+.speech-recording-row{display:flex;align-items:center;gap:11px;flex-wrap:wrap;font-size:12px}
+.recording-indicator{width:9px;height:9px;border-radius:50%;background:#d34f5b;box-shadow:0 0 0 4px #fae9eb}
+.speech-recording-row .secondary-button{margin-left:auto}
+.speech-review{display:grid;gap:11px;max-width:520px}
+.speech-review audio{display:block;width:100%;height:42px}
+.speech-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.secondary-button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:11px 17px;border:1px solid #dfe0e9;border-radius:10px;background:#fff;color:#45495c;font-size:12px;font-weight:700}
+.secondary-button:hover:not(:disabled){background:#f7f7fb;border-color:#c9c8dc}
+.speech-review .speech-hint{margin:0}
+.transcription-result{max-width:680px;padding:15px 17px;background:#f7f7fb;border:1px solid #ececf3;border-radius:11px}
+.transcription-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px}
+.transcription-heading span{color:#85899a;font-size:10px}
+.transcription-result p{font-size:14px;line-height:1.8;color:#34384b;white-space:pre-wrap;margin:12px 0 16px}
+.speech-error{font-size:11px;line-height:1.6;color:#a33f43;margin:12px 0 0}
+.speech-footnote{font-size:9px;line-height:1.5;color:#a0a2af;margin:15px 0 0}
+@media(max-width:700px){.speech-practice{padding:18px 16px;margin-top:24px}.speech-heading{display:block}.speech-heading h2{font-size:20px}.speech-limit{display:inline-flex;margin-top:13px}.speech-recording-row .secondary-button{margin-left:0}.speech-actions>*{flex:1 1 auto}.speech-actions .primary-button,.speech-actions .secondary-button{min-height:46px}}
