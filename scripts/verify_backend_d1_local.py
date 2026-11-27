@@ -227,7 +227,7 @@ def main():
             safe_user_id = user_id.replace("'", "''")
             user_quota_seed = PERSIST_DIR / "ai-user-quota-seed.sql"
             user_quota_seed.write_text(
-                "DELETE FROM ai_transcription_reservations;\\n"
+                "DELETE FROM ai_transcription_reservations;\n"
                 "INSERT INTO ai_transcription_reservations (id,day_utc,user_id) VALUES "
                 f"('quota-user-seed-1','{quota_day}','{safe_user_id}'),"
                 f"('quota-user-seed-2','{quota_day}','{safe_user_id}');",
@@ -289,7 +289,7 @@ def main():
                 for index in range(60)
             )
             global_quota_seed.write_text(
-                "DELETE FROM ai_transcription_reservations;\\n"
+                "DELETE FROM ai_transcription_reservations;\n"
                 "INSERT INTO ai_transcription_reservations (id,day_utc,user_id) VALUES "
                 + global_values + ";",
                 encoding="utf-8",
