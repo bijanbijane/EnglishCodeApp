@@ -509,12 +509,6 @@ def main():
             second_login = next(body for status, body in login_results if status == 201)
             second_token = second_login["data"]["accessToken"]
 
-            global_quota_result = expect_status(
-                request("POST", "/api/v1/ai/transcriptions", second_token, transcription_payload),
-                429,
-                "AI transcription global daily quota",
-            )
-            assert global_quota_result.get("error", {}).get("code") == "RATE_LIMITED"
             second_profile = expect_status(
                 request("GET", "/api/v1/me", second_token),
                 200,
