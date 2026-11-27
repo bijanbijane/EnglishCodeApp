@@ -6,7 +6,7 @@ import { requireSession } from "../auth/middleware";
 import { getWebmOpusDurationSeconds } from "./webm";
 const ai = new Hono<AppEnv>();
 const MODEL = "@cf/openai/whisper-large-v3-turbo";
-const MAX_AUDIO_BYTES = 96 * 1024;
+const MAX_AUDIO_BYTES = 1024 * 1024;
 const MAX_DURATION_SECONDS = 60;
 const GLOBAL_DAILY_LIMIT = 60;
 const USER_DAILY_LIMIT = 2;
@@ -25,7 +25,7 @@ function parsePayload(value: unknown): { audioBase64: string; durationSeconds: n
     typeof body.audioBase64 !== "string" ||
     !/^[A-Za-z0-9+/]+={0,2}$/.test(body.audioBase64) ||
     body.audioBase64.length === 0 ||
-    body.audioBase64.length > 132000 ||
+    body.audioBase64.length > 4 * Math.ceil(MAX_AUDIO_BYTES / 3) ||
     mimeType !== "audio/webm" ||
     (codecParameter !== undefined && codecParameter !== "opus")
   ) {
@@ -39,7 +39,7 @@ function parsePayload(value: unknown): { audioBase64: string; durationSeconds: n
     throw new AppError("VALIDATION_ERROR", "Audio data is not valid base64.", 400);
   }
   if (decoded.length === 0 || decoded.length > MAX_AUDIO_BYTES) {
-    throw new AppError("VALIDATION_ERROR", "Audio payload exceeds 96 KiB.", 413);
+    throw new AppError("VALIDATION_ERROR", "Audio payload exceeds 1 MiB.", 413);
   }
 
   const audioBytes = Uint8Array.from(decoded, (character) => character.charCodeAt(0));
@@ -55,7 +55,7 @@ function parsePayload(value: unknown): { audioBase64: string; durationSeconds: n
 
   return { audioBase64: body.audioBase64, durationSeconds };
 }
-ai.post("/ai/transcriptions", bodyLimit({ maxSize: 192 * 1024, onError: (c) => c.json({
+ai.post("/ai/transcriptions", bodyLimit({ maxSize: 1536 * 1024, onError: (c) => c.json({
   error: { code: "PAYLOAD_TOO_LARGE", message: "Audio request exceeds the allowed size.", requestId: c.get("requestId") },
 }, 413) }), requireSession, async (c) => {
   if (!c.req.header("content-type")?.toLowerCase().includes("application/json")) throw new AppError("VALIDATION_ERROR", "Content-Type must be application/json.", 400);
