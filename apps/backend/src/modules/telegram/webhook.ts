@@ -26,7 +26,7 @@ function constantTimeEqual(left: string, right: string): boolean {
 const WEB_APP_URL = "https://englishcode-frontend-dev.bijanbijane-1.workers.dev";
 
 function getCommand(text: string): string | null {
-  const firstToken = text.trim().split(/\\s+/, 1)[0] ?? "";
+  const firstToken = text.trim().split(/\s+/, 1)[0] ?? "";
   if (!firstToken.startsWith("/")) return null;
   return firstToken.slice(1).split("@", 1)[0].toLowerCase();
 }
