@@ -95,14 +95,15 @@ describe("Telegram webhook setup", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("does not re-register an already-correct webhook", async () => {
-    const makeInfoResponse = () => new Response(JSON.stringify({
-      ok: true,
-      result: { url: webhookUrl, pending_update_count: 0, allowed_updates: ["message"] },
-    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  it("reapplies the webhook secret even when the URL is already correct", async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(makeInfoResponse())
-      .mockResolvedValueOnce(makeInfoResponse());
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, result: true }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        ok: true,
+        result: { url: webhookUrl, pending_update_count: 0, allowed_updates: ["message"] },
+      }), { status: 200, headers: { "Content-Type": "application/json" } }));
     vi.stubGlobal("fetch", fetchMock);
     const response = await app.request(
       "/api/v1/telegram/setup",
@@ -112,19 +113,22 @@ describe("Telegram webhook setup", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       ok: true,
-      webhook: "already_registered",
+      webhook: "registered",
       url: webhookUrl,
       pendingUpdateCount: 0,
       allowedUpdates: ["message"],
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    const [setUrl, setInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(setUrl).toBe(`https://api.telegram.org/bot${botToken}/setWebhook`);
+    expect(JSON.parse(String(setInit.body))).toEqual({
+      url: webhookUrl, secret_token: webhookSecret,
+      allowed_updates: ["message"], drop_pending_updates: false,
+    });
   });
 
   it("registers and verifies the fixed Development webhook URL when not configured", async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        ok: true, result: { url: "", pending_update_count: 0, allowed_updates: [] },
-      }), { status: 200, headers: { "Content-Type": "application/json" } }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, result: true }), {
         status: 200, headers: { "Content-Type": "application/json" },
       }))
