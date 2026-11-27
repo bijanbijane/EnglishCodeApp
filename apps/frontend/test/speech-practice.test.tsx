@@ -52,6 +52,7 @@ let container: HTMLDivElement | null = null;
 let originalMediaDevices: PropertyDescriptor | undefined;
 let originalCreateObjectURL: PropertyDescriptor | undefined;
 let originalRevokeObjectURL: PropertyDescriptor | undefined;
+let originalBlobArrayBuffer: PropertyDescriptor | undefined;
 
 function mount(isAuthenticated = true) {
   container = document.createElement("div");
@@ -74,6 +75,8 @@ afterEach(() => {
   else Reflect.deleteProperty(URL, "createObjectURL");
   if (originalRevokeObjectURL) Object.defineProperty(URL, "revokeObjectURL", originalRevokeObjectURL);
   else Reflect.deleteProperty(URL, "revokeObjectURL");
+  if (originalBlobArrayBuffer) Object.defineProperty(Blob.prototype, "arrayBuffer", originalBlobArrayBuffer);
+  else Reflect.deleteProperty(Blob.prototype, "arrayBuffer");
 });
 
 it("records audio, enforces the client payload cap, and submits a transcription request", async () => {
@@ -88,6 +91,11 @@ it("records audio, enforces the client payload cap, and submits a transcription 
   originalRevokeObjectURL = Object.getOwnPropertyDescriptor(URL, "revokeObjectURL");
   Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:recorded-audio") });
   Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+  originalBlobArrayBuffer = Object.getOwnPropertyDescriptor(Blob.prototype, "arrayBuffer");
+  Object.defineProperty(Blob.prototype, "arrayBuffer", {
+    configurable: true,
+    value: vi.fn().mockResolvedValue(new Uint8Array([0x1a, 0x45, 0xdf, 0xa3]).buffer),
+  });
 
   const transcribe = vi.spyOn(api, "transcribeAudio").mockResolvedValue({
     transcription: "Good morning. My name is Alex.",
