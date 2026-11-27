@@ -257,8 +257,12 @@ export default function SpeechPractice({ isAuthenticated }: { isAuthenticated: b
     setState("transcribing");
     setError("");
     try {
+      const audioBase64 = await blobToBase64(recording);
+      // Logout can occur while Blob.arrayBuffer() is still pending. Re-check
+      // the session generation before sending any audio bytes over the network.
+      if (!mountedRef.current || requestId !== permissionRequestRef.current) return;
       const result = await api.transcribeAudio({
-        audioBase64: await blobToBase64(recording),
+        audioBase64,
         mimeType: recordingMimeType,
         durationSeconds: elapsedSeconds,
       });
