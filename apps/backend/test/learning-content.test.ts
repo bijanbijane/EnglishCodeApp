@@ -68,7 +68,19 @@ describe("learning-core open content", () => {
     expect(searchVocabulary(dataset.entries, "happy", { level: 2 })).toHaveLength(0);
   });
 
-  it("rejects malformed vocabulary rows instead of silently dropping them", () => {\n    expect(() => parseVocabularyDataset({\n      ...vocabularyInput,\n      entries: [...vocabularyInput.entries, { ...vocabularyInput.entries[0], word: "" }],\n    })).toThrow(/Invalid vocabulary entry at index 2/);\n  });\n\n  it("rejects duplicate word/sense keys", () => {\n    expect(() => parseVocabularyDataset({\n      ...vocabularyInput,\n      entries: [...vocabularyInput.entries, { ...vocabularyInput.entries[0] }],\n    })).toThrow(/Duplicate vocabulary word\\/sense key at index 2/);\n  });\n\n  it("rejects an invalid vocabulary envelope", () => {
+  it("rejects malformed vocabulary rows instead of silently dropping them", () => {
+    expect(() => parseVocabularyDataset({
+      ...vocabularyInput,
+      entries: [...vocabularyInput.entries, { ...vocabularyInput.entries[0], word: "" }],
+    })).toThrow(/Invalid vocabulary entry at index 2/);
+  });
+
+  it("rejects duplicate word/sense keys", () => {
+    expect(() => parseVocabularyDataset({
+      ...vocabularyInput,
+      entries: [...vocabularyInput.entries, { ...vocabularyInput.entries[0] }],
+    })).toThrow(/Duplicate vocabulary word\/sense key at index 2/);
+  });\n\n  it("rejects an invalid vocabulary envelope", () => {
     expect(() => parseVocabularyDataset({ entries: [] })).toThrow(TypeError);
   });
 
