@@ -162,12 +162,15 @@ function App() {
     setBusy(true); setError("");
     try {
       if (!telegram?.SecureStorage) throw new Error("Secure session storage is unavailable.");
-      await revokeSession({
+      const result = await revokeSession({
         storage: telegram.SecureStorage,
         logout: api.logout,
         setToken: setAccessToken,
       });
-      setProfile(null); setProgress([]); setSignedOut(true); setNotice("You have signed out. Close and reopen the Mini App to start a new Telegram sign-in session.");
+      setProfile(null); setProgress([]); setSignedOut(true);
+      setNotice(result.storageCleared
+        ? "You have signed out. Close and reopen the Mini App to start a new Telegram sign-in session."
+        : "You are signed out on the server, but Telegram could not clear the saved local token. Close and reopen the Mini App; the expired token will be replaced during sign-in.");
     } catch (e) { setError(e instanceof Error ? e.message : "Could not sign out."); }
     finally { setBusy(false); }
   };
