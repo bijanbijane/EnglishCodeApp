@@ -171,6 +171,14 @@ describe("WebM/Opus duration parser", () => {
     expect(duration).toBeLessThan(0.23);
   });
 
+  it("rejects more than 60 seconds of Opus packets even when block timestamps overlap", () => {
+    const overlappingPackets = Array.from(
+      { length: 3_001 },
+      () => block(0, new Uint8Array(), opusPacket),
+    );
+    expect(() => getWebmOpusDurationSeconds(webm(overlappingPackets))).toThrow();
+  });
+
   it("fails closed on truncated or unsupported containers", () => {
     expect(() => getWebmOpusDurationSeconds(new Uint8Array([0x1a, 0x45, 0xdf, 0xa3]))).toThrow();
     expect(() => getWebmOpusDurationSeconds(new Uint8Array(40))).toThrow();
