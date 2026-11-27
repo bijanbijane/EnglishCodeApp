@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import wordsData from "./data/vocabulary.json";
 import mistakesData from "./data/common-mistakes.json";
+import a2PersonalGoalsLesson from "../../../../../packages/learning-core/examples/a2-personal-goals";
 import "./learning-content.css";
 
 type WordEntry = { word: string; sense: string; pos: string; definition: string; level: 1 | 2 | 3; synonyms: string[]; related: string[] };
 type MistakeEntry = { id: string; category: string; cefr: string; learner_sentence: string; corrected_sentence: string; explanation: string; practice_prompt: string; tags: string[] };
-type Tab = "vocabulary" | "correction";
+type Tab = "vocabulary" | "correction" | "lesson";
 const words = wordsData as WordEntry[];
 const mistakes = mistakesData as MistakeEntry[];
 const levelName = (level: number) => level === 1 ? "Beginner" : level === 2 ? "Intermediate" : "Advanced";
@@ -43,9 +44,10 @@ export default function LearningContentModule({ onBack }: { onBack: () => void }
         <p>Explore meaning, build vocabulary, and notice the patterns behind common mistakes.</p></div>
       <div className="library-count"><strong>2,178</strong><span>learning records</span></div>
     </div>
-    <div className="library-tabs" role="tablist" aria-label="Learning tools">
-      <button role="tab" aria-selected={tab === "vocabulary"} className={tab === "vocabulary" ? "active" : ""} onClick={() => setTab("vocabulary")}><span>01</span> Vocabulary</button>
-      <button role="tab" aria-selected={tab === "correction"} className={tab === "correction" ? "active" : ""} onClick={() => { setTab("correction"); setRevealed(false); }}><span>02</span> Error clinic</button>
+    <div className="library-tabs" role="group" aria-label="Learning tools">
+      <button aria-pressed={tab === "vocabulary"} className={tab === "vocabulary" ? "active" : ""} onClick={() => setTab("vocabulary")}><span>01</span> Vocabulary</button>
+      <button aria-pressed={tab === "correction"} className={tab === "correction" ? "active" : ""} onClick={() => { setTab("correction"); setRevealed(false); }}><span>02</span> Error clinic</button>
+      <button aria-pressed={tab === "lesson"} className={tab === "lesson" ? "active" : ""} onClick={() => setTab("lesson")}><span>03</span> A2 lesson</button>
     </div>
     {tab === "vocabulary" ? <div className="library-workspace">
       <div className="library-tools">
