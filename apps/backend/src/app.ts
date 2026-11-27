@@ -43,10 +43,9 @@ const standardApiBodyLimit = bodyLimit({
 // Keep the stricter 256 KiB ceiling on every other API route.
 app.use("/api/v1/*", async (context, next) => {
   if (context.req.path === "/api/v1/ai/transcriptions") {
-    await next();
-    return;
+    return next();
   }
-  await standardApiBodyLimit(context, next);
+  return standardApiBodyLimit(context, next);
 });
 
 app.use("/api/v1/*", cors({
