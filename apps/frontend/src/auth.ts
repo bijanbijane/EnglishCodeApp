@@ -28,6 +28,16 @@ function removeToken(storage: SessionStorage): Promise<void> {
   }));
 }
 
+export function getSessionErrorMessage(error: unknown): string {
+  if (error instanceof ApiError && (error.status === 401 || error.status === 409)) {
+    return "Telegram sign-in data has expired or was already used. Close and reopen the Mini App to refresh it.";
+  }
+  if (error instanceof TypeError) {
+    return "Could not reach EnglishCode. Check your connection. If sign-in was interrupted, close and reopen the Mini App to refresh Telegram authentication data.";
+  }
+  return error instanceof Error ? error.message : "Telegram sign-in is unavailable.";
+}
+
 export async function restoreSession(deps: {
   storage: SessionStorage;
   initData: string;

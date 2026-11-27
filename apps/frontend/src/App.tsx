@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
-import { restoreSession, revokeSession } from "./auth";
+import { api, ApiError, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
+import { getSessionErrorMessage, restoreSession, revokeSession } from "./auth";
 
 type TelegramSecureStorage = {
   getItem: (key: string, callback: (error: string | null, value: string | null, canRestore?: boolean) => void) => void;
@@ -74,7 +74,7 @@ function App() {
       setToken: setAccessToken,
     }).then(setProfile).catch((e: unknown) => {
       setAccessToken(null);
-      setNotice(e instanceof Error ? e.message : "Telegram sign-in is unavailable.");
+      setNotice(getSessionErrorMessage(e));
     }).finally(() => {
       authInFlight.current = false;
       setAuthLoading(false);
@@ -165,7 +165,7 @@ function App() {
       setNotice("You are signed in.");
     } catch (e) {
       setAccessToken(null);
-      setError(e instanceof Error ? e.message : "Telegram sign-in is unavailable.");
+      setError(getSessionErrorMessage(e));
     } finally {
       authInFlight.current = false;
       setAuthLoading(false);
