@@ -33,13 +33,17 @@ function responseText(text: string): string {
   return "Message received. EnglishCode Telegram learning features are being prepared.";
 }
 
-// Temporary, idempotent bootstrap: the target URL and secret are fixed server-side.
-// Remove this route after Telegram confirms the webhook registration.
-telegram.get("/telegram/setup", async (c) => {
+// Temporary bootstrap is deliberately POST-only and requires the webhook secret.
+telegram.post("/telegram/setup", async (c) => {
   const token = c.env.TELEGRAM_BOT_TOKEN;
   const webhookSecret = c.env.TELEGRAM_WEBHOOK_SECRET;
   if (!token || !webhookSecret) {
     return c.json({ error: "Telegram setup is not configured." }, 503);
+  }
+
+  const suppliedSetupSecret = c.req.header("X-EnglishCode-Setup-Token") ?? "";
+  if (!constantTimeEqual(suppliedSetupSecret, webhookSecret)) {
+    return c.json({ error: "Unauthorized." }, 401);
   }
 
   const infoUrl = `https://api.telegram.org/bot${token}/getWebhookInfo`;
