@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { api, setAccessToken } from "../src/api";
+import { api, ApiError, setAccessToken } from "../src/api";
 
 describe("frontend API client", () => {
   afterEach(() => {
@@ -48,6 +48,23 @@ describe("frontend API client", () => {
     }));
 
     await expect(api.profile()).rejects.toThrow("Authentication is required.");
+  });
+
+  it("preserves HTTP status and error code for authentication decisions", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ error: { code: "SERVICE_UNAVAILABLE", message: "Temporarily unavailable." } }),
+    }));
+
+    try {
+      await api.profile();
+      throw new Error("Expected profile request to fail.");
+    } catch (error) {
+      expect(error).toBeInstanceOf(ApiError);
+      expect(error).toMatchObject({ status: 503, code: "SERVICE_UNAVAILABLE" });
+      expect((error as Error).message).toBe("Temporarily unavailable.");
+    }
   });
 
   it("rejects successful responses that do not contain the API data envelope", async () => {
