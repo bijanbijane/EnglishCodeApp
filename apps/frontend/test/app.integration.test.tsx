@@ -205,6 +205,8 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
 
     await act(async () => {
       container.querySelector<HTMLButtonElement>(".answer-option")?.click();
+    });
+    await act(async () => {
       findButton(container, "Check answer").click();
     });
 
