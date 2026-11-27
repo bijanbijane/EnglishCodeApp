@@ -85,7 +85,7 @@ export default function LearningContentModule({ onBack }: { onBack: () => void }
       <div className="lesson-mastery"><strong>Mastery gate</strong><span>{a2PersonalGoalsLesson.mastery.minimumAttempts}+ attempts · {a2PersonalGoalsLesson.mastery.minimumScorePercent}% threshold · delayed recall required</span></div>
       <p className="library-footnote">Original EnglishCode lesson sample. CEFR-informed, not an official CEFR examination or certified assessment.</p>
     </div> : <div className="exercise-workspace">
-      <div className="exercise-heading"><span>EXERCISE PACK · A2</span><h3>Grammar practice</h3><p>Short, self-checking activities across seven exercise formats. Your answers stay in this browser session.</p></div>
+      <div className="exercise-heading"><span>EXERCISE PACK · A2</span><h3>{grammarExercisePack.title}</h3><p>Short, self-checking activities across seven exercise formats. Your answers stay in this browser session.</p></div>
       <div className="exercise-progress"><span>{String(exerciseIndex + 1).padStart(2, "0")} / {String(exercises.length).padStart(2, "0")}</span><span>{currentExercise.type.replaceAll("-", " ")}</span></div>
       <article className="exercise-card">
         <div className="exercise-tags">{currentExercise.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
