@@ -1,78 +1,68 @@
 # Backend Operations and Release Controls
 
 ## Environments
-
-- Local development uses Wrangler local mode and an isolated D1 database.
-- Staging must have its own Worker name, D1 database, secrets and exact origin allowlist.
-- Production bindings and secrets must never be copied into local or preview environments.
-- Current Wrangler config contains a local placeholder D1 ID; no deploy target or production resource is provisioned.
+- Local development uses Wrangler local mode and an isolated D1 database with synthetic data.
+- Development resources are separate from Local and Production. Verify the exact Worker, D1 binding, origin allowlist, and secrets before any Development remote operation.
+- Production bindings, databases, and secrets must never be copied into Local or Development environments.
+- A successful validation build or dry-run is not a deployment and does not authorize a remote migration.
 
 ## Local workflow
+From apps/backend:
 
-From `apps/backend`:
+    npm install
+    npm run typecheck
+    npm test
+    python3 ../../scripts/verify_backend_sqlite.py
+    npm run db:migrate:local
+    npm run db:seed:local
+    npm run test:d1-local
 
-```bash
-npm install
-npm run typecheck
-npm test
-python3 ../../scripts/verify_backend_sqlite.py
-npm run db:migrate:local
-npm run db:seed:local
-npm run dev
-```
-
-The Python script exercises migrations and core SQLite transaction/trigger invariants. It is compatibility evidence, not a substitute for Local D1 or concurrent Worker tests. Use synthetic records only.
+The Python verifier checks SQLite migration and transaction invariants. It is complementary to, not a replacement for, Wrangler Local D1 integration tests. Use synthetic records only. Run the commands against a fresh Local D1 when validating the full migration chain.
 
 ## Migration policy
+1. Review SQL, foreign keys, triggers, indexes, and compatibility with the current schema.
+2. On main, the current migration sequence is 0001–0015. Confirm the actual files on the target commit before applying or documenting a newer range.
+3. Apply the full sequence to a fresh Local D1 and verify migrations, seed data, constraints, and representative query behavior.
+4. Test upgrades from the previous supported schema when a migration changes existing data or constraints.
+5. Record the exact commit, migration range, command, and result.
+6. Treat any remote migration as a separate operation requiring explicit owner approval, backup, and recovery plan.
 
-1. Review SQL, foreign keys, triggers and indexes.
-2. Apply migrations `0001`–`0010` to fresh Local D1.
-3. Apply migrations to a copy of the previous supported schema.
-4. Verify indexes, constraints and representative query plans.
-5. Record exact migration version and evidence.
-6. Remote migration is a separate, explicitly approved operation with backup and recovery plan.
+Never edit a migration applied to a shared database. Use forward-only migrations. Feature-branch migrations are not part of main until their PRs are merged; do not assume that an open PR's migration has been applied.
 
-Never edit a migration applied to a shared database. Prefer forward-only migrations. Old feature branches have incompatible migration histories; do not copy their old numbered migrations onto main.
-
-## CI requirements
-
-- Node.js 22 and dependency installation.
-- Backend TypeScript typecheck and Vitest.
-- Python SQLite migration/transaction invariant script.
-- Local D1 migration and synthetic seed.
-- Later: Worker integration tests, security tests, frontend contract compatibility and migration-upgrade tests.
-
-Current GitHub Actions runs fail before runner allocation (`runner_id=0`, no steps). This is not a code-test failure or a passing result. The connected Mac was also offline during the latest work session.
+## CI requirements and current status
+- Backend: Node.js 22, dependency installation, TypeScript typecheck, Vitest, SQLite migration/transaction verification, and Wrangler Local D1 integration.
+- Frontend: TypeScript typecheck, Vitest, and Vite production build.
+- Run checks against the exact commit proposed for merge.
+- GitHub Actions runs inspected on 2026-11-27 failed before a runner was assigned (runner_id=0, no executed steps). This is an infrastructure/runner-allocation failure, not evidence that code tests failed or passed.
+- Cloudflare validation builds reported by feature PRs are evidence only for the exact code commit and checks listed in those PRs. They do not establish that the current main commit passed the same checks.
 
 ## Observability
-
-- Server-generated request ID on every request.
+- Generate a request ID for every request.
 - Keep Cloudflare Ray ID separate when available.
-- Log route, duration, outcome and error code without credentials or private content.
-- Monitor error rate, latency, D1 query duration, quota consumption and scheduled cleanup failures.
+- Log route, duration, outcome, and error code without credentials or private content.
+- Monitor error rate, latency, D1 query duration, quota consumption, and scheduled cleanup failures.
 - Do not claim an SLA before load testing.
 
 ## Scheduled auth cleanup
-
-- Daily Worker Cron configured for 03:17 UTC; inactive until deployment.
-- At most 500 expired replay fingerprints, 500 rate-limit buckets older than 48 hours and 500 stale sessions are deleted per run.
-- Expired unrevoked sessions are retained at least seven days after expiry; revoked sessions at least 30 days after revocation.
+- The Worker Cron is configured for 03:17 UTC; configuration does not prove that the schedule is deployed or running.
+- Cleanup is bounded per run for expired replay fingerprints, old rate-limit buckets, and stale sessions.
+- Preserve the documented retention windows for expired and revoked sessions.
+- Verify cleanup behavior with synthetic Local D1 data before changing retention or batch limits.
 
 ## Admin operations
-
-- First admin and subsequent role grants/revocations are owner-controlled D1 batches; no public grant endpoint exists.
-- Follow `ADMIN-BOOTSTRAP.md`; verify internal user ID from the confirmed Telegram identity.
+- Roles are stored in D1 and enforced server-side.
+- First-admin bootstrap and subsequent role grants/revocations remain owner-controlled; there is no public role-grant endpoint.
+- Follow ADMIN-BOOTSTRAP.md and verify the internal user ID through the approved identity process.
 - Every role grant/revocation must include an audit event in the same D1 batch.
-- Do not seed production roles or store a production administrator ID in source control.
+- Do not seed Production roles or store a Production administrator ID in source control.
 
 ## Release gate
-
 Before beta:
-- CI green on exact release commit.
-- Local D1 migration-from-empty and upgrade tests pass.
-- Auth, role, ownership, answer-key, idempotency and concurrency tests pass.
+- Required CI checks are green on the exact release commit.
+- Fresh Local D1 migration/seed and upgrade tests pass.
+- Auth, role, ownership, answer-key privacy, idempotency, and concurrency tests pass.
 - Account export/deletion and backup/restore paths are tested.
 - Threat model and privacy/retention policy are reviewed.
-- Staging smoke test and rollback procedure are documented.
+- Development smoke tests and rollback/recovery procedures are documented.
 
-Production deployment and production migration require separate explicit owner approval.
+Production deployment, Production migration, Production secret mutation, and paid-resource activation each require separate explicit owner approval.
