@@ -7,19 +7,37 @@ function assert(condition, message) {
 }
 
 async function request(path, expectedStatus = 200) {
-  const response = await fetch(new URL(path, baseUrl), {
-    headers: { accept: "application/json" },
-    signal: AbortSignal.timeout(15_000),
-  });
-  const bodyText = await response.text();
-  let body;
-  try {
-    body = bodyText ? JSON.parse(bodyText) : null;
-  } catch {
-    throw new Error(`${path}: expected JSON, received non-JSON response (HTTP ${response.status})`);
+  let lastError;
+  for (let attempt = 1; attempt <= 10; attempt += 1) {
+    try {
+      const response = await fetch(new URL(path, baseUrl), {
+        headers: { accept: "application/json" },
+        signal: AbortSignal.timeout(15_000),
+      });
+      const bodyText = await response.text();
+      let body;
+      try {
+        body = bodyText ? JSON.parse(bodyText) : null;
+      } catch {
+        if ([404, 502, 503, 504].includes(response.status) && attempt < 10) {
+          await new Promise((resolve) => setTimeout(resolve, 3_000));
+          continue;
+        }
+        throw new Error(`${path}: expected JSON, received non-JSON response (HTTP ${response.status})`);
+      }
+      if ([404, 502, 503, 504].includes(response.status) && attempt < 10) {
+        await new Promise((resolve) => setTimeout(resolve, 3_000));
+        continue;
+      }
+      assert(response.status === expectedStatus, `${path}: expected HTTP ${expectedStatus}, received HTTP ${response.status}: ${JSON.stringify(body)}`);
+      return body;
+    } catch (error) {
+      lastError = error;
+      if (attempt === 10) break;
+      await new Promise((resolve) => setTimeout(resolve, 3_000));
+    }
   }
-  assert(response.status === expectedStatus, `${path}: expected HTTP ${expectedStatus}, received HTTP ${response.status}: ${JSON.stringify(body)}`);
-  return body;
+  throw new Error(`${path}: request did not stabilize after 10 attempts. ${lastError?.message || "Unknown network error"}`);
 }
 
 function assertNoAnswerMaterial(value, path = "$") {
