@@ -47,3 +47,16 @@ it("reveals the correction, explanation, and production prompt in the error clin
   expect(container.textContent).toContain("THE PATTERN");
   expect(container.textContent).toContain("MAKE IT YOURS");
 });
+
+it("previews the original eight-stage A2 communicative lesson", async () => {
+  container = document.createElement("div");
+  document.body.append(container);
+  root = createRoot(container);
+  await act(async () => root?.render(<LearningContentModule onBack={() => undefined} />));
+  const lessonTab = Array.from(container.querySelectorAll("button")).find((button) => button.textContent?.includes("A2 lesson"));
+  await act(async () => lessonTab?.click());
+  expect(container.textContent).toContain("Talk about a personal goal and a simple plan");
+  expect(container.textContent).toContain("THE 8-STAGE LEARNING SEQUENCE");
+  expect(container.textContent).toContain("delayed recall required");
+  expect(container.querySelectorAll(".lesson-stage")).toHaveLength(8);
+});
