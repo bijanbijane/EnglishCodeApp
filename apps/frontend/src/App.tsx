@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
+import { api, ApiError, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
 
 type TelegramSecureStorage = {
   getItem: (key: string, callback: (error: string | null, value: string | null, canRestore?: boolean) => void) => void;
@@ -83,7 +83,10 @@ function App() {
           try {
             setProfile(await api.profile());
             return;
-          } catch {
+          } catch (error) {
+            // Only an explicit authentication failure invalidates a saved session.
+            // Network errors and server failures must not erase a valid token.
+            if (!(error instanceof ApiError) || error.status !== 401) throw error;
             await removeToken();
             setAccessToken(null);
           }
