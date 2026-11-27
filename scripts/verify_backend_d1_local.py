@@ -40,12 +40,14 @@ def run(command):
 
 
 def request(
-    method, path, token=None, payload=None, ip="203.0.113.10", include_headers=False
+    method, path, token=None, payload=None, ip="203.0.113.10", include_headers=False, extra_headers=None
 ):
     headers = {
         "Accept": "application/json",
         "CF-Connecting-IP": ip,
     }
+    if extra_headers:
+        headers.update(extra_headers)
     data = None
     if payload is not None:
         headers["Content-Type"] = "application/json"
@@ -172,7 +174,7 @@ def main():
                 "callback_query": {"id": "local-dedup-test"},
             }
             first_webhook = expect_status(
-                request("POST", "/api/v1/telegram/webhook", payload=webhook_update),
+                request("POST", "/api/v1/telegram/webhook", payload=webhook_update, extra_headers=webhook_headers),
                 200,
                 "Telegram webhook first delivery",
             )
