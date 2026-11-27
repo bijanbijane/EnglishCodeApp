@@ -1,0 +1,86 @@
+import type { LessonBlueprint } from "../src/lesson-design";
+
+/**
+ * Original A2 practice lesson.
+ * The task and language are CEFR-informed, not copied from a descriptor or textbook.
+ */
+const a2PersonalGoalsLesson: LessonBlueprint = {
+  id: "a2-personal-goals-01",
+  title: "Talk about a personal goal and a simple plan",
+  level: "A2",
+  communicativeOutcome:
+    "The learner can describe one familiar personal goal, give a simple reason, and explain two next steps in 5–7 connected sentences.",
+  realWorldTask:
+    "Record a 45–60 second voice message to a study partner about one goal for the next month.",
+  targetLanguage: [
+    "I want to + base verb",
+    "I am planning to + base verb",
+    "because + reason",
+    "first / then / this week",
+  ],
+  stages: [
+    {
+      type: "context",
+      activity:
+        "Choose a realistic goal for the next month: improve English, become more active, or learn a practical skill. Identify who will listen and what they need to understand.",
+      expectedEvidence:
+        "The learner selects one familiar goal and identifies a real listener and purpose.",
+    },
+    {
+      type: "input",
+      activity:
+        "Listen to or read a short model exchange about improving English. Notice how the speaker names a goal, gives a reason, and describes a small plan. Replay once without reading the transcript.",
+      expectedEvidence:
+        "The learner identifies the goal, one reason, and two planned actions in the model.",
+    },
+    {
+      type: "noticing",
+      activity:
+        "Underline 'want to' and 'planning to'. Compare the verb forms after each phrase. Highlight the reason introduced by 'because' and the sequence markers 'first' and 'then'.",
+      expectedEvidence:
+        "The learner correctly identifies the base verb after both target phrases and the function of the reason and sequence markers.",
+    },
+    {
+      type: "guided-practice",
+      activity:
+        "Complete four short sentence frames, choose the correct verb form in three items, and put two plan steps in a logical order. Use a personal goal rather than copying the model.",
+      expectedEvidence:
+        "At least 4 of 5 controlled items are correct, with no repeated target-structure error after feedback.",
+    },
+    {
+      type: "production",
+      activity:
+        "Prepare and record a 45–60 second voice message. Include the goal, one reason, and two specific next steps. Notes may contain keywords only, not a full script.",
+      expectedEvidence:
+        "The recording communicates all three required ideas in connected, understandable language.",
+    },
+    {
+      type: "feedback",
+      activity:
+        "Give feedback in this order: one specific success, one high-value correction, and one actionable retry instruction. The learner records a second version after applying the correction.",
+      expectedEvidence:
+        "The learner improves at least one identified feature in the second recording without losing the original message.",
+    },
+    {
+      type: "spaced-recall",
+      activity:
+        "After approximately 24 hours, retrieve the same language without notes. Repeat a shorter version after 3 days and use a new goal after 7 days.",
+      expectedEvidence:
+        "The learner independently produces the target structures in delayed recall, including with a changed topic.",
+    },
+    {
+      type: "assessment",
+      activity:
+        "Describe a different personal goal in 5–7 connected sentences. Include a goal, a reason, and two ordered next steps. Do not reuse the original model or receive sentence-by-sentence prompts.",
+      expectedEvidence:
+        "A rubric confirms task completion, understandable connected language, appropriate target forms, and successful delayed transfer.",
+    },
+  ],
+  mastery: {
+    minimumAttempts: 2,
+    minimumScorePercent: 80,
+    requireDelayedRecall: true,
+  },
+};
+
+export default a2PersonalGoalsLesson;
