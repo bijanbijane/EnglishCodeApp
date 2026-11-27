@@ -333,6 +333,26 @@ def main():
                 "start second attempt",
             )
             second_attempt_id = second_attempt["data"]["attemptId"]
+
+            # Simulate an existing completion-event key for an attempt that is
+            # still in progress. The completion event INSERT must conflict, but
+            # the winning attempt transition must still update user_progress.
+            preexisting_event_sql = PERSIST_DIR / "preexisting-completion-event.sql"
+            preexisting_event_sql.write_text(
+                "INSERT INTO learning_events "
+                "(event_id,user_id,event_type,aggregate_id,lesson_id,score,occurred_at,payload_json) "
+                "SELECT 'attempt-completed:' || a.id,a.user_id,'lesson_attempt_completed',"
+                "a.id,a.lesson_id,0,'2026-11-27T00:00:00.000Z',"
+                "json_object('attemptId',a.id,'score',0) "
+                "FROM lesson_attempts a "
+                f"WHERE a.id='{second_attempt_id}' AND a.status='in_progress';",
+                encoding="utf-8",
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                f"--file={preexisting_event_sql}",
+            ])
             second_attempt_detail = expect_status(
                 request("GET", f"/api/v1/attempts/{second_attempt_id}", token),
                 200,
