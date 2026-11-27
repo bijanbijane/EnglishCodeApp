@@ -324,6 +324,26 @@ def main():
                 assert field in progress["data"][0], f"progress contract missing {field}"
             assert progress["data"][0]["completed_count"] == 1
 
+            # Concurrent completion must append exactly one immutable fact.
+            first_event_count_sql = PERSIST_DIR / "first-completion-event-count.sql"
+            first_event_count_sql.write_text(
+                "SELECT COUNT(*) AS event_count FROM learning_events "
+                f"WHERE user_id='{user_id}' AND event_type='lesson_attempt_completed' "
+                f"AND aggregate_id='{attempt_id}';",
+                encoding="utf-8",
+            )
+            first_event_count_output = run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                f"--file={first_event_count_sql}", "--json",
+            ])
+            first_event_count_payload = json.loads(first_event_count_output)
+            if isinstance(first_event_count_payload, list):
+                first_event_rows = first_event_count_payload[0]["results"]
+            else:
+                first_event_rows = first_event_count_payload["results"]
+            assert first_event_rows[0]["event_count"] == 1, first_event_rows
+
             second_attempt = expect_status(
                 request(
                     "POST", "/api/v1/lessons/lesson-greetings-001/attempts",
@@ -361,6 +381,24 @@ def main():
                 "progress after second attempt",
             )
             assert progress_after_second["data"][0]["completed_count"] == 2
+
+            total_event_count_sql = PERSIST_DIR / "total-completion-event-count.sql"
+            total_event_count_sql.write_text(
+                "SELECT COUNT(*) AS event_count FROM learning_events "
+                f"WHERE user_id='{user_id}' AND event_type='lesson_attempt_completed';",
+                encoding="utf-8",
+            )
+            total_event_count_output = run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                f"--file={total_event_count_sql}", "--json",
+            ])
+            total_event_count_payload = json.loads(total_event_count_output)
+            if isinstance(total_event_count_payload, list):
+                total_event_rows = total_event_count_payload[0]["results"]
+            else:
+                total_event_rows = total_event_count_payload["results"]
+            assert total_event_rows[0]["event_count"] == 2, total_event_rows
 
             history_page_one = expect_status(
                 request("GET", "/api/v1/me/history?limit=1", token),
