@@ -69,6 +69,14 @@ This checkpoint records repository-observed state only. It is not a claim that t
 - PR #21 remains open/Draft at `e1564cf4a89e4600d91744afe4e80acf7d1a9231`. Strict record validation was added, but immutable upstream revision + SHA-256 pinning and sync-time checksum verification remain unresolved. Existing review comments remain unanswered.
 - No tests were executed in this session; no PR bases, branch histories, or merge states were changed.
 
+## PR #25 follow-up — verifier ordering alignment — 2026-11-27
+
+- Re-read migration `0016_immutable_learning_events.sql`, Worker completion batch, SQLite verifier, and Wrangler Local D1 regression fixture at PR head `4f54396c42e04e9b994f8cdc55adcc1fb425a9e4`.
+- Migration defines immutable UPDATE/DELETE guards and a user FK with `ON DELETE CASCADE`. The delete guard is conditional on the parent user row still existing; SQLite's documented delete sequence removes the parent row before executing FK actions, so the cascade path is designed to pass while direct child deletes are rejected. The verifier contains explicit direct-delete rejection and parent-delete cascade assertions. Actual D1 execution is still required to establish parity.
+- Found a test/implementation ordering mismatch in `scripts/verify_backend_sqlite.py`: its progress upsert followed the event INSERT, unlike the Worker/D1 path. Updated both first-completion and repeated-completion batches to match: conditional attempt UPDATE → progress upsert gated by `changes() = 1` → event INSERT.
+- Commit: `dc9db06f23e3d1b90a02698e586e18ef845c1c6c`. Read-back confirmed both SQLite batch sequences. PR comment `7222448678` records the change and its unverified status.
+- No local tests, Wrangler Local D1 commands, remote migrations, or deployments were run. GitHub Actions runner allocation remains an external blocker; do not interpret pre-step job failures as test outcomes.
+
 ## Security and data implications
 
 - No application source code or SQL migration was changed in this documentation batch.
