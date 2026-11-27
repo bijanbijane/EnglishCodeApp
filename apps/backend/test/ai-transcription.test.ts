@@ -53,6 +53,47 @@ describe("AI speech transcription API", () => {
     expect(db.batch).not.toHaveBeenCalled();
   });
 
+  it("rejects malformed base64 without consuming quota", async () => {
+    const token = await createSessionToken();
+    const { db } = makeDb();
+    const response = await app.request(
+      "/api/v1/ai/transcriptions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...validPayload, audioBase64: "%%%not-base64%%%" }),
+      },
+      { DB: db, AI: { run: vi.fn() } } as never,
+    );
+
+    expect(response.status).toBe(400);
+    expect(db.batch).not.toHaveBeenCalled();
+  });
+
+  it("rejects audio larger than 96 KiB without consuming quota", async () => {
+    const token = await createSessionToken();
+    const { db } = makeDb();
+    const oversizedAudio = btoa("x".repeat(96 * 1024 + 1));
+    const response = await app.request(
+      "/api/v1/ai/transcriptions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...validPayload, audioBase64: oversizedAudio }),
+      },
+      { DB: db, AI: { run: vi.fn() } } as never,
+    );
+
+    expect(response.status).toBe(413);
+    expect(db.batch).not.toHaveBeenCalled();
+  });
+
   it("rejects unsupported audio formats without consuming quota", async () => {
     const token = await createSessionToken();
     const { db } = makeDb();
