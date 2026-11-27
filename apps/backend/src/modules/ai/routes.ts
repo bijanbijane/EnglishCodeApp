@@ -3,6 +3,7 @@ import { bodyLimit } from "hono/body-limit";
 import type { AppEnv } from "../../env";
 import { AppError } from "../../shared/errors";
 import { requireSession } from "../auth/middleware";
+import { getWebmOpusDurationSeconds } from "./webm";
 const ai = new Hono<AppEnv>();
 const MODEL = "@cf/openai/whisper-large-v3-turbo";
 const MAX_AUDIO_BYTES = 96 * 1024;
@@ -11,51 +12,48 @@ const GLOBAL_DAILY_LIMIT = 60;
 const USER_DAILY_LIMIT = 2;
 type Result = { text?: string; word_count?: number; transcription_info?: { language?: string } };
 
-function matchesAscii(bytes: Uint8Array, offset: number, value: string): boolean {
-  return [...value].every((character, index) => bytes[offset + index] === character.charCodeAt(0));
-}
-
-function hasAudioSignature(bytes: Uint8Array, mimeType: string): boolean {
-  switch (mimeType) {
-    case "audio/webm":
-      return bytes.length >= 4 && bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3;
-    case "audio/ogg":
-      return matchesAscii(bytes, 0, "OggS");
-    case "audio/mpeg":
-      return matchesAscii(bytes, 0, "ID3") ||
-        (bytes.length >= 2 && bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0);
-    case "audio/mp4":
-      return bytes.length >= 8 && matchesAscii(bytes, 4, "ftyp");
-    case "audio/wav":
-    case "audio/x-wav":
-      return bytes.length >= 12 && matchesAscii(bytes, 0, "RIFF") && matchesAscii(bytes, 8, "WAVE");
-    default:
-      return false;
-  }
-}
 function parsePayload(value: unknown): { audioBase64: string; durationSeconds: number } {
-  if (typeof value !== "object" || value === null) throw new AppError("VALIDATION_ERROR", "A valid audio payload is required.", 400);
-  const body = value as Record<string, unknown>;
-  const mimeType = typeof body.mimeType === "string" ? body.mimeType.split(";")[0].trim().toLowerCase() : "";
-  if (typeof body.audioBase64 !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(body.audioBase64) ||
-      body.audioBase64.length === 0 || body.audioBase64.length > 132000 ||
-      !["audio/webm", "audio/ogg", "audio/mpeg", "audio/mp4", "audio/wav", "audio/x-wav"].includes(mimeType) ||
-      typeof body.durationSeconds !== "number" || !Number.isFinite(body.durationSeconds) ||
-      body.durationSeconds <= 0 || body.durationSeconds > MAX_DURATION_SECONDS) {
-    throw new AppError("VALIDATION_ERROR", "Use a supported audio format and a clip no longer than 60 seconds.", 400);
+  if (typeof value !== "object" || value === null) {
+    throw new AppError("VALIDATION_ERROR", "A valid audio payload is required.", 400);
   }
+  const body = value as Record<string, unknown>;
+  const declaredMime = typeof body.mimeType === "string" ? body.mimeType.trim().toLowerCase() : "";
+  const mimeType = declaredMime.split(";")[0]?.trim() ?? "";
+  const codecParameter = declaredMime.match(/(?:^|;)\\s*codecs\\s*=\\s*"?([^";\\s]+)"?/i)?.[1];
+
+  if (
+    typeof body.audioBase64 !== "string" ||
+    !/^[A-Za-z0-9+/]+={0,2}$/.test(body.audioBase64) ||
+    body.audioBase64.length === 0 ||
+    body.audioBase64.length > 132000 ||
+    mimeType !== "audio/webm" ||
+    (codecParameter !== undefined && codecParameter !== "opus")
+  ) {
+    throw new AppError("VALIDATION_ERROR", "Only WebM audio encoded with Opus is supported.", 400);
+  }
+
   let decoded: string;
-  try { decoded = atob(body.audioBase64); } catch {
+  try {
+    decoded = atob(body.audioBase64);
+  } catch {
     throw new AppError("VALIDATION_ERROR", "Audio data is not valid base64.", 400);
   }
   if (decoded.length === 0 || decoded.length > MAX_AUDIO_BYTES) {
     throw new AppError("VALIDATION_ERROR", "Audio payload exceeds 96 KiB.", 413);
   }
+
   const audioBytes = Uint8Array.from(decoded, (character) => character.charCodeAt(0));
-  if (!hasAudioSignature(audioBytes, mimeType)) {
-    throw new AppError("VALIDATION_ERROR", "Audio data does not match the declared format.", 400);
+  let durationSeconds: number;
+  try {
+    durationSeconds = getWebmOpusDurationSeconds(audioBytes);
+  } catch {
+    throw new AppError("VALIDATION_ERROR", "Audio file is invalid or its duration cannot be verified.", 400);
   }
-  return { audioBase64: body.audioBase64, durationSeconds: body.durationSeconds };
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > MAX_DURATION_SECONDS) {
+    throw new AppError("VALIDATION_ERROR", "Audio recording must be longer than zero and no longer than 60 seconds.", 400);
+  }
+
+  return { audioBase64: body.audioBase64, durationSeconds };
 }
 ai.post("/ai/transcriptions", bodyLimit({ maxSize: 192 * 1024, onError: (c) => c.json({
   error: { code: "PAYLOAD_TOO_LARGE", message: "Audio request exceeds the allowed size.", requestId: c.get("requestId") },
