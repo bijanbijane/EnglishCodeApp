@@ -66,7 +66,7 @@ No remote or production migration was run.
 - PR #22 is stacked on PR #21.
 - PR #24 is the clean main-based replacement for the older hard-coded launch-button PR #17.
 - PR #25 is the main-based replacement for the overlapping event-ledger work in PR #19; it explicitly excludes the separately reviewed author-version pagination work.
-- Initial GitHub Actions checks for PR #21–#25 completed as failures in approximately 1–2 seconds. The failed-job rerun was then requested for all five PRs. On the latest recheck, PR #21, #22 and #23 had failed again in 2–3 seconds; PR #24 and #25 reruns were still queued. Job objects return `steps: null`, `runner_id: 0`/no runner evidence in prior records, and initial log retrieval returns `BlobNotFound`. This is an infrastructure/runner-observability blocker, not evidence that source tests passed or failed.
+- Initial GitHub Actions checks for PR #21–#25 completed as failures in approximately 1–2 seconds. The failed-job rerun was then requested for all five PRs. On the latest recheck, all five PRs (#21–#25) had failed again within 2–3 seconds, including the reruns for PR #24 and #25. Job objects return `steps: null`, `runner_id: 0`/no runner evidence in prior records, and initial log retrieval returns `BlobNotFound`. This is an infrastructure/runner-observability blocker, not evidence that source tests passed or failed.
 - No checks were bypassed and no PR was merged during this audit.
 
 ## Current integration disposition
