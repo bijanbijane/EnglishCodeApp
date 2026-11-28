@@ -138,6 +138,13 @@ def main():
     ]
     run(a1_seed_command)
     run(a1_seed_command)  # The published seed must be safe to reapply.
+    a1_unit_02_seed_command = [
+        "npx", "wrangler", "d1", "execute", DATABASE,
+        "--local", "--persist-to", persist,
+        "--file=../../database/seeds/0003_a1_unit_02.sql",
+    ]
+    run(a1_unit_02_seed_command)
+    run(a1_unit_02_seed_command)  # Unit 2 is also safe to reapply.
 
 
     log_path = PERSIST_DIR / "wrangler-dev.log"
@@ -175,6 +182,16 @@ def main():
             assert len(a1_lesson.get("data", {}).get("questions", [])) == 4
             assert "answer_key" not in json.dumps(a1_lesson)
             assert "answerKey" not in json.dumps(a1_lesson)
+
+            a1_unit_02_lesson = expect_status(
+                request("GET", "/api/v1/lessons/a1-u02-l01"),
+                200,
+                "read published A1 Unit 2 lesson",
+            )
+            assert a1_unit_02_lesson.get("data", {}).get("title") == "What's This?"
+            assert len(a1_unit_02_lesson.get("data", {}).get("questions", [])) == 4
+            assert "answer_key" not in json.dumps(a1_unit_02_lesson)
+            assert "answerKey" not in json.dumps(a1_unit_02_lesson)
 
             webhook_headers = {"X-Telegram-Bot-Api-Secret-Token": "local-test-webhook-secret"}
             invalid_update = expect_status(

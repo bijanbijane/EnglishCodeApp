@@ -19,3 +19,7 @@ After applying migrations 0001–0015 and running the base demo seed, apply the 
 - The seed creates one A1 course, five lessons and twenty deterministic multiple-choice questions. It is idempotent and publishes each lesson only after its four question versions exist.
 - Teaching notes, vocabulary focus, model dialogues, communicative tasks and editorial methodology are documented in `docs/curriculum/A1-FOUNDATIONS-UNIT-01.md`.
 - Do not run the A1 seed before migrations and the base seed. It does not contain audio assets or AI/API dependencies.
+
+- Unit 2 local: from `apps/backend`, run `npm run db:seed:a1:unit-02:local` after Unit 1.
+- Unit 2 development remote: run `npm run db:seed:a1:unit-02:dev` only after verifying the target database and obtaining explicit owner approval.
+- Unit 2 adds five lessons and twenty questions to the existing A1 course; it is independently idempotent.
