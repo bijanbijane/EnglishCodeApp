@@ -156,7 +156,7 @@ def run_progress_rebuild_integration(persist):
         for _ in range(60):
             if harness.poll() is not None:
                 raise RuntimeError(
-                    "Progress rebuild test Worker exited early:\\n"
+                    "Progress rebuild test Worker exited early:\n"
                     + harness_log.read_text(errors="replace")[-10000:]
                 )
             try:
@@ -170,7 +170,7 @@ def run_progress_rebuild_integration(persist):
             time.sleep(0.5)
         if not ready:
             raise TimeoutError(
-                "Progress rebuild test Worker did not become ready:\\n"
+                "Progress rebuild test Worker did not become ready:\n"
                 + harness_log.read_text(errors="replace")[-10000:]
             )
 
