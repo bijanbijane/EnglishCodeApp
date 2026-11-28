@@ -257,3 +257,29 @@ This addendum supersedes the earlier PR #23 and PR #28 head/check statements abo
 - Static review confirms the D1 batch order is conditional attempt update → progress projection gated by the immediately preceding `changes() = 1` → immutable event append → final read. This avoids coupling progress correctness to event-insert row count.
 - Remaining limitation: `database/maintenance/rebuild_user_progress_from_events.sql` is explicitly SQLite-only. A D1-compatible deterministic progress rebuild procedure remains unimplemented.
 - PR #25 remains Draft, open and unmerged; no human review is recorded. Migration 0016 has not been applied to any remote database. No deployment, remote seed, Worker secret/config mutation, production data change, or merge was performed.
+
+
+## Addendum — PR #22 and #26 targeted review (2026-11-28)
+
+### PR #26 — author lesson-version pagination
+
+- Current head remains `4f1a775e02a2a38f1ed80e16aa6947358ccfd703`; Backend CI run [#46120645652](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/46120645652) passed all substantive steps, including typecheck, Vitest, SQLite verification, Wrangler Local D1 integration and Development API smoke.
+- Route tests currently use a mocked D1 implementation. The mock returns preselected rows based on cursor version and asserts SQL/bind parameters; it does not execute the keyset predicate against SQLite/D1. The existing Local D1 integration script does not exercise this author-version endpoint.
+- A non-blocking review comment was submitted on the exact head requesting an integration-level successive-page test against SQLite/D1, including the ID tie-break case if duplicate version numbers are allowed by the schema. This is a validation gap, not a confirmed SQL defect. PR remains Draft/open; no code change or merge was made.
+
+### PR #22 — answer-key exposure
+
+- Current head remains `d5099790751b51497b1e2f314a1a91b526cff11c`; it is still stacked on PR #21 rather than based on main.
+- Targeted patch review confirms the browser imports the grammar exercise JSON containing `correctOptionId`, `acceptedAnswers`, `correctOrder`, `correctedText`, matching pairs and flashcard backs. The UI performs answer checking locally. These are client-visible answer keys and do not satisfy server-authoritative grading for assessed learning.
+- A review comment was submitted on the exact head identifying this as a security/architecture blocker and requiring server-only answer definitions, candidate-safe public DTOs, typed server-side grading, immutable attempt snapshots, idempotent retries and progress consistency before this is used as graded content. Alternatively, it must be explicitly ungraded reference material and must not claim authoritative correctness.
+- PR #22 remains Draft/open. No merge or code modification was performed.
+
+### PR #24 — Telegram Mini App URL configuration
+
+- Current head remains `c9c4c87a9c481e311d9ab72d16908f47f8bc7c59`; Backend CI run [#46115550576](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/46115550576) passed all substantive steps.
+- The webhook rejects non-private chats before responding. The Mini App URL is read from the server-side `TELEGRAM_MINI_APP_URL` binding and accepts HTTPS only, with credentials, fragments and whitespace-padded values rejected. Missing/invalid configuration omits the Web App button. No Worker binding was changed; runtime enablement remains a separately approved operation.
+
+### Safety
+
+- Main remains unchanged at `f3671f2194e562fc194d23e9602b768455d8e483`.
+- No PR was merged or closed; no branch was deleted or force-pushed; no remote D1 write, seed, migration, Worker configuration/secret mutation, deployment or production action was performed.
