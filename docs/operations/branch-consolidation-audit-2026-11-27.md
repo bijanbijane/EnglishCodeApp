@@ -283,3 +283,11 @@ This addendum supersedes the earlier PR #23 and PR #28 head/check statements abo
 
 - Main remains unchanged at `f3671f2194e562fc194d23e9602b768455d8e483`.
 - No PR was merged or closed; no branch was deleted or force-pushed; no remote D1 write, seed, migration, Worker configuration/secret mutation, deployment or production action was performed.
+
+
+## Addendum — PR #28 assessment-contract CI refresh (2026-11-28)
+
+- PR #28 current head is `db5e71c38ff7ae6e7a87aaa2cf54ee384c9d4d8c`, 30 commits ahead / 0 behind main. The only change since the previously validated head `27e3126fefbba1f08f2b16d9a0500158b453dd27` is a one-line provenance SHA correction in `docs/architecture/ASSESSMENT-DATA-CONTRACTS.md` (one insertion, one deletion).
+- Backend CI run [#46122965940](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/46122965940) completed successfully on the exact current head. The backend job succeeded.
+- No runtime code, migration, seed, API contract, Worker configuration or data changed in this docs-only commit. The curriculum remains a partial A1 foundation; listening, integrated reading, productive speaking/writing, rubrics and cumulative assessment are still gaps.
+- PR #28 remains open and non-Draft; no human review, merge, remote seed, remote migration or deployment was performed.
