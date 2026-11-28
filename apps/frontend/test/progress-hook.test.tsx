@@ -21,13 +21,14 @@ const entry: ProgressEntry = {
 };
 
 afterEach(() => vi.restoreAllMocks());
+const onError = vi.fn();
 
 it("loads progress and exposes an explicit refresh operation", async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
   const progress = vi.spyOn(api, "progress").mockResolvedValue([entry]);
   let latest: ReturnType<typeof useLearningProgress> | undefined;
   function Harness() {
-    latest = useLearningProgress(profile, vi.fn());
+    latest = useLearningProgress(profile, onError);
     return null;
   }
   const root = createRoot(document.createElement("div"));
@@ -52,7 +53,7 @@ it("does not apply a stale response after the profile is cleared", async () => {
   let currentProfile: Profile | null = profile;
   let latest: ReturnType<typeof useLearningProgress> | undefined;
   function Harness() {
-    latest = useLearningProgress(currentProfile, vi.fn());
+    latest = useLearningProgress(currentProfile, onError);
     return null;
   }
   const root = createRoot(document.createElement("div"));
