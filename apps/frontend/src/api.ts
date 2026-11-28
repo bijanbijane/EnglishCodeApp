@@ -21,7 +21,7 @@ export type ProgressEntry = { lesson_id: string; course_id: string; best_score: 
 export type LearningHistoryEntry = {
   attemptId: string; lessonId: string; lessonVersion: number;
   lessonTitle: string; courseId: string; courseTitle: string;
-  status: "completed"; score: number; startedAt: string; completedAt: string;
+  status: "completed"; score: number | null; startedAt: string; completedAt: string;
   questionCount: number; correctAnswerCount: number;
 };
 
