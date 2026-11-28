@@ -23,8 +23,13 @@
   "devDependencies": {
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
-    "vitest": "^3.1.1",
+    "vitest": "4.1.12",
     "wrangler": "^4.45.0",
     "jsdom": "^26.1.0"
+  },
+  "packageManager": "npm@10.9.2",
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10.9.2 <11"
   }
 }
