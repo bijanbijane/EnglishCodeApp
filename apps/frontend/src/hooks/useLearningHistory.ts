@@ -10,6 +10,7 @@ export function useLearningHistory({ profile, onError }: Options) {
   const [history, setHistory] = useState<LearningHistoryEntry[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const generation = useRef(0);
 
@@ -17,13 +18,18 @@ export function useLearningHistory({ profile, onError }: Options) {
     const requestGeneration = ++generation.current;
     setLoading(true);
     setLoadingMore(false);
+    setLoadFailed(false);
     try {
       const page = await api.history();
       if (generation.current !== requestGeneration) return;
       setHistory(page.data);
       setNextCursor(page.meta?.nextCursor ?? null);
+      setLoadFailed(false);
     } catch (error) {
-      if (generation.current === requestGeneration) onError(error);
+      if (generation.current === requestGeneration) {
+        setLoadFailed(true);
+        onError(error);
+      }
     } finally {
       if (generation.current === requestGeneration) setLoading(false);
     }
@@ -56,6 +62,7 @@ export function useLearningHistory({ profile, onError }: Options) {
       setNextCursor(null);
       setLoading(false);
       setLoadingMore(false);
+      setLoadFailed(false);
       return;
     }
     void refreshHistory();
@@ -65,6 +72,7 @@ export function useLearningHistory({ profile, onError }: Options) {
   return {
     history,
     historyLoading: loading,
+    historyLoadFailed: loadFailed,
     historyLoadingMore: loadingMore,
     hasMoreHistory: nextCursor !== null,
     refreshHistory,
