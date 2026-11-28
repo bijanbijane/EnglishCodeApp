@@ -473,3 +473,35 @@ Use append-only audit events for rating assignment, rating submission, reassignm
 - Specify the account-deletion request lifecycle, authorization/re-authentication, audit behavior and completion guarantees.
 
 Until these decisions are recorded, implementation remains blocked at the schema gate. The objective Listening/Reading vertical slice can be designed independently, but it must use the same approved attempt retention policy before its first migration.
+
+## 11. Existing lesson-attempt behavior — verified compatibility baseline
+
+The following describes the currently implemented lesson quiz API in `apps/backend/src/modules/learning/routes.ts`. It is not a cumulative-assessment implementation and must not be assumed to be the correct disclosure or lifecycle policy for the four-skill assessment.
+
+### 11.1 Start and snapshot
+
+- `POST /api/v1/lessons/:lessonId/attempts` requires an authenticated session.
+- The server selects the lesson's current published version and the existing `percentage-v1` lesson assessment policy; callers cannot choose a version or policy.
+- The D1 batch creates the attempt and copies its published question versions, prompts, options, private answer keys, positions and weights into `attempt_questions`.
+- Attempt reads are scoped by both attempt ID and authenticated user ID. The learner DTO selects snapshot fields explicitly and does not serialize the private answer key.
+- Every start request currently creates a new attempt; a cumulative assessment must define its own retake/resume policy rather than inheriting this behavior accidentally.
+
+### 11.2 Answer submission and disclosure
+
+- `POST /api/v1/attempts/:attemptId/answers` checks ownership, active state and membership of the selected option in the snapshotted options.
+- A unique `(attempt_id, question_id)` answer is accepted once. An identical retry returns the stored outcome; a different answer for the same question returns HTTP 409.
+- The current lesson quiz response includes `isCorrect` immediately, including on an identical retry. The attempt-read endpoint withholds correctness while the attempt is in progress and includes it after completion.
+- This immediate-feedback contract is a deliberate compatibility fact, not a safe default for a cumulative assessment. Cumulative objective-task feedback timing must be explicitly decided and snapshotted as part of its disclosure policy.
+
+### 11.3 Completion and progress
+
+- `POST /api/v1/attempts/:attemptId/complete` conditionally transitions only an owned `in_progress` attempt to `completed`.
+- The score is computed server-side from snapshotted question weights: correct-answer weights form the numerator and all question weights form the denominator. Unanswered questions therefore contribute zero to the numerator and remain in the denominator.
+- The completion transition and progress upsert execute in one D1 batch. The progress upsert is gated on the winning state transition, so a repeated completion does not increment `completed_count` again.
+- Progress retains the maximum score and increments completion count once per successfully completed attempt. The history endpoint exposes completed attempts only and uses a bounded, timestamp-plus-ID cursor.
+- The current completion endpoint permits completion without every question being answered. A cumulative assessment must make its unanswered-task submission policy explicit instead of copying this quiz behavior by default.
+
+### 11.4 Required separation for cumulative assessment
+
+Reuse only the proven infrastructure patterns where they fit: authenticated ownership, immutable snapshots, server-side scoring, conditional state transitions, unique response constraints, bounded DTOs and Local D1 concurrency tests. Do not reuse the lesson quiz's `percentage-v1` policy, immediate correctness disclosure, weighted-percentage aggregation, permissive unanswered-question completion or progress semantics as implicit cumulative-assessment requirements.
+
