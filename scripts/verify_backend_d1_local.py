@@ -591,6 +591,62 @@ def main():
                 200,
                 "admin role grant",
             )
+
+            # Exercise author lesson-version keyset pagination against real Local D1.
+            # Use an isolated fixture lesson so high test versions cannot affect the
+            # later authoring workflow's expected next version on lesson-greetings-001.
+            pagination_lesson_id = "lesson-author-version-pagination-fixture"
+            author_versions_sql = PERSIST_DIR / "author-version-pagination-fixtures.sql"
+            author_versions_sql.write_text(
+                "INSERT INTO lessons "
+                "(id,course_id,slug,title,description,level,position,version,status) VALUES "
+                f"('{pagination_lesson_id}','course-english-foundations','author-version-pagination-fixture',"
+                "'Author pagination fixture','Local test fixture','A1',99,1,'draft');"
+                "INSERT INTO lesson_versions "
+                "(id,lesson_id,version,title,description,level,position,status,created_by_user_id) VALUES "
+                f"('author-page-v40','{pagination_lesson_id}',40,'Author Page 40','Local fixture','A1',40,'draft','{user_id}'),"
+                f"('author-page-v39','{pagination_lesson_id}',39,'Author Page 39','Local fixture','A1',39,'draft','{user_id}'),"
+                f"('author-page-v38','{pagination_lesson_id}',38,'Author Page 38','Local fixture','A1',38,'draft','{user_id}'),"
+                f"('other-author-page-v41','{pagination_lesson_id}',41,'Other Author Page 41','Local fixture','A1',41,'draft','{second_user_id}');",
+                encoding="utf-8",
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={author_versions_sql}",
+            ])
+
+            author_page_one = expect_status(
+                request(
+                    "GET",
+                    "/api/v1/admin/content/lessons/lesson-author-version-pagination-fixture/versions?limit=2",
+                    token,
+                ),
+                200,
+                "author lesson-version first page",
+            )
+            assert [(row["version"], row["id"]) for row in author_page_one["data"]] == [
+                (40, "author-page-v40"),
+                (39, "author-page-v39"),
+            ], author_page_one
+            assert all(row["id"] != "other-author-page-v41" for row in author_page_one["data"])
+            author_version_cursor = author_page_one["meta"]["nextCursor"]
+            assert author_version_cursor
+
+            author_page_two = expect_status(
+                request(
+                    "GET",
+                    "/api/v1/admin/content/lessons/lesson-author-version-pagination-fixture/versions?"
+                    + urlencode({"limit": "2", "cursor": author_version_cursor}),
+                    token,
+                ),
+                200,
+                "author lesson-version second page",
+            )
+            assert [(row["version"], row["id"]) for row in author_page_two["data"]] == [
+                (38, "author-page-v38"),
+            ], author_page_two
+            assert author_page_two["meta"]["nextCursor"] is None
+
             expect_status(
                 request("GET", "/api/v1/admin/content/reviews", second_token),
                 200,
@@ -817,26 +873,30 @@ def main():
             assert logout["data"]["loggedOut"] is True
             expect_status(request("GET", "/api/v1/me", token), 401, "revoked session")
 
-            clear_limits = PERSIST_DIR / "clear-rate-limits.sql"
-            clear_limits.write_text("DELETE FROM auth_rate_limits;", encoding="utf-8")
+            # Seed the bucket at its threshold rather than sending 30 requests.
+            # This keeps the integration check deterministic across minute boundaries.
+            rate_limit_ip = "203.0.113.12"
+            rate_limit_key = hmac.new(
+                BOT_TOKEN.encode(),
+                f"telegram-login-rate-limit:{rate_limit_ip}".encode(),
+                hashlib.sha256,
+            ).hexdigest()
+            seed_rate_limit = PERSIST_DIR / "seed-rate-limit.sql"
+            seed_rate_limit.write_text(
+                "INSERT INTO auth_rate_limits (bucket_key,window_start,request_count,updated_at) "
+                f"VALUES ('{rate_limit_key}',strftime('%Y-%m-%dT%H:%M:00.000Z','now'),30,strftime('%Y-%m-%dT%H:%M:%fZ','now')) "
+                "ON CONFLICT(bucket_key) DO UPDATE SET "
+                "window_start=excluded.window_start,request_count=excluded.request_count,updated_at=excluded.updated_at;",
+                encoding="utf-8",
+            )
             run([
                 "npx", "wrangler", "d1", "execute", DATABASE,
-                "--local", "--persist-to", persist, f"--file={clear_limits}",
+                "--local", "--persist-to", persist, f"--file={seed_rate_limit}",
             ])
-            for attempt_number in range(30):
-                status, _ = request(
-                    "POST", "/api/v1/auth/telegram",
-                    payload={"initData": "invalid"},
-                    ip="203.0.113.12",
-                )
-                if status != 401:
-                    raise AssertionError(
-                        f"Rate limit request {attempt_number + 1} expected 401, got {status}"
-                    )
             status, limited_body, response_headers = request(
                 "POST", "/api/v1/auth/telegram",
                 payload={"initData": "invalid"},
-                ip="203.0.113.12",
+                ip=rate_limit_ip,
                 include_headers=True,
             )
             assert status == 429, (status, limited_body)
