@@ -157,9 +157,13 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
     progressReads += 1;
     return progressReads === 1 ? [] : [savedProgress];
   });
-  vi.spyOn(api, "history").mockResolvedValue({
-    data: [savedHistory],
-    meta: { nextCursor: null },
+  let historyReads = 0;
+  vi.spyOn(api, "history").mockImplementation(async () => {
+    historyReads += 1;
+    return {
+      data: historyReads === 1 ? [] : [savedHistory],
+      meta: { nextCursor: null },
+    };
   });
   vi.spyOn(api, "startAttempt").mockResolvedValue({
     attemptId: "attempt-integration-1",
@@ -261,6 +265,8 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
       findButton(container, "Back to courses").click();
     });
     expect(container.textContent).toContain("1 unique lesson");
+    expect(container.textContent).toContain("Recent attempts");
+    expect(container.textContent).toContain("4/2 correct");
     expect(container.textContent).toContain("Greetings and Introductions");
 
     await act(async () => {
