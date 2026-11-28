@@ -490,15 +490,21 @@ def main():
             )
 
             # Exercise author lesson-version keyset pagination against real Local D1.
-            # Include a higher version owned by another author to verify ownership scoping.
+            # Use an isolated fixture lesson so high test versions cannot affect the
+            # later authoring workflow's expected next version on lesson-greetings-001.
+            pagination_lesson_id = "lesson-author-version-pagination-fixture"
             author_versions_sql = PERSIST_DIR / "author-version-pagination-fixtures.sql"
             author_versions_sql.write_text(
+                "INSERT INTO lessons "
+                "(id,course_id,slug,title,description,level,position,version,status) VALUES "
+                f"('{pagination_lesson_id}','course-english-foundations','author-version-pagination-fixture',"
+                "'Author pagination fixture','Local test fixture','A1',99,1,'draft');"
                 "INSERT INTO lesson_versions "
                 "(id,lesson_id,version,title,description,level,position,status,created_by_user_id) VALUES "
-                f"('author-page-v40','lesson-greetings-001',40,'Author Page 40','Local fixture','A1',40,'draft','{user_id}'),"
-                f"('author-page-v39','lesson-greetings-001',39,'Author Page 39','Local fixture','A1',39,'draft','{user_id}'),"
-                f"('author-page-v38','lesson-greetings-001',38,'Author Page 38','Local fixture','A1',38,'draft','{user_id}'),"
-                f"('other-author-page-v41','lesson-greetings-001',41,'Other Author Page 41','Local fixture','A1',41,'draft','{second_user_id}');",
+                f"('author-page-v40','{pagination_lesson_id}',40,'Author Page 40','Local fixture','A1',40,'draft','{user_id}'),"
+                f"('author-page-v39','{pagination_lesson_id}',39,'Author Page 39','Local fixture','A1',39,'draft','{user_id}'),"
+                f"('author-page-v38','{pagination_lesson_id}',38,'Author Page 38','Local fixture','A1',38,'draft','{user_id}'),"
+                f"('other-author-page-v41','{pagination_lesson_id}',41,'Other Author Page 41','Local fixture','A1',41,'draft','{second_user_id}');",
                 encoding="utf-8",
             )
             run([
@@ -509,7 +515,7 @@ def main():
             author_page_one = expect_status(
                 request(
                     "GET",
-                    "/api/v1/admin/content/lessons/lesson-greetings-001/versions?limit=2",
+                    "/api/v1/admin/content/lessons/lesson-author-version-pagination-fixture/versions?limit=2",
                     token,
                 ),
                 200,
@@ -526,7 +532,7 @@ def main():
             author_page_two = expect_status(
                 request(
                     "GET",
-                    "/api/v1/admin/content/lessons/lesson-greetings-001/versions?"
+                    "/api/v1/admin/content/lessons/lesson-author-version-pagination-fixture/versions?"
                     + urlencode({"limit": "2", "cursor": author_version_cursor}),
                     token,
                 ),
