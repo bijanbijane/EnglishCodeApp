@@ -2,26 +2,12 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 const LearningContentModule = lazy(() => import("./features/learning-content/LearningContentModule"));
 import { api, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
 import { getSessionErrorMessage, restoreSession, revokeSession } from "./auth";
-
-type TelegramSecureStorage = {
-  getItem: (key: string, callback: (error: string | null, value: string | null, canRestore?: boolean) => void) => void;
-  setItem: (key: string, value: string, callback: (error: string | null, stored?: boolean) => void) => void;
-  removeItem: (key: string, callback: (error: string | null, removed?: boolean) => void) => void;
-};
-type TelegramWebApp = {
-  initData: string;
-  ready: () => void;
-  expand: () => void;
-  isVersionAtLeast?: (version: string) => boolean;
-  SecureStorage?: TelegramSecureStorage;
-  colorScheme?: "light" | "dark";
-};
-declare global { interface Window { Telegram?: { WebApp?: TelegramWebApp } } }
+import { getTelegramWebApp } from "./platform/telegram";
 
 type Screen = "home" | "lesson" | "result" | "content";
 type ProgressEntry = { lesson_id: string; course_id: string; best_score: number; completed_count: number; lesson_title: string; last_completed_at: string };
 function App() {
-  const telegram = window.Telegram?.WebApp;
+  const telegram = getTelegramWebApp();
   const [courses, setCourses] = useState<Course[]>([]);
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [coursesLoadFailed, setCoursesLoadFailed] = useState(false);
