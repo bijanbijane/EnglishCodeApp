@@ -110,3 +110,37 @@ No source changes have been merged to main during this checkpoint. The audit bra
 - PR #28 is the strongest current content candidate and has passed its exact-head automated validation. It still requires human review of pedagogical quality and content breadth; it must not be represented as a complete A1 course.
 - PR #27 is a focused CI fix, but its implementation overlaps the CI work now present in PR #28.
 - No branch was deleted, no shared history was rewritten, and no production or remote data operation was performed.
+
+
+## Addendum — PR validation and code-review findings (2026-11-28)
+
+### Exact-head CI refresh
+
+- PR #21: backend and frontend checks are green on its current head.
+- PR #22: backend and frontend checks are green on its current head. It remains stacked on PR #21.
+- PR #24: backend CI is green on its current head.
+- PR #25: backend CI is green on its current head.
+- PR #26: backend CI was green on its prior head. Code review found that its cursor decoder rejected colon-delimited lesson-version IDs such as `a1-u01-l01:v1`; the original tests only used hyphenated IDs. The branch was updated to accept the actual ID shape and add a round-trip regression test. The updated head is awaiting fresh CI.
+- PR #27: backend CI is green on its current head; its npm/Workers-types changes substantially overlap PR #28.
+- PR #28: all checks passed on head `a62bcc5`. A documentation correction was then committed as `e882329`; its new exact-head CI run is in progress and must pass before treating the latest branch tip as validated.
+- PR #23: its check failed at `npm install`, not at test execution. Logs show Node 22.23.5 with npm 10.9.9 and the exact error `Cannot read properties of null (reading 'edgesOut')`. Typecheck, tests, SQLite, Local D1 and API smoke steps were skipped. This is consistent with the npm installation issue addressed by PRs #27/#28; rerun PR #23 after the CI fix is adopted or update its workflow.
+
+### PR #22 licensing and architecture review
+
+- The vendored course samples include adjacent MIT and CC BY 4.0 license notices. `packages/learning-core/data/SOURCES.md` records pinned upstream commits, attribution requirements, imported paths and editorial quality gates. This is a stronger provenance basis than an unlicensed scrape; preserve the attribution and CC BY change notices for any future adaptation.
+- The grammar practice pack stores correct answers/accepted answers in JSON imported by the frontend, and `LearningContentModule.tsx` compares learner input in the browser. This makes answer keys and grading logic client-visible. It conflicts with the project's server-authoritative grading invariant if treated as an assessed learning activity. Do not merge this behavior as authoritative assessment; move answer keys/checking to a backend endpoint or redesign the frontend content as ungraded study material without asserting correctness. CI success does not resolve this architecture issue.
+- Carryword data is MIT-licensed but explicitly described as an AI-assisted draft requiring human verification. It may be used as supplementary lookup data, not authoritative published vocabulary without editorial review.
+
+### PR #24 and #25 review
+
+- PR #24 reads `TELEGRAM_MINI_APP_URL` from the Worker environment, validates HTTPS and rejects credentials/fragments/whitespace-padded values. Missing or invalid configuration omits the Web App button. This is a safe default; no remote Worker variable was configured in this audit.
+- PR #25 appends one immutable completion event per completed attempt in the same D1 batch as the progress projection. Migration 0016 backfills completed attempts, uses an aggregate uniqueness constraint, guards direct update/delete, and allows user-deletion cascade. Its Local D1 and SQLite checks passed on the exact reviewed head. It remains a separate additive schema change and is not in main.
+
+### Current disposition
+
+- No PR was merged. Main remains at the baseline SHA recorded above.
+- PR #24 and PR #25 are technically validated candidates, subject to review/approval and their separate operational requirements.
+- PR #21/#22 are validated at CI level; #22 still has the client-side grading blocker and must remain unmerged until corrected.
+- PR #26 received a targeted cursor fix and requires fresh CI.
+- PR #23 requires rerun after npm workflow correction.
+- No remote D1 write, remote seed, secret/config mutation, production deployment, or production migration was performed.
