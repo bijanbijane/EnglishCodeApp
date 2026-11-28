@@ -37,7 +37,7 @@ function App() {
     setNotice(e instanceof Error ? e.message : "Could not load learning history.");
   }, []);
   const {
-    history, historyLoading, historyLoadingMore, hasMoreHistory, loadMoreHistory,
+    history, historyLoading, historyLoadFailed, historyLoadingMore, hasMoreHistory, refreshHistory, loadMoreHistory,
   } = useLearningHistory({ profile, onError: handleHistoryError });
   const refreshLearnerData = useCallback(async () => {
     await Promise.all([refreshProgress(), refreshHistory()]);
@@ -202,6 +202,7 @@ function App() {
           <span className="progress-caption">{historyLoading ? "Loading…" : `${history.length} attempts`}</span>
         </div>
         {historyLoading && history.length === 0 ? <div className="history-empty">Loading recent attempts…</div>
+          : historyLoadFailed && history.length === 0 ? <div className="history-empty">History could not be loaded. <button className="text-button" onClick={() => void refreshHistory()}>Retry</button></div>
           : history.length > 0 ? <div className="history-list">{history.map((item) =>
           <article className="history-row" key={item.attemptId}>
             <div className="history-main">
