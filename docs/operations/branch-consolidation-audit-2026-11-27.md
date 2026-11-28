@@ -120,9 +120,9 @@ No source changes have been merged to main during this checkpoint. The audit bra
 - PR #22: backend and frontend checks are green on its current head. It remains stacked on PR #21.
 - PR #24: backend CI is green on its current head.
 - PR #25: backend CI is green on its current head.
-- PR #26: backend CI was green on its prior head. Code review found that its cursor decoder rejected colon-delimited lesson-version IDs such as `a1-u01-l01:v1`; the original tests only used hyphenated IDs. The branch was updated to accept the actual ID shape and add a round-trip regression test. The updated head is awaiting fresh CI.
+- PR #26: code review found that its cursor decoder rejected colon-delimited lesson-version IDs such as `a1-u01-l01:v1`; the original tests only used hyphenated IDs. The branch was updated to accept the actual ID shape and add a round-trip regression test. Updated head `4f1a775` passed all 11 substantive backend CI steps, including Local D1 and Development API smoke checks.
 - PR #27: backend CI is green on its current head; its npm/Workers-types changes substantially overlap PR #28.
-- PR #28: all checks passed on head `a62bcc5`. A documentation correction was then committed as `e882329`; its new exact-head CI run is in progress and must pass before treating the latest branch tip as validated.
+- PR #28: all checks passed on head `a62bcc5`. The documentation correction in `e882329` also passed all 11 substantive backend CI steps, including dependency audit, typecheck, Vitest, SQLite, Local D1 and Development API smoke.
 - PR #23: its check failed at `npm install`, not at test execution. Logs show Node 22.23.5 with npm 10.9.9 and the exact error `Cannot read properties of null (reading 'edgesOut')`. Typecheck, tests, SQLite, Local D1 and API smoke steps were skipped. This is consistent with the npm installation issue addressed by PRs #27/#28; rerun PR #23 after the CI fix is adopted or update its workflow.
 
 ### PR #22 licensing and architecture review
