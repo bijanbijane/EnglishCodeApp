@@ -36,7 +36,8 @@
 - [x] Server-side answer validation and grading; idempotent same-answer retry.
 - [x] Conditional completion, immutable completion-event append, and derived progress upsert in one D1 batch.
 - [x] Current-user progress endpoint.
-- [ ] Verify answer/complete races, event immutability, parent-user cascade, and exactly-once progress against Wrangler Local D1.
+- [x] Verify concurrent completion, event idempotency, direct-delete rejection, parent-user cascade, and exactly-once progress against Wrangler Local D1 (exact-head CI run #46115705935 passed).
+- [ ] Add a fixture that creates completed attempts before applying migration 0016, then verifies the migration backfills one immutable event per prior completion.
 - [ ] Provide a D1-compatible deterministic progress projection rebuild; current rebuild SQL is explicitly SQLite-only.
 - [ ] Finalize pass thresholds, retry policy and future question types.
 
@@ -71,10 +72,9 @@
 
 ## Current blockers
 
-1. GitHub Actions jobs currently fail before runner allocation (`runner_id=0`, no steps); typecheck, Vitest and CI SQL script have not run.
-2. The connected Mac is offline, so no local npm/Wrangler execution is available.
-3. Migrations `0001`–`0010` have not been applied to a fresh Cloudflare Local D1 in this session.
-4. D1 `batch()` and SQLite `changes()` invariants are covered by a committed SQLite compatibility script but still need real Local D1/concurrency verification.
-5. Production origin values and first-admin bootstrap remain owner-controlled and unset.
+1. Exact-head Backend CI run #46115705935 passed dependency audit, typecheck, Vitest, SQLite verification, Wrangler Local D1 integration, and development API smoke on `64f0b4c63d56a92d4ee4cedceed5a856949c9aef`.
+2. The Local D1 suite verifies concurrent completion, event count/idempotency, direct-delete rejection, parent-user cascade, and the pre-existing-event conflict case. It does not yet seed completed attempts before migration 0016 to verify the historical backfill path.
+3. The progress rebuild SQL remains SQLite-only; a D1-compatible rebuild procedure is not implemented.
+4. Production origin values and first-admin bootstrap remain owner-controlled and unset.
 
 No deployment, remote migration, production secret change, paid resource or production role grant has been performed.
