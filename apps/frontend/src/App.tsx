@@ -5,20 +5,18 @@ import { getSessionErrorMessage, restoreSession, revokeSession } from "./auth";
 import { getTelegramWebApp } from "./platform/telegram";
 import { useLearningProgress } from "./hooks/useLearningProgress";
 import { useAttemptLifecycle } from "./hooks/useAttemptLifecycle";
+import { useCourseCatalog } from "./hooks/useCourseCatalog";
 
 type Screen = "home" | "lesson" | "result" | "content";
 function App() {
   const telegram = getTelegramWebApp();
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [coursesLoadFailed, setCoursesLoadFailed] = useState(false);
-  const [lessonsLoadFailed, setLessonsLoadFailed] = useState(false);
+
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
 
   const [screen, setScreen] = useState<Screen>("home");
-  const [loading, setLoading] = useState(true);
+
   const [appBusy, setAppBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -29,11 +27,16 @@ function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const authStarted = useRef(false);
   const authInFlight = useRef(false);
-  const courseRequestId = useRef(0);
+
   const handleProgressError = useCallback((e: unknown) => {
     setNotice(e instanceof Error ? e.message : "Could not load learning progress.");
   }, []);
   const { progress, progressLoading, refreshProgress } = useLearningProgress(profile, handleProgressError);
+  const handleCatalogError = useCallback((message: string) => setError(message), []);
+  const {
+    courses, lessons, coursesLoadFailed, lessonsLoadFailed, loading,
+    loadCourses, openCourse, showCourses,
+  } = useCourseCatalog({ onError: handleCatalogError });
   const handleAttemptError = useCallback((message: string) => setError(message), []);
   const handleAttemptNotice = useCallback((message: string) => setNotice(message), []);
   const handleAttemptCompleted = useCallback((resultScore: number) => {
@@ -48,15 +51,6 @@ function App() {
     onNotice: handleAttemptNotice, onCompleted: handleAttemptCompleted,
   });
   const busy = appBusy || attemptBusy;
-
-  const loadCourses = useCallback(async () => {
-    setLoading(true); setError(""); setCoursesLoadFailed(false);
-    try { setCourses(await api.courses()); }
-    catch (e) {
-      setCoursesLoadFailed(true);
-      setError(e instanceof Error ? e.message : "Could not load courses.");
-    } finally { setLoading(false); }
-  }, []);
 
   useEffect(() => {
     telegram?.ready();
@@ -89,33 +83,15 @@ function App() {
     });
   }, [loadCourses]);
 
-  const openCourse = async (course: Course) => {
-    const requestId = ++courseRequestId.current;
-    setSelectedCourse(course); setSelectedLesson(null); setLessons([]); setError("");
-    setLessonsLoadFailed(false);
-    setLoading(true);
-    try {
-      const nextLessons = await api.lessons(course.id);
-      if (requestId === courseRequestId.current) setLessons(nextLessons);
-    } catch (e) {
-      if (requestId === courseRequestId.current) {
-        setLessonsLoadFailed(true);
-        setError(e instanceof Error ? e.message : "Could not load lessons.");
-      }
-    } finally {
-      if (requestId === courseRequestId.current) setLoading(false);
-    }
+  const selectCourse = async (course: Course) => {
+    setSelectedCourse(course); setSelectedLesson(null);
+    await openCourse(course);
   };
 
-  const showCourses = () => {
-    // Invalidate any lesson request still in flight before returning to the course list.
-    courseRequestId.current += 1;
+  const returnToCourses = () => {
+    showCourses();
     setSelectedCourse(null);
     setSelectedLesson(null);
-    setLessons([]);
-    setLessonsLoadFailed(false);
-    setLoading(false);
-    setError("");
   };
 
   const startLesson = async (lesson: Lesson) => {
@@ -216,7 +192,7 @@ function App() {
       </section>
       <section className="content-section">
       <div className="section-heading"><div><p className="eyebrow">YOUR LEARNING SPACE</p><h2>{selectedCourse ? selectedCourse.title : "Choose your path"}</h2></div>
-        {selectedCourse && <button className="text-button" onClick={showCourses}>All courses ←</button>}
+        {selectedCourse && <button className="text-button" onClick={returnToCourses}>All courses ←</button>}
       </div>
       {loading ? <div className="loading"><span className="spinner" />Loading your learning space…</div> :
         selectedCourse ? <div className="lesson-list">{lessons.length ? lessons.map((lesson, index) =>
@@ -227,7 +203,7 @@ function App() {
           </article>
         ) : lessonsLoadFailed ? <div className="empty-state"><span>Lessons could not be loaded.</span><button className="text-button" onClick={() => selectedCourse && void openCourse(selectedCourse)}>Retry loading lessons</button></div> : <div className="empty-state">No published lessons are available in this course yet.</div>}</div>
         : <div className="course-grid">{courses.length ? courses.map((course, index) =>
-          <button className={`course-card course-${index % 3}`} key={course.id} onClick={() => void openCourse(course)}>
+          <button className={`course-card course-${index % 3}`} key={course.id} onClick={() => void selectCourse(course)}>
             <span className="course-index">COURSE {String(index + 1).padStart(2, "0")}</span>
             <span className="course-title">{course.title}</span>
             <span className="course-description">{course.description || `Build your ${course.target_language} skills step by step.`}</span>
