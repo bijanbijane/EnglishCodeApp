@@ -1,6 +1,6 @@
 # Backend Implementation Plan
 
-**Baseline:** `main` at `15b9b47c32e5f0a04542d946d61679f62b15f47c` (2026-11-28).  
+**Baseline:** `main` at `533cab6821b39191338473e8fb13ce89c8013589` (2026-11-28).  
 **Rule:** implementation, exact-commit validation and release readiness are separate states.
 
 ## B0 — Runtime and content foundation
