@@ -2,7 +2,7 @@
 
 پلتفرم آموزش زبان انگلیسی با محوریت Telegram Bot و Telegram Mini App؛ با مسیر توسعهٔ تدریجی به وب‌اپلیکیشن و اپلیکیشن موبایل.
 
-> **وضعیت مخزن (۲۶ نوامبر ۲۰۲۶):** پایهٔ اجرایی بک‌اند روی `main` ثبت شده است: Worker/Hono، health/readiness، API خواندنی محتوای منتشرشده، migration اولیه D1، seed محلی، تست اولیه و workflow CI. ورود تلگرام و صدور نشست هنوز کامل نیست؛ middleware نشست، پروفایل، attempt/answer، grading سمت سرور و ثبت progress پیاده‌سازی شده‌اند، اما رفتار D1 و هم‌زمانی آن‌ها هنوز integration-test نشده است. تست‌ها و Local D1 هنوز اجرا و تأیید نشده‌اند؛ هیچ remote migration یا deployment انجام نشده است.
+> **وضعیت مخزن (۲۸ نوامبر ۲۰۲۶):** `main` در commit `15b9b47c32e5f0a04542d946d61679f62b15f47c` قرار دارد. Backend مبتنی بر Workers/Hono و API نسخه‌بندی‌شده، Telegram HMAC/session، attempt و grading سمت سرور، progress، RBAC و گردش author/reviewer/publisher در کد main وجود دارند. زنجیرهٔ migrationهای main از `0001` تا `0016` است. GitHub Actions روی PRهای مشخص، از جمله PRهای #26، #28 و #30، برای commitهای دقیق آن‌ها موفق بوده است؛ این شواهد به‌تنهایی موفقیت workflow مستقل روی head فعلی main را ثابت نمی‌کند. محتوای A1 فعلی شامل ۹ واحد، ۴۵ درس و ۱۸۰ MCQ است و هنوز دورهٔ کامل چهارمهارته محسوب نمی‌شود. هیچ Production deployment یا remote migration در این روند انجام نشده است.
 
 ## هدف محصول
 
@@ -133,27 +133,31 @@ EnglishCodeApp/
 
 ## ترتیب اجرای باقی‌مانده
 
-1. اجرای typecheck، تست‌ها و workflow CI روی commit جاری؛ اصلاح خطاها.
-2. اجرای migration و seed روی Local D1 تازه و ثبت شواهد.
-3. تکمیل Telegram HMAC، replay protection اتمیک و session lifecycle.
-4. پیاده‌سازی attempt، ثبت پاسخ idempotent، grading سمت سرور و progress اتمیک.
-5. تکمیل rate limiting، origin policy، امنیت cross-user و retention/export/delete.
-6. افزودن قابلیت‌های content authoring و administration بر اساس نیاز.
-7. ارزیابی R2، Queues و AI فقط پس از اثبات use case و بررسی هزینه.
-8. آزمون بازیابی، بار و سهمیه؛ سپس بررسی جداگانهٔ staging. Production نیازمند تأیید صریح است.
+1. اجرای typecheck، Vitest، SQLite و Wrangler Local D1 روی commit دقیق main و ثبت نتیجهٔ قابل تکرار.
+2. تکمیل تست‌های cross-user، role revocation، concurrency و idempotency؛ بررسی مسیرهای شکست تراکنش.
+3. تکمیل owner-operated bootstrap/grant/revoke و مستندات export/delete و backup/restore.
+4. افزودن integration test برای چرخهٔ author → reviewer → admin publisher و صفحه‌بندی صف بازبینی.
+5. طراحی D1-compatible برای بازسازی projection پیشرفت؛ اسکریپت موجود در `database/maintenance` فقط SQLite-compatible است.
+6. تکمیل پایش، load test، recovery drill و ارزیابی quota پیش از هر beta.
+7. بررسی staging فقط پس از جداسازی منابع و تأیید مالک؛ Production نیازمند approval صریح و مستقل است.
+
+قابلیت‌های PRهای باز تا زمان ادغام و اعتبارسنجی روی commit نهایی، بخشی از main محسوب نمی‌شوند.
 
 ## وضعیت قابلیت‌ها
 
-- [x] ثبت سیاست Free-first و معماری Modular Monolith
-- [x] Worker/Hono پایه و endpointهای health/readiness
-- [x] API خواندنی دوره و درس؛ حذف answer key از DTO عمومی
-- [x] migration اولیه و seed مصنوعی (فایل‌ها ثبت شده‌اند؛ Local D1 هنوز اجرا نشده)
-- [x] تست اولیه و workflow CI (نتیجهٔ اجرا هنوز تأیید نشده)
-- [ ] Telegram authentication و session
-- [x] attempt، answer، grading و progress write (کد ثبت شده؛ D1 integration/concurrency هنوز تأیید نشده)
-- [ ] rate limit، RBAC، retention و export/delete
-- [ ] آزمون یکپارچگی D1/Workers، امنیت و بار
-- [ ] انتشار عملیاتی
+- [x] سیاست Free-first و معماری Modular Monolith
+- [x] Worker/Hono و API نسخه‌بندی‌شده
+- [x] اعتبارسنجی Telegram initData در سمت سرور و session token hash
+- [x] attempt، پاسخ، grading سمت سرور، snapshot و progress
+- [x] RBAC و گردش author/reviewer/admin publication
+- [x] migrationهای main از `0001` تا `0016`
+- [x] A1 foundation: ۹ واحد، ۴۵ درس و ۱۸۰ MCQ؛ recognition-focused
+- [ ] D1-compatible progress projection rebuild
+- [ ] Owner-operated admin bootstrap/grant/revoke و export/delete
+- [ ] تکمیل cross-user، role-revocation و concurrency test matrix
+- [ ] Backup/restore drill، observability و load baseline
+- [ ] اعتبارسنجی end-to-end انتشار محتوا در Local D1
+- [ ] آمادگی انتشار عملیاتی؛ هیچ ادعای Production readiness وجود ندارد
 
 ## اسناد
 
