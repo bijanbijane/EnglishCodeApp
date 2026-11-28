@@ -395,3 +395,25 @@ Do not assign a migration number or write SQL until:
 6. Pilot and standard-set score interpretation before displaying a proficiency claim.
 
 No production deployment, remote D1 migration, secret mutation, paid service, audio upload or R2 resource is authorized by this design.
+
+
+## 9. Verified integration points in the current branch
+
+The following facts were checked against the branch's actual migrations and API documentation, not inferred from the conceptual model:
+
+- The branch contains migrations `0001`–`0015`; the main-branch data-model document still describes the earlier `0001`–`0010` sequence. New work must use the feature branch's full schema history.
+- `users` is the internal principal. `sessions` cascade on user deletion. `lesson_attempts` also currently cascade on user deletion, while lesson references are restrictive. The proposed assessment retention behavior must explicitly choose whether candidate deletion cascades, anonymizes, or retains legally required scoring evidence; do not silently choose RESTRICT or copy the lesson behavior.
+- Current `user_roles.role` CHECK permits only `admin`, `content_author`, `content_reviewer`, and `support`. There is no `assessment_rater` role or rater-assignment table. Do not reuse `content_reviewer` as a rater implicitly: content review and learner assessment rating are different privileges. A dedicated role and assignment scope require a reviewed forward-only migration and owner-controlled grants.
+- `admin_audit_events` already provides append-only privileged-action history with actor anonymization on deletion. Rating decisions and any reassignment/re-rating should emit allowlisted audit events, while criterion scores and learner response content should not be copied into general audit metadata.
+- `assessment_policy_versions` already exists but is currently linked to lesson attempts and stores the existing weighted-percentage lesson quiz policy. A cumulative assessment scoring policy needs a distinct typed contract and immutable version identity; do not overload `percentage-v1` or change its meaning.
+- The existing API success envelope is `{data, meta:{requestId}}`; errors use the repository's error envelope. Proposed examples in this document are illustrative and must be adapted to these exact conventions before OpenAPI/route implementation.
+- Current timestamps use UTC ISO-8601, often generated with `strftime('%Y-%m-%dT%H:%M:%fZ','now')`. New tables should match the established representation.
+- The backend's existing role middleware and admin audit patterns should be reused, but only after checking exact middleware exports and route registration on the target head.
+
+### Required design changes before a migration
+
+1. Decide account deletion and retention semantics for attempts, written responses, ratings and final results.
+2. Define a separate `assessment_rater` privilege (or an explicitly narrower equivalent) and assignment model; do not grant it through public APIs.
+3. Define whether one rater or two independent raters are required per productive response, and how disagreements are resolved.
+4. Separate cumulative scoring policy versioning from lesson `assessment_policy_versions`.
+5. Reconcile response DTOs with the existing API envelope and error codes.
