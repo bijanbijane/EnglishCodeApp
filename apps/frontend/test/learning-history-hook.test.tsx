@@ -3,7 +3,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
-import { api, type LearningHistoryEntry, type Profile } from "../src/api";
+import { api, type ApiEnvelope, type LearningHistoryEntry, type Profile } from "../src/api";
 import { useLearningHistory } from "../src/hooks/useLearningHistory";
 
 const profile: Profile = {
@@ -55,9 +55,9 @@ it("loads the first history page and appends subsequent cursor pages", async () 
 
 it("clears history and ignores stale page results after the profile is removed", async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-  let resolveHistory: ((value: { data: LearningHistoryEntry[]; meta: { nextCursor: null } }) => void) | undefined;
+  let resolveHistory: ((value: ApiEnvelope<LearningHistoryEntry[]>) => void) | undefined;
   vi.spyOn(api, "history").mockImplementation(() => new Promise((resolve) => {
-    resolveHistory = resolve as typeof resolveHistory;
+    resolveHistory = resolve;
   }));
   let currentProfile: Profile | null = profile;
   let latest: ReturnType<typeof useLearningHistory> | undefined;
