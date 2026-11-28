@@ -1,6 +1,6 @@
 name: Backend CI
 
-# Keep curriculum seed and API checks in the backend validation path.
+# Keep curriculum and assessment architecture changes in the backend validation path.
 
 on:
   pull_request:
@@ -9,6 +9,7 @@ on:
       - "database/migrations/**"
       - "database/seeds/**"
       - "docs/curriculum/**"
+      - "docs/architecture/ASSESSMENT-*.md"
       - "scripts/**"
       - ".github/workflows/backend-ci.yml"
   push:
@@ -18,6 +19,7 @@ on:
       - "database/migrations/**"
       - "database/seeds/**"
       - "docs/curriculum/**"
+      - "docs/architecture/ASSESSMENT-*.md"
       - "scripts/**"
       - ".github/workflows/backend-ci.yml"
 
