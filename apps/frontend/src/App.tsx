@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
 import { getSessionErrorMessage, restoreSession, revokeSession } from "./auth";
+import SpeechPractice from "./SpeechPractice";
 
 type TelegramSecureStorage = {
   getItem: (key: string, callback: (error: string | null, value: string | null, canRestore?: boolean) => void) => void;
@@ -249,6 +250,7 @@ function App() {
     {notice && <div className="notice" role="status">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss message">×</button></div>}
 
     {screen === "home" && <>
+      <SpeechPractice isAuthenticated={Boolean(profile)} />
       {profile && <section className="progress-section" aria-label="Learning progress">
         <div className="progress-heading"><div><p className="eyebrow">YOUR ACTIVITY</p><h2>Progress overview</h2></div><span className="progress-caption">{progressLoading ? "Updating…" : `${progress.length} unique ${progress.length === 1 ? "lesson" : "lessons"}`}</span></div>
         <div className="progress-stats">

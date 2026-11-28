@@ -8,6 +8,7 @@ import authRoutes from "./modules/auth/routes";
 import userRoutes from "./modules/users/routes";
 import learningRoutes from "./modules/learning/routes";
 import telegramRoutes from "./modules/telegram/webhook";
+import aiRoutes from "./modules/ai/routes";
 import { adminRoutes } from "./modules/admin/routes";
 import adminReadRoutes from "./modules/admin/audit-routes";
 
@@ -27,7 +28,7 @@ app.use("*", async (c, next) => {
   }
 });
 
-app.use("/api/v1/*", bodyLimit({
+const standardApiBodyLimit = bodyLimit({
   maxSize: 256 * 1024,
   onError: (context) => context.json({
     error: {
@@ -36,7 +37,16 @@ app.use("/api/v1/*", bodyLimit({
       requestId: context.get("requestId"),
     },
   }, 413),
-}));
+});
+
+// Speech transcription has its own 1.5 MiB route limit for the 1 MiB audio payload.
+// Keep the stricter 256 KiB ceiling on every other API route.
+app.use("/api/v1/*", async (context, next) => {
+  if (context.req.path === "/api/v1/ai/transcriptions") {
+    return next();
+  }
+  return standardApiBodyLimit(context, next);
+});
 
 app.use("/api/v1/*", cors({
   origin: (origin, context) => {
@@ -89,6 +99,7 @@ app.route("/api/v1", authRoutes);
 app.route("/api/v1", userRoutes);
 app.route("/api/v1", learningRoutes);
 app.route("/api/v1", telegramRoutes);
+app.route("/api/v1", aiRoutes);
 app.route("/api/v1/admin", adminRoutes);
 app.route("/api/v1/admin", adminReadRoutes);
 

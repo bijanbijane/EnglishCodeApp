@@ -1,0 +1,428 @@
+/* @vitest-environment jsdom */
+
+import { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, expect, it, vi } from "vitest";
+import { api } from "../src/api";
+import SpeechPractice from "../src/SpeechPractice";
+
+const audioBlob = new Blob(
+  [new Uint8Array([0x1a, 0x45, 0xdf, 0xa3])],
+  { type: "audio/webm;codecs=opus" },
+);
+
+class MockMediaRecorder {
+  static nextBlob = audioBlob;
+  static lastInstance: MockMediaRecorder | null = null;
+  static isTypeSupported(type: string) {
+    return type === "audio/webm;codecs=opus";
+  }
+
+  state: RecordingState = "inactive";
+  mimeType: string;
+  ondataavailable: ((event: BlobEvent) => void) | null = null;
+  onstop: ((event: Event) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
+
+  constructor(_stream: MediaStream, options?: MediaRecorderOptions) {
+    this.mimeType = options?.mimeType ?? "audio/webm;codecs=opus";
+    MockMediaRecorder.lastInstance = this;
+  }
+
+  start() {
+    this.state = "recording";
+  }
+
+  stop() {
+    if (this.state === "inactive") return;
+    this.state = "inactive";
+    this.ondataavailable?.({ data: MockMediaRecorder.nextBlob } as BlobEvent);
+    this.onstop?.(new Event("stop"));
+  }
+}
+
+function getLastRecorder(): MockMediaRecorder | null {
+  return MockMediaRecorder.lastInstance;
+}
+
+function button(container: HTMLElement, label: string): HTMLButtonElement {
+  const found = [...container.querySelectorAll("button")].find(
+    (item) => item.textContent?.includes(label),
+  );
+  if (!found) throw new Error(`Button not found: ${label}`);
+  return found;
+}
+
+let root: Root | null = null;
+let container: HTMLDivElement | null = null;
+let originalMediaDevices: PropertyDescriptor | undefined;
+let originalCreateObjectURL: PropertyDescriptor | undefined;
+let originalRevokeObjectURL: PropertyDescriptor | undefined;
+let originalBlobArrayBuffer: PropertyDescriptor | undefined;
+
+function mount(isAuthenticated = true) {
+  container = document.createElement("div");
+  document.body.append(container);
+  root = createRoot(container);
+  act(() => root?.render(<SpeechPractice isAuthenticated={isAuthenticated} />));
+  return container;
+}
+
+afterEach(() => {
+  act(() => root?.unmount());
+  root = null;
+  container?.remove();
+  container = null;
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  if (originalMediaDevices) Object.defineProperty(navigator, "mediaDevices", originalMediaDevices);
+  else Reflect.deleteProperty(navigator, "mediaDevices");
+  if (originalCreateObjectURL) Object.defineProperty(URL, "createObjectURL", originalCreateObjectURL);
+  else Reflect.deleteProperty(URL, "createObjectURL");
+  if (originalRevokeObjectURL) Object.defineProperty(URL, "revokeObjectURL", originalRevokeObjectURL);
+  else Reflect.deleteProperty(URL, "revokeObjectURL");
+  if (originalBlobArrayBuffer) Object.defineProperty(Blob.prototype, "arrayBuffer", originalBlobArrayBuffer);
+  else Reflect.deleteProperty(Blob.prototype, "arrayBuffer");
+});
+
+it("records audio, enforces the client payload cap, and submits a transcription request", async () => {
+  const stopTrack = vi.fn();
+  const stream = { getTracks: () => [{ stop: stopTrack }] } as unknown as MediaStream;
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+  });
+  vi.stubGlobal("MediaRecorder", MockMediaRecorder);
+  originalCreateObjectURL = Object.getOwnPropertyDescriptor(URL, "createObjectURL");
+  originalRevokeObjectURL = Object.getOwnPropertyDescriptor(URL, "revokeObjectURL");
+  Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:recorded-audio") });
+  Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+  originalBlobArrayBuffer = Object.getOwnPropertyDescriptor(Blob.prototype, "arrayBuffer");
+  Object.defineProperty(Blob.prototype, "arrayBuffer", {
+    configurable: true,
+    value: vi.fn().mockResolvedValue(new Uint8Array([0x1a, 0x45, 0xdf, 0xa3]).buffer),
+  });
+
+  const transcribe = vi.spyOn(api, "transcribeAudio").mockResolvedValue({
+    transcription: "Good morning. My name is Alex.",
+    wordCount: 6,
+    language: "en",
+    durationSeconds: 1,
+    model: "@cf/openai/whisper-large-v3-turbo",
+  });
+  const view = mount();
+
+  await act(async () => {
+    button(view, "Start recording").click();
+    await Promise.resolve();
+  });
+  expect(view.textContent).toContain("Recording");
+
+  await act(async () => {
+    button(view, "Stop recording").click();
+  });
+  expect(view.querySelector("audio")).not.toBeNull();
+  expect(view.textContent).toContain("Transcribe audio");
+
+  await act(async () => {
+    button(view, "Transcribe audio").click();
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  expect(transcribe).toHaveBeenCalledWith({
+    audioBase64: "GkXfow==",
+    mimeType: "audio/webm;codecs=opus",
+    durationSeconds: 1,
+  });
+  expect(view.textContent).toContain("Good morning. My name is Alex.");
+  expect(view.textContent).toContain("6 words");
+  expect(stopTrack).toHaveBeenCalledOnce();
+});
+
+it("rejects a recording larger than the upload cap before calling the API", async () => {
+  const stream = { getTracks: () => [{ stop: vi.fn() }] } as unknown as MediaStream;
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+  });
+  vi.stubGlobal("MediaRecorder", MockMediaRecorder);
+  originalCreateObjectURL = Object.getOwnPropertyDescriptor(URL, "createObjectURL");
+  originalRevokeObjectURL = Object.getOwnPropertyDescriptor(URL, "revokeObjectURL");
+  Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:too-large") });
+  Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+  MockMediaRecorder.nextBlob = new Blob([new Uint8Array(1024 * 1024 + 1)], { type: "audio/webm;codecs=opus" });
+  const transcribe = vi.spyOn(api, "transcribeAudio");
+  const view = mount();
+
+  await act(async () => {
+    button(view, "Start recording").click();
+    await Promise.resolve();
+  });
+  await act(async () => {
+    button(view, "Stop recording").click();
+  });
+
+  expect(view.textContent).toContain("exceeded the 1 MiB upload limit");
+  expect(transcribe).not.toHaveBeenCalled();
+  MockMediaRecorder.nextBlob = audioBlob;
+});
+
+it("requires an authenticated learner before recording", () => {
+  const view = mount(false);
+  expect(view.textContent).toContain("Sign in to your Telegram account");
+  expect(view.querySelector("button")).toBeNull();
+});
+
+
+
+it("detaches recorder event handlers when the component unmounts", async () => {
+  const stopTrack = vi.fn();
+  const stream = { getTracks: () => [{ stop: stopTrack }] } as unknown as MediaStream;
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+  });
+  vi.stubGlobal("MediaRecorder", MockMediaRecorder);
+
+  const view = mount();
+  await act(async () => {
+    button(view, "Start recording").click();
+    await Promise.resolve();
+  });
+
+  const recorder = getLastRecorder();
+  expect(recorder).not.toBeNull();
+  expect(recorder?.onerror).toBeTypeOf("function");
+  expect(recorder?.onstop).toBeTypeOf("function");
+
+  act(() => {
+    root?.unmount();
+    root = null;
+  });
+
+  expect(recorder?.onerror).toBeNull();
+  expect(recorder?.onstop).toBeNull();
+  expect(recorder?.ondataavailable).toBeNull();
+  expect(stopTrack).toHaveBeenCalledOnce();
+  view.remove();
+  container = null;
+});
+
+it("stops a microphone stream if permission resolves after the component unmounts", async () => {
+  let resolvePermission!: (stream: MediaStream) => void;
+  const permission = new Promise<MediaStream>((resolve) => {
+    resolvePermission = resolve;
+  });
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia: vi.fn(() => permission) },
+  });
+  vi.stubGlobal("MediaRecorder", MockMediaRecorder);
+
+  const view = mount();
+  await act(async () => {
+    button(view, "Start recording").click();
+    await Promise.resolve();
+  });
+  expect(view.textContent).toContain("Waiting for microphone access");
+
+  const stopTrack = vi.fn();
+  const stream = { getTracks: () => [{ stop: stopTrack }] } as unknown as MediaStream;
+  act(() => {
+    root?.unmount();
+    root = null;
+  });
+  view.remove();
+  container = null;
+
+  await act(async () => {
+    resolvePermission(stream);
+    await permission;
+    await Promise.resolve();
+  });
+
+  expect(stopTrack).toHaveBeenCalledOnce();
+});
+
+
+it("stops the active recorder and releases the microphone when the learner signs out", async () => {
+  const stopTrack = vi.fn();
+  const stream = { getTracks: () => [{ stop: stopTrack }] } as unknown as MediaStream;
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+  });
+  vi.stubGlobal("MediaRecorder", MockMediaRecorder);
+  MockMediaRecorder.lastInstance = null;
+
+  const view = mount();
+  await act(async () => {
+    button(view, "Start recording").click();
+    await Promise.resolve();
+  });
+  const recorder = getLastRecorder();
+  expect(recorder?.state).toBe("recording");
+
+  await act(async () => {
+    root?.render(<SpeechPractice isAuthenticated={false} />);
+  });
+
+  expect(recorder?.state).toBe("inactive");
+  expect(recorder?.ondataavailable).toBeNull();
+  expect(recorder?.onstop).toBeNull();
+  expect(recorder?.onerror).toBeNull();
+  expect(stopTrack).toHaveBeenCalledOnce();
+  expect(view.textContent).toContain("Sign in to your Telegram account");
+});
+
+it("discards a microphone permission response when the learner signs out", async () => {
+  let resolvePermission!: (stream: MediaStream) => void;
+  const permission = new Promise<MediaStream>((resolve) => {
+    resolvePermission = resolve;
+  });
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia: vi.fn(() => permission) },
+  });
+  vi.stubGlobal("MediaRecorder", MockMediaRecorder);
+  MockMediaRecorder.lastInstance = null;
+
+  const view = mount();
+  await act(async () => {
+    button(view, "Start recording").click();
+    await Promise.resolve();
+  });
+  expect(view.textContent).toContain("Waiting for microphone access");
+
+  await act(async () => {
+    root?.render(<SpeechPractice isAuthenticated={false} />);
+  });
+
+  const stopTrack = vi.fn();
+  const stream = { getTracks: () => [{ stop: stopTrack }] } as unknown as MediaStream;
+  await act(async () => {
+    resolvePermission(stream);
+    await permission;
+    await Promise.resolve();
+  });
+
+  expect(stopTrack).toHaveBeenCalledOnce();
+  expect(MockMediaRecorder.lastInstance).toBeNull();
+  expect(view.textContent).toContain("Sign in to your Telegram account");
+});
+
+it("does not submit audio when logout occurs while Blob data is being encoded", async () => {
+  const stopTrack = vi.fn();
+  const stream = { getTracks: () => [{ stop: stopTrack }] } as unknown as MediaStream;
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+  });
+  vi.stubGlobal("MediaRecorder", MockMediaRecorder);
+  MockMediaRecorder.nextBlob = audioBlob;
+  MockMediaRecorder.lastInstance = null;
+  originalCreateObjectURL = Object.getOwnPropertyDescriptor(URL, "createObjectURL");
+  originalRevokeObjectURL = Object.getOwnPropertyDescriptor(URL, "revokeObjectURL");
+  Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:pending-encoding") });
+  Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+
+  let resolveArrayBuffer!: (value: ArrayBuffer) => void;
+  const pendingArrayBuffer = new Promise<ArrayBuffer>((resolve) => {
+    resolveArrayBuffer = resolve;
+  });
+  originalBlobArrayBuffer = Object.getOwnPropertyDescriptor(Blob.prototype, "arrayBuffer");
+  Object.defineProperty(Blob.prototype, "arrayBuffer", {
+    configurable: true,
+    value: vi.fn(() => pendingArrayBuffer),
+  });
+  const transcribe = vi.spyOn(api, "transcribeAudio");
+  const view = mount();
+
+  await act(async () => {
+    button(view, "Start recording").click();
+    await Promise.resolve();
+  });
+  await act(async () => {
+    button(view, "Stop recording").click();
+  });
+  await act(async () => {
+    button(view, "Transcribe audio").click();
+    await Promise.resolve();
+  });
+  expect(view.textContent).toContain("Transcribing your recording");
+
+  await act(async () => {
+    root?.render(<SpeechPractice isAuthenticated={false} />);
+  });
+  resolveArrayBuffer(new Uint8Array([0x1a, 0x45, 0xdf, 0xa3]).buffer);
+  await act(async () => {
+    await pendingArrayBuffer;
+    await Promise.resolve();
+  });
+
+  expect(transcribe).not.toHaveBeenCalled();
+  expect(view.textContent).toContain("Sign in to your Telegram account");
+  expect(stopTrack).toHaveBeenCalledOnce();
+});
+
+it("ignores an AI response that arrives after the learner signs out", async () => {
+  const stopTrack = vi.fn();
+  const stream = { getTracks: () => [{ stop: stopTrack }] } as unknown as MediaStream;
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: { getUserMedia: vi.fn().mockResolvedValue(stream) },
+  });
+  vi.stubGlobal("MediaRecorder", MockMediaRecorder);
+  MockMediaRecorder.nextBlob = audioBlob;
+  originalCreateObjectURL = Object.getOwnPropertyDescriptor(URL, "createObjectURL");
+  originalRevokeObjectURL = Object.getOwnPropertyDescriptor(URL, "revokeObjectURL");
+  Object.defineProperty(URL, "createObjectURL", { configurable: true, value: vi.fn(() => "blob:pending-transcription") });
+  Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+  originalBlobArrayBuffer = Object.getOwnPropertyDescriptor(Blob.prototype, "arrayBuffer");
+  Object.defineProperty(Blob.prototype, "arrayBuffer", {
+    configurable: true,
+    value: vi.fn().mockResolvedValue(new Uint8Array([0x1a, 0x45, 0xdf, 0xa3]).buffer),
+  });
+
+  let resolveTranscription!: (value: Awaited<ReturnType<typeof api.transcribeAudio>>) => void;
+  const pendingResponse = new Promise<Awaited<ReturnType<typeof api.transcribeAudio>>>((resolve) => {
+    resolveTranscription = resolve;
+  });
+  const transcribe = vi.spyOn(api, "transcribeAudio").mockReturnValue(pendingResponse);
+  const view = mount();
+
+  await act(async () => {
+    button(view, "Start recording").click();
+    await Promise.resolve();
+  });
+  await act(async () => {
+    button(view, "Stop recording").click();
+  });
+  await act(async () => {
+    button(view, "Transcribe audio").click();
+    await Promise.resolve();
+  });
+  expect(transcribe).toHaveBeenCalledOnce();
+  expect(view.textContent).toContain("Transcribing your recording");
+
+  await act(async () => {
+    root?.render(<SpeechPractice isAuthenticated={false} />);
+  });
+  await act(async () => {
+    resolveTranscription({
+      transcription: "This response must be discarded.",
+      wordCount: 6,
+      language: "en",
+      durationSeconds: 0.02,
+      model: "@cf/openai/whisper-large-v3-turbo",
+    });
+    await pendingResponse;
+  });
+  await act(async () => {
+    root?.render(<SpeechPractice isAuthenticated />);
+  });
+
+  expect(view.textContent).not.toContain("This response must be discarded.");
+  expect(view.textContent).toContain("Start recording");
+});

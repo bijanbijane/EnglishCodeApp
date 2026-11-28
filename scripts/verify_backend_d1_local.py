@@ -2,6 +2,8 @@
 """Run the backend against Wrangler's local D1 runtime and verify critical flows."""
 
 from concurrent.futures import ThreadPoolExecutor
+import base64
+from datetime import datetime, timezone
 import hashlib
 import hmac
 import json
@@ -68,6 +70,45 @@ def request(
     if include_headers:
         return status, parsed, response_headers
     return status, parsed
+
+
+def ebml_element(element_id, payload):
+    identifier_length = max(1, (element_id.bit_length() + 7) // 8)
+    identifier = element_id.to_bytes(identifier_length, "big")
+    size = len(payload)
+    for length in range(1, 9):
+        marker = 1 << (7 * length)
+        if size < marker - 1:
+            encoded = (size + marker).to_bytes(length, "big")
+            return identifier + encoded + payload
+    raise ValueError("EBML fixture is too large")
+
+
+def unsigned_bytes(value):
+    length = max(1, (value.bit_length() + 7) // 8)
+    return value.to_bytes(length, "big")
+
+
+def local_webm_opus_fixture():
+    header = ebml_element(0x1A45DFA3, ebml_element(0x4282, b"webm"))
+    info = ebml_element(0x1549A966, ebml_element(0x2AD7B1, unsigned_bytes(1_000_000)))
+    opus_head = b"OpusHead" + bytes([1, 1, 0, 0]) + bytes([0x80, 0xBB, 0, 0]) + bytes([0, 0, 0])
+    track = ebml_element(
+        0xAE,
+        ebml_element(0xD7, unsigned_bytes(1))
+        + ebml_element(0x83, unsigned_bytes(2))
+        + ebml_element(0x86, b"A_OPUS")
+        + ebml_element(0x63A2, opus_head),
+    )
+    tracks = ebml_element(0x1654AE6B, track)
+    # One CELT 20 ms Opus packet in a WebM SimpleBlock.
+    simple_block = bytes([0x81, 0, 0, 0, 0x98, 0])
+    cluster = ebml_element(
+        0x1F43B675,
+        ebml_element(0xE7, unsigned_bytes(0)) + ebml_element(0xA3, simple_block),
+    )
+    segment = ebml_element(0x18538067, info + tracks + cluster)
+    return base64.b64encode(header + segment).decode("ascii")
 
 
 def expect_status(result, expected, label):
@@ -219,6 +260,184 @@ def main():
             user_id = profile["data"]["id"]
             assert user_id == login["data"]["user"]["id"]
             assert "display_name" in profile["data"] and "created_at" in profile["data"]
+
+            # Exercise quota enforcement through the real Worker + Wrangler Local D1.
+            # Use Wrangler --command directly to avoid temporary SQL-file parsing issues.
+            quota_day = datetime.now(timezone.utc).date().isoformat()
+            safe_user_id = user_id.replace("'", "''")
+            user_quota_seed_sql = (
+                "DELETE FROM ai_transcription_reservations; "
+                "INSERT INTO ai_transcription_reservations (id,day_utc,user_id) VALUES "
+                f"('quota-user-seed-1','{quota_day}','{safe_user_id}'),"
+                f"('quota-user-seed-2','{quota_day}','{safe_user_id}');"
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", user_quota_seed_sql,
+            ])
+
+            transcription_payload = {
+                "audioBase64": local_webm_opus_fixture(),
+                "mimeType": "audio/webm;codecs=opus",
+                "durationSeconds": 1,
+            }
+
+            def request_transcription():
+                return request(
+                    "POST", "/api/v1/ai/transcriptions",
+                    token, transcription_payload,
+                )
+
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                user_quota_results = list(pool.map(
+                    lambda _: request_transcription(), range(8)
+                ))
+            for result in user_quota_results:
+                denied = expect_status(result, 429, "concurrent exhausted user transcription quota")
+                assert denied.get("error", {}).get("code") == "RATE_LIMITED"
+
+            user_quota_check_sql = (
+                "SELECT "
+                "SUM(CASE WHEN user_id='*' AND day_utc='" + quota_day + "' THEN 1 ELSE 0 END) AS global_count, "
+                "SUM(CASE WHEN user_id='" + safe_user_id + "' AND day_utc='" + quota_day + "' THEN 1 ELSE 0 END) AS user_count "
+                "FROM ai_transcription_reservations;"
+            )
+            user_quota_output = run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", user_quota_check_sql, "--json",
+            ])
+            user_quota_payload = json.loads(user_quota_output)
+            user_quota_rows = (
+                user_quota_payload[0]["results"]
+                if isinstance(user_quota_payload, list)
+                else user_quota_payload["results"]
+            )
+            assert user_quota_rows[0]["global_count"] == 0, user_quota_rows
+            assert user_quota_rows[0]["user_count"] == 2, user_quota_rows
+
+            # User-scoped quota reservations must be removed immediately when
+            # the account is deleted; account-wide '*' reservations are retained.
+            delete_user_seed_sql = (
+                "INSERT INTO users (id, display_name) VALUES ('quota-delete-user', 'Quota deletion test'); "
+                "INSERT INTO ai_transcription_reservations (id,day_utc,user_id) VALUES "
+                f"('quota-delete-user-reservation','{quota_day}','quota-delete-user'),"
+                f"('quota-delete-global-reservation','{quota_day}','*');"
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", delete_user_seed_sql,
+            ])
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", "DELETE FROM users WHERE id='quota-delete-user';",
+            ])
+            delete_user_check = run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", "SELECT "
+                    "(SELECT COUNT(*) FROM ai_transcription_reservations WHERE user_id='quota-delete-user') AS user_count, "
+                    "(SELECT COUNT(*) FROM ai_transcription_reservations WHERE id='quota-delete-global-reservation') AS global_count;",
+                "--json",
+            ])
+            delete_user_payload = json.loads(delete_user_check)
+            delete_user_rows = (
+                delete_user_payload[0]["results"]
+                if isinstance(delete_user_payload, list)
+                else delete_user_payload["results"]
+            )
+            assert delete_user_rows[0]["user_count"] == 0, delete_user_rows
+            assert delete_user_rows[0]["global_count"] == 1, delete_user_rows
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", "DELETE FROM ai_transcription_reservations WHERE id='quota-delete-global-reservation';",
+            ])
+
+            # Reset the short-window parser limiter so the next quota scenario
+            # exercises the daily global reservation path independently.
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", "DELETE FROM auth_rate_limits;",
+            ])
+
+            # A full global allowance must reject parallel requests without
+            # creating user reservations or exceeding the account-wide limit.
+            global_values = ",".join(
+                f"('quota-global-seed-{index}', '{quota_day}', '*')"
+                for index in range(60)
+            )
+            global_quota_seed_sql = (
+                "DELETE FROM ai_transcription_reservations; "
+                "INSERT INTO ai_transcription_reservations (id,day_utc,user_id) VALUES "
+                + global_values + ";"
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", global_quota_seed_sql,
+            ])
+
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                global_quota_results = list(pool.map(
+                    lambda _: request_transcription(), range(8)
+                ))
+            for result in global_quota_results:
+                denied = expect_status(result, 429, "concurrent exhausted global transcription quota")
+                assert denied.get("error", {}).get("code") == "RATE_LIMITED"
+
+            global_quota_check_sql = (
+                "SELECT "
+                "SUM(CASE WHEN user_id='*' AND day_utc='" + quota_day + "' THEN 1 ELSE 0 END) AS global_count, "
+                "SUM(CASE WHEN user_id='" + safe_user_id + "' AND day_utc='" + quota_day + "' THEN 1 ELSE 0 END) AS user_count "
+                "FROM ai_transcription_reservations;"
+            )
+            global_quota_output = run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", global_quota_check_sql, "--json",
+            ])
+            global_quota_payload = json.loads(global_quota_output)
+            global_quota_rows = (
+                global_quota_payload[0]["results"]
+                if isinstance(global_quota_payload, list)
+                else global_quota_payload["results"]
+            )
+            assert global_quota_rows[0]["global_count"] == 60, global_quota_rows
+            assert global_quota_rows[0]["user_count"] == 0, global_quota_rows
+
+            # Invalid payloads do not consume inference reservations, but they
+            # must still be bounded before the parser/body reader is reached.
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", "DELETE FROM auth_rate_limits;",
+            ])
+            invalid_payload = "x" * (300 * 1024)
+
+            def request_invalid_transcription():
+                return request(
+                    "POST", "/api/v1/ai/transcriptions",
+                    token, invalid_payload,
+                )
+
+            with ThreadPoolExecutor(max_workers=11) as pool:
+                parse_limit_results = list(pool.map(
+                    lambda _: request_invalid_transcription(), range(11)
+                ))
+            parse_limit_statuses = sorted(status for status, _ in parse_limit_results)
+            assert parse_limit_statuses == [400] * 10 + [429], parse_limit_results
+
+            # Leave the D1 test database clean for subsequent integration cases.
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", "DELETE FROM ai_transcription_reservations; DELETE FROM auth_rate_limits;",
+            ])
 
             expired_token = secrets.token_urlsafe(32)
             expired_hash = hashlib.sha256(expired_token.encode()).hexdigest()
@@ -399,6 +618,7 @@ def main():
             assert sorted(status for status, _ in login_results) == [201, 409], login_results
             second_login = next(body for status, body in login_results if status == 201)
             second_token = second_login["data"]["accessToken"]
+
             second_profile = expect_status(
                 request("GET", "/api/v1/me", second_token),
                 200,
@@ -743,7 +963,9 @@ def main():
             print(
                 "Wrangler local D1 integration passed: Telegram HMAC/replay, "
                 "session issuance/revocation, content privacy, attempt ownership, "
-                "answer idempotency, concurrent completion, concurrent login replay, concurrent same-identity account convergence, admin/reviewer RBAC grant/revocation, review/audit cursor pagination, login rate limiting with Retry-After, and frontend API response-contract compatibility."
+                "answer idempotency, concurrent completion, concurrent login replay, concurrent same-identity account convergence, "
+                "concurrent AI transcription user/global quota enforcement, admin/reviewer RBAC grant/revocation, "
+                "review/audit cursor pagination, login rate limiting with Retry-After, and frontend API response-contract compatibility."
             )
         finally:
             process.terminate()
