@@ -1,6 +1,6 @@
 # EnglishCodeApp Backend Architecture
 
-**Baseline:** `main` at `533cab6821b39191338473e8fb13ce89c8013589` (2026-11-28).  
+**Baseline:** `main` at `[current main HEAD](https://github.com/bijanbijane/EnglishCodeApp/tree/main)` (2026-11-28).  
 **Release status:** substantial backend modules are committed; no Production deployment is claimed.
 
 ## Runtime
