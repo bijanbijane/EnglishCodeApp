@@ -12,7 +12,7 @@ NNNN_short_description.sql
 
 ## زنجیرهٔ فعلی main
 
-در commit مبنای این مستندات، `main` روی `533cab6821b39191338473e8fb13ce89c8013589` قرار دارد و migrationهای `0001` تا `0016` را شامل می‌شود. Migration شمارهٔ `0016_immutable_learning_events.sql` دفتر append-only رویدادهای تکمیل درس را اضافه می‌کند. شاخه‌ها و PRهای باز بخشی از این زنجیره نیستند تا زمانی که واقعاً ادغام شوند.
+در commit مبنای این مستندات، `main` روی `[current main HEAD](https://github.com/bijanbijane/EnglishCodeApp/tree/main)` قرار دارد و migrationهای `0001` تا `0016` را شامل می‌شود. Migration شمارهٔ `0016_immutable_learning_events.sql` دفتر append-only رویدادهای تکمیل درس را اضافه می‌کند. شاخه‌ها و PRهای باز بخشی از این زنجیره نیستند تا زمانی که واقعاً ادغام شوند.
 
 پیش از هر تغییر:
 - فایل‌های migration و وضعیت واقعی branch هدف را دوباره بررسی کنید.
