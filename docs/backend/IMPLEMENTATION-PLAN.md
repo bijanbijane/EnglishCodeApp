@@ -34,7 +34,7 @@
 - [x] Idempotent same-answer retry and conditional attempt completion.
 - [x] Append-only lesson completion event and progress projection update in one D1 batch.
 - [x] Current-user progress endpoint.
-- [x] Add an internal D1-batched deterministic progress projection rebuild helper; the SQLite-only maintenance SQL remains a separate verifier. The helper is not exposed as a public or scheduled operation; owner-controlled invocation is deferred.
+- [ ] Complete and verify a D1-compatible progress projection rebuild. An internal D1-batched helper now exists, but Local D1 execution/rollback verification and an owner-controlled invocation procedure remain outstanding.
 - [ ] Expand concurrent completion, cross-user isolation and retry-race coverage on Local D1.
 - [ ] Finalize pass thresholds, retry policy and future question types as explicit product decisions.
 
