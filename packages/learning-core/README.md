@@ -51,6 +51,10 @@ The lesson validator requires Context, Input, Noticing, Guided Practice, Product
 - Its typed blueprint is in `examples/a2-personal-goals.ts` and is validated by the backend test suite.
 - This sample is CEFR-informed, not a Council of Europe-certified assessment.
 
+## Exercise contracts
+
+`src/exercises.ts` defines typed authoring contracts and runtime validation for multiple-choice, gap-fill, reorder, transformation, error-spotting, matching, and flashcard content. These validators check content structure only; they do not implement learner answer submission or grading. Fields such as `correctOptionId`, `acceptedAnswers`, `correctOrder`, `correctedText`, matching pairs, and flashcard backs are answer-bearing authoring data and must remain server-side. Do not import answer-bearing exercise packs into frontend code. Any assessed exercise must use the authenticated backend attempt pipeline, immutable snapshots, private answer keys, and server-side grading.
+
 ## Development
 
 The module has no runtime package dependencies. Backend tests import its pure functions directly.
