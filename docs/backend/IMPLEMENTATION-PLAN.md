@@ -34,10 +34,11 @@
 - [x] Attempt creation pins lesson/policy versions and snapshots question content and weights.
 - [x] Owner-scoped attempt retrieval without answer-key disclosure.
 - [x] Server-side answer validation and grading; idempotent same-answer retry.
-- [x] Conditional completion and progress upsert in one D1 batch.
+- [x] Conditional completion, immutable completion-event append, and derived progress upsert in one D1 batch.
 - [x] Current-user progress endpoint.
-- [ ] Verify answer/complete races and exactly-once progress against Local D1.
-- [ ] Add immutable attempt-result/progress-event facts and deterministic projection rebuild.
+- [x] Verify concurrent completion, event idempotency, direct-delete rejection, parent-user cascade, and exactly-once progress against Wrangler Local D1 (exact-head CI run #46115705935 passed).
+- [x] Add a pre-migration completed-attempt fixture and verify migration 0016 backfills its immutable event (SQLite compatibility CI on `c6af8eef95788eb4a199eb1dc5f388d9e473d6ad`; Local D1 separately verifies event append/idempotency and deletion behavior).
+- [ ] Provide a D1-compatible deterministic progress projection rebuild; current rebuild SQL is explicitly SQLite-only.
 - [ ] Finalize pass thresholds, retry policy and future question types.
 
 ## B3 — Content governance and administration
@@ -71,10 +72,10 @@
 
 ## Current blockers
 
-1. GitHub Actions jobs currently fail before runner allocation (`runner_id=0`, no steps); typecheck, Vitest and CI SQL script have not run.
-2. The connected Mac is offline, so no local npm/Wrangler execution is available.
-3. Migrations `0001`–`0010` have not been applied to a fresh Cloudflare Local D1 in this session.
-4. D1 `batch()` and SQLite `changes()` invariants are covered by a committed SQLite compatibility script but still need real Local D1/concurrency verification.
+1. Exact-head Backend CI run #46122389777 passed dependency audit (0 vulnerabilities), typecheck, Vitest (20 files / 80 tests), SQLite verification, Wrangler Local D1 integration, and Development API smoke on `c6af8eef95788eb4a199eb1dc5f388d9e473d6ad`.
+2. The SQLite verifier creates a completed attempt before migration 0016 and asserts the backfilled event ID, user, type, lesson, score, timestamp, and lesson-version payload. This covers the historical migration backfill path with a synthetic fixture.
+3. The Local D1 suite verifies concurrent completion, event count/idempotency, direct-delete rejection, parent-user cascade, and the pre-existing-event conflict case.
+4. The progress rebuild SQL remains SQLite-only; a D1-compatible rebuild procedure is not implemented.
 5. Production origin values and first-admin bootstrap remain owner-controlled and unset.
 
 No deployment, remote migration, production secret change, paid resource or production role grant has been performed.

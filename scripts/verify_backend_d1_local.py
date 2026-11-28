@@ -333,6 +333,26 @@ def main():
                 "start second attempt",
             )
             second_attempt_id = second_attempt["data"]["attemptId"]
+
+            # Simulate an existing completion-event key for an attempt that is
+            # still in progress. The completion event INSERT must conflict, but
+            # the winning attempt transition must still update user_progress.
+            preexisting_event_sql = PERSIST_DIR / "preexisting-completion-event.sql"
+            preexisting_event_sql.write_text(
+                "INSERT INTO learning_events "
+                "(event_id,user_id,event_type,aggregate_id,lesson_id,score,occurred_at,payload_json) "
+                "SELECT 'attempt-completed:' || a.id,a.user_id,'lesson_attempt_completed',"
+                "a.id,a.lesson_id,0,'2026-11-27T00:00:00.000Z',"
+                "json_object('attemptId',a.id,'score',0) "
+                "FROM lesson_attempts a "
+                f"WHERE a.id='{second_attempt_id}' AND a.status='in_progress';",
+                encoding="utf-8",
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                f"--file={preexisting_event_sql}",
+            ])
             second_attempt_detail = expect_status(
                 request("GET", f"/api/v1/attempts/{second_attempt_id}", token),
                 200,
@@ -361,6 +381,89 @@ def main():
                 "progress after second attempt",
             )
             assert progress_after_second["data"][0]["completed_count"] == 2
+
+            # The completion ledger must contain one fact per completed attempt.
+            event_count_sql = PERSIST_DIR / "learning-event-count.sql"
+            event_count_sql.write_text(
+                "SELECT COUNT(*) AS event_count FROM learning_events "
+                f"WHERE user_id='{user_id}' AND event_type='lesson_attempt_completed';",
+                encoding="utf-8",
+            )
+            event_count_output = run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={event_count_sql}", "--json",
+            ])
+            event_count_payload = json.loads(event_count_output)
+            if isinstance(event_count_payload, list):
+                event_count_rows = event_count_payload[0]["results"]
+            else:
+                event_count_rows = event_count_payload["results"]
+            assert event_count_rows[0]["event_count"] == 2, event_count_rows
+
+            # Direct event deletion must be rejected by the immutable-ledger trigger.
+            direct_delete_sql = PERSIST_DIR / "direct-learning-event-delete.sql"
+            direct_delete_sql.write_text(
+                f"DELETE FROM learning_events WHERE aggregate_id='{attempt_id}';",
+                encoding="utf-8",
+            )
+            direct_delete = subprocess.run(
+                [
+                    "npx", "wrangler", "d1", "execute", DATABASE,
+                    "--local", "--persist-to", persist, f"--file={direct_delete_sql}",
+                ],
+                cwd=BACKEND,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+            assert direct_delete.returncode != 0 and (
+                "learning events cannot be deleted directly" in direct_delete.stdout.lower()
+            ), (
+                "direct event deletion did not fail for the expected immutability trigger: "
+                + direct_delete.stdout[-2000:]
+            )
+
+            # Parent-user deletion must still cascade its learning events.
+            cascade_insert_sql = PERSIST_DIR / "cascade-event-fixture.sql"
+            cascade_insert_sql.write_text(
+                "INSERT INTO users (id,display_name) VALUES ('cascade-user-001','Cascade User');"
+                "INSERT INTO learning_events "
+                "(event_id,user_id,event_type,aggregate_id,lesson_id,score,occurred_at,payload_json) "
+                "VALUES ('cascade-event-001','cascade-user-001','lesson_attempt_completed',"
+                "'cascade-attempt-001','lesson-greetings-001',75,'2026-11-27T00:00:00.000Z',"
+                "json_object('attemptId','cascade-attempt-001'));",
+                encoding="utf-8",
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={cascade_insert_sql}",
+            ])
+            cascade_delete_sql = PERSIST_DIR / "cascade-user-delete.sql"
+            cascade_delete_sql.write_text(
+                "DELETE FROM users WHERE id='cascade-user-001';",
+                encoding="utf-8",
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={cascade_delete_sql}",
+            ])
+            cascade_count_sql = PERSIST_DIR / "cascade-event-count.sql"
+            cascade_count_sql.write_text(
+                "SELECT COUNT(*) AS event_count FROM learning_events "
+                "WHERE user_id='cascade-user-001';",
+                encoding="utf-8",
+            )
+            cascade_count_output = run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={cascade_count_sql}", "--json",
+            ])
+            cascade_count_payload = json.loads(cascade_count_output)
+            if isinstance(cascade_count_payload, list):
+                cascade_count_rows = cascade_count_payload[0]["results"]
+            else:
+                cascade_count_rows = cascade_count_payload["results"]
+            assert cascade_count_rows[0]["event_count"] == 0, cascade_count_rows
 
             history_page_one = expect_status(
                 request("GET", "/api/v1/me/history?limit=1", token),

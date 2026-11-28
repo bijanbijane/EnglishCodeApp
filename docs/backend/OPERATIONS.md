@@ -21,12 +21,12 @@ npm run db:seed:local
 npm run dev
 ```
 
-The Python script exercises migrations and core SQLite transaction/trigger invariants. It is compatibility evidence, not a substitute for Local D1 or concurrent Worker tests. Use synthetic records only.
+The Python script exercises migrations and core SQLite transaction/trigger invariants, including immutable learning events and parent-user cascade behavior. It is compatibility evidence, not a substitute for Wrangler Local D1 or concurrent Worker tests. Use synthetic records only. The progress rebuild SQL is SQLite-only; no D1 rebuild procedure is provided.
 
 ## Migration policy
 
 1. Review SQL, foreign keys, triggers and indexes.
-2. Apply migrations `0001`–`0010` to fresh Local D1.
+2. On `main`, the migration sequence is `0001`–`0015`; this feature branch adds `0016_immutable_learning_events.sql`. Confirm the exact commit and migration files before applying.
 3. Apply migrations to a copy of the previous supported schema.
 4. Verify indexes, constraints and representative query plans.
 5. Record exact migration version and evidence.

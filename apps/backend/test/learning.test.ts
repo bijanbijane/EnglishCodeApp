@@ -40,6 +40,7 @@ function makeDb(options: {
     batch: vi.fn().mockResolvedValue(options.batchResults ?? [
       { meta: { changes: 1 } },
       { meta: { changes: 1 } },
+      { meta: { changes: 1 } },
       { results: [{ status: "completed", score: 50, completed_at: "2026-11-26T00:00:00.000Z" }] },
     ]),
   };
@@ -145,5 +146,6 @@ describe("learning write API", () => {
     const statements = db.prepare.mock.calls.map(([sql]) => sql);
     expect(statements.some((sql) => sql.includes("question_weight"))).toBe(true);
     expect(statements.some((sql) => sql.includes("SUM(q.question_weight)"))).toBe(true);
+    expect(statements.some((sql) => sql.includes("INSERT INTO learning_events"))).toBe(true);
   });
 });
