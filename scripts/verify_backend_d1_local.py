@@ -488,6 +488,56 @@ def main():
                 200,
                 "admin role grant",
             )
+
+            # Exercise author lesson-version keyset pagination against real Local D1.
+            # Include a higher version owned by another author to verify ownership scoping.
+            author_versions_sql = PERSIST_DIR / "author-version-pagination-fixtures.sql"
+            author_versions_sql.write_text(
+                "INSERT INTO lesson_versions "
+                "(id,lesson_id,version,title,description,level,position,status,created_by_user_id) VALUES "
+                f"('author-page-v40','lesson-greetings-001',40,'Author Page 40','Local fixture','A1',40,'draft','{user_id}'),"
+                f"('author-page-v39','lesson-greetings-001',39,'Author Page 39','Local fixture','A1',39,'draft','{user_id}'),"
+                f"('author-page-v38','lesson-greetings-001',38,'Author Page 38','Local fixture','A1',38,'draft','{user_id}'),"
+                f"('other-author-page-v41','lesson-greetings-001',41,'Other Author Page 41','Local fixture','A1',41,'draft','{second_user_id}');",
+                encoding="utf-8",
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={author_versions_sql}",
+            ])
+
+            author_page_one = expect_status(
+                request(
+                    "GET",
+                    "/api/v1/admin/content/lessons/lesson-greetings-001/versions?limit=2",
+                    token,
+                ),
+                200,
+                "author lesson-version first page",
+            )
+            assert [(row["version"], row["id"]) for row in author_page_one["data"]] == [
+                (40, "author-page-v40"),
+                (39, "author-page-v39"),
+            ], author_page_one
+            assert all(row["id"] != "other-author-page-v41" for row in author_page_one["data"])
+            author_version_cursor = author_page_one["meta"]["nextCursor"]
+            assert author_version_cursor
+
+            author_page_two = expect_status(
+                request(
+                    "GET",
+                    "/api/v1/admin/content/lessons/lesson-greetings-001/versions?"
+                    + urlencode({"limit": "2", "cursor": author_version_cursor}),
+                    token,
+                ),
+                200,
+                "author lesson-version second page",
+            )
+            assert [(row["version"], row["id"]) for row in author_page_two["data"]] == [
+                (38, "author-page-v38"),
+            ], author_page_two
+            assert author_page_two["meta"]["nextCursor"] is None
+
             expect_status(
                 request("GET", "/api/v1/admin/content/reviews", second_token),
                 200,
