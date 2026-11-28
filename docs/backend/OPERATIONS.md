@@ -1,78 +1,81 @@
 # Backend Operations and Release Controls
 
-## Environments
+## Verified baseline
 
-- Local development uses Wrangler local mode and an isolated D1 database.
-- Staging must have its own Worker name, D1 database, secrets and exact origin allowlist.
+This document is aligned to `main` commit `15b9b47c32e5f0a04542d946d61679f62b15f47c` (2026-11-28).
+
+- Backend: Cloudflare Workers, TypeScript and Hono; versioned API under `/api/v1`.
+- Data: Cloudflare D1/SQLite; forward-only migrations `0001`–`0016`.
+- Learning: authenticated attempts, server-side grading, immutable snapshots, idempotent answer handling, conditional completion and progress projection.
+- Content: published-content reads and author/reviewer/admin publication workflow.
+- A1 content: nine units, 45 lessons and 180 deterministic MCQs; a partial recognition-focused foundation, not a complete four-skill A1 course.
+- Validation evidence is commit-specific. Do not infer current-main CI success from a different PR head.
+
+## Environment boundaries
+
+- Local development uses Wrangler Local mode and isolated D1.
+- Development resources documented for this project are `englishcode-backend-dev` and `englishcodeapp-dev`; verify bindings and target before any remote operation.
+- Staging, if provisioned, must have separate Worker, D1, secrets and exact origin allowlist.
 - Production bindings and secrets must never be copied into local or preview environments.
-- Current Wrangler config contains a local placeholder D1 ID; no deploy target or production resource is provisioned.
 
-## Local workflow
+## Local validation
 
 From `apps/backend`:
 
 ```bash
-npm install
 npm run typecheck
 npm test
 python3 ../../scripts/verify_backend_sqlite.py
 npm run db:migrate:local
 npm run db:seed:local
-npm run dev
+npm run test:d1-local
 ```
 
-The Python script exercises migrations and core SQLite transaction/trigger invariants, including immutable learning events and parent-user cascade behavior. It is compatibility evidence, not a substitute for Wrangler Local D1 or concurrent Worker tests. Use synthetic records only. The progress rebuild SQL is SQLite-only; no D1 rebuild procedure is provided.
+Use synthetic fixtures only. SQLite checks are compatibility evidence, not a substitute for Wrangler Local D1 or concurrency tests. Record the exact commit and command outcomes. Never report a test as passed unless its exact run completed successfully.
 
 ## Migration policy
 
-1. Review SQL, foreign keys, triggers and indexes.
-2. On `main`, the migration sequence is `0001`–`0015`; this feature branch adds `0016_immutable_learning_events.sql`. Confirm the exact commit and migration files before applying.
-3. Apply migrations to a copy of the previous supported schema.
-4. Verify indexes, constraints and representative query plans.
-5. Record exact migration version and evidence.
-6. Remote migration is a separate, explicitly approved operation with backup and recovery plan.
+1. Re-fetch the target branch head and migration directory.
+2. Apply all existing migrations to a fresh isolated Local D1 database.
+3. Test the supported upgrade path as well as fresh installation.
+4. Verify foreign keys, triggers, indexes, constraints, transaction behavior and representative queries.
+5. Preserve every migration already applied to a shared database; corrections require a new forward-only migration.
+6. Remote migration requires explicit approval for that environment and a backup/recovery plan.
 
-Never edit a migration applied to a shared database. Prefer forward-only migrations. Old feature branches have incompatible migration histories; do not copy their old numbered migrations onto main.
+The current mainline migration sequence is `0001`–`0016`. Migration `0016_immutable_learning_events.sql` creates an append-only ledger of completed lesson attempts. It is not a cumulative-assessment result store. The existing SQLite-only progress rebuild script is not a D1-compatible operational procedure.
 
-## CI requirements
+## CI evidence
 
-- Node.js 22 and dependency installation.
-- Backend TypeScript typecheck and Vitest.
-- Python SQLite migration/transaction invariant script.
-- Local D1 migration and synthetic seed.
-- Later: Worker integration tests, security tests, frontend contract compatibility and migration-upgrade tests.
+The backend workflow validates dependency installation/audit, TypeScript, Vitest, SQLite invariants, Wrangler Local D1 integration and a Development API smoke test. Its triggers include backend code, learning-core, migrations, seeds, curriculum/assessment documentation, scripts and the workflow itself.
 
-Current GitHub Actions runs fail before runner allocation (`runner_id=0`, no steps). This is not a code-test failure or a passing result. The connected Mac was also offline during the latest work session.
+CI results must be tied to the exact commit SHA. The following PR-head runs were verified in this review:
+- PR #26 exact head `1f821e690e5c90bd47c4b7db4eadc89b354d080a`: passed.
+- PR #28 exact head `726d638f1209c46489e0f79e1bfe8bc09d5d942c`: passed.
+- PR #30 exact head `1adc37f6a80ffca3795d72d7415b2b35bac1e4a2`: passed.
 
-## Observability
+These runs do not establish a separate successful push-triggered workflow for the current main commit.
 
-- Server-generated request ID on every request.
-- Keep Cloudflare Ray ID separate when available.
-- Log route, duration, outcome and error code without credentials or private content.
-- Monitor error rate, latency, D1 query duration, quota consumption and scheduled cleanup failures.
-- Do not claim an SLA before load testing.
+## Security and administration
 
-## Scheduled auth cleanup
+- Telegram raw initData is verified server-side; do not persist it or bearer tokens.
+- Session tokens are stored only as hashes.
+- Authorization and role checks are server-side; there is no public role-grant endpoint.
+- First-admin bootstrap and role grants/revocations remain owner-controlled and audited.
+- Do not log credentials, raw initData, learner answer content or unnecessary personal data.
+- Account export/deletion, backup deletion and restore drills remain release-readiness work.
 
-- Daily Worker Cron configured for 03:17 UTC; inactive until deployment.
-- At most 500 expired replay fingerprints, 500 rate-limit buckets older than 48 hours and 500 stale sessions are deleted per run.
-- Expired unrevoked sessions are retained at least seven days after expiry; revoked sessions at least 30 days after revocation.
+## Free-first and release controls
 
-## Admin operations
+- No paid plan, quota increase or billable fallback without explicit owner approval.
+- Optional features must degrade before core learning data is put at risk.
+- No production deployment, remote migration, production secret/config mutation or production data change without separate explicit approval for that exact action.
+- A dry run is not a deployment.
 
-- First admin and subsequent role grants/revocations are owner-controlled D1 batches; no public grant endpoint exists.
-- Follow `ADMIN-BOOTSTRAP.md`; verify internal user ID from the confirmed Telegram identity.
-- Every role grant/revocation must include an audit event in the same D1 batch.
-- Do not seed production roles or store a production administrator ID in source control.
+## Remaining operational gates
 
-## Release gate
-
-Before beta:
-- CI green on exact release commit.
-- Local D1 migration-from-empty and upgrade tests pass.
-- Auth, role, ownership, answer-key, idempotency and concurrency tests pass.
-- Account export/deletion and backup/restore paths are tested.
-- Threat model and privacy/retention policy are reviewed.
-- Staging smoke test and rollback procedure are documented.
-
-Production deployment and production migration require separate explicit owner approval.
+- D1-compatible deterministic progress-projection rebuild.
+- Owner-operated bootstrap/grant/revoke maintenance procedure and verification.
+- Account export/deletion and backup deletion procedure.
+- Cross-user, role-revocation, concurrency and idempotency security matrix.
+- Backup/restore drill, observability and load baseline.
+- End-to-end author → reviewer → admin publication integration coverage.
