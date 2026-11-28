@@ -67,6 +67,10 @@ def main() -> None:
         a1_unit_08_sql = a1_unit_08_seed.read_text(encoding="utf-8")
         db.executescript(a1_unit_08_sql)
         db.executescript(a1_unit_08_sql)  # Unit 8 must also be idempotent.
+        a1_unit_09_seed = ROOT / "database" / "seeds" / "0010_a1_unit_09.sql"
+        a1_unit_09_sql = a1_unit_09_seed.read_text(encoding="utf-8")
+        db.executescript(a1_unit_09_sql)
+        db.executescript(a1_unit_09_sql)  # Unit 9 must also be idempotent.
 
         a1_counts = db.execute(
             """SELECT COUNT(*) AS lesson_count,
@@ -76,14 +80,14 @@ def main() -> None:
                JOIN lesson_versions lv ON lv.lesson_id=l.id
                WHERE l.course_id='course-a1-foundations'"""
         ).fetchone()
-        assert a1_counts["lesson_count"] == 40, a1_counts
-        assert a1_counts["published_count"] == 40, a1_counts
+        assert a1_counts["lesson_count"] == 45, a1_counts
+        assert a1_counts["published_count"] == 45, a1_counts
         assert db.execute(
             """SELECT COUNT(*) FROM question_versions qv
                JOIN lesson_versions lv ON lv.id=qv.lesson_version_id
                JOIN lessons l ON l.id=lv.lesson_id
                WHERE l.course_id='course-a1-foundations' AND lv.status='published'"""
-        ).fetchone()[0] == 160
+        ).fetchone()[0] == 180
 
         # Telegram identity + replay-gated session issuance.
         now = "2026-11-26T15:00:00.000Z"
