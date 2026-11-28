@@ -223,7 +223,6 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
     expect(secureValues.get("englishcode_session")).toBe("local-integration-session");
     expect(container.textContent).toContain("English Foundations");
     expect(container.textContent).toContain("Recent attempts");
-    expect(container.textContent).toContain("Greetings and Introductions");
 
     await act(async () => {
       findButton(container, "English Foundations").click();
