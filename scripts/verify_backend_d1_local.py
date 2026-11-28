@@ -137,6 +137,24 @@ def query_progress_projection(persist):
     return rows
 
 
+def query_event_progress_projection(persist):
+    query_file = PERSIST_DIR / "event-progress-projection.sql"
+    query_file.write_text(
+        "SELECT user_id, lesson_id, MAX(score) AS best_score, "
+        "COUNT(*) AS completed_count, MAX(occurred_at) AS last_completed_at "
+        "FROM learning_events WHERE event_type='lesson_attempt_completed' "
+        "GROUP BY user_id, lesson_id ORDER BY user_id, lesson_id;",
+        encoding="utf-8",
+    )
+    output = run([
+        "npx", "wrangler", "d1", "execute", DATABASE,
+        "--local", "--persist-to", persist, f"--file={query_file}", "--json",
+    ])
+    payload = json.loads(output)
+    rows = payload[0]["results"] if isinstance(payload, list) else payload["results"]
+    return rows
+
+
 def run_progress_rebuild_integration(persist):
     """Exercise the actual D1 batch helper and verify rollback on insert failure."""
     harness_log = PERSIST_DIR / "progress-rebuild-worker.log"
@@ -175,6 +193,8 @@ def run_progress_rebuild_integration(persist):
             )
 
         before = query_progress_projection(persist)
+        expected = query_event_progress_projection(persist)
+        assert expected, "Expected completion events before progress rebuild"
 
         trigger_sql = PERSIST_DIR / "force-progress-rebuild-failure.sql"
         trigger_sql.write_text(
@@ -227,8 +247,8 @@ def run_progress_rebuild_integration(persist):
         assert len(success.get("changes", [])) == 2, success
 
         after_success = query_progress_projection(persist)
-        assert after_success == before, {
-            "before": before,
+        assert after_success == expected, {
+            "expected_from_immutable_events": expected,
             "after_successful_rebuild": after_success,
         }
         print(
