@@ -266,7 +266,7 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
     });
     expect(container.textContent).toContain("1 unique lesson");
     expect(container.textContent).toContain("Recent attempts");
-    expect(container.textContent).toContain("4/2 correct");
+    expect(container.textContent).toContain("2/2 correct");
     expect(container.textContent).toContain("Greetings and Introductions");
 
     await act(async () => {
