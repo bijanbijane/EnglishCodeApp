@@ -2,7 +2,7 @@
 
 پلتفرم آموزش زبان انگلیسی با محوریت Telegram Bot و Telegram Mini App؛ با مسیر توسعهٔ تدریجی به وب‌اپلیکیشن و اپلیکیشن موبایل.
 
-> **وضعیت مخزن (۲۶ نوامبر ۲۰۲۶):** پایهٔ اجرایی بک‌اند روی `main` ثبت شده است: Worker/Hono، health/readiness، API خواندنی محتوای منتشرشده، migration اولیه D1، seed محلی، تست اولیه و workflow CI. ورود تلگرام و صدور نشست هنوز کامل نیست؛ middleware نشست، پروفایل، attempt/answer، grading سمت سرور و ثبت progress پیاده‌سازی شده‌اند، اما رفتار D1 و هم‌زمانی آن‌ها هنوز integration-test نشده است. تست‌ها و Local D1 هنوز اجرا و تأیید نشده‌اند؛ هیچ remote migration یا deployment انجام نشده است.
+> **وضعیت مخزن (۲۸ نوامبر ۲۰۲۶):** شاخهٔ `main` شامل Worker/Hono، API نسخه‌بندی‌شده، احراز هویت Telegram و چرخهٔ session، attempt/answer با grading سمت سرور، progress، RBAC و گردش کار author/reviewer/publisher است. زنجیرهٔ migration در `main` از `0001` تا `0016` است؛ migration `0016_immutable_learning_events.sql` دفتر append-only رویدادهای تکمیل درس را اضافه می‌کند. اجرای GitHub Actions شمارهٔ [46132304990](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/46132304990) روی head دقیق PR مستنداتی #30 که از همین `main` منشعب شده بود، شامل audit، typecheck، Vitest، SQLite، Local D1 و Development API smoke test با موفقیت انجام شد؛ این شاهد مربوط به همان commit PR است و نباید به‌عنوان اجرای workflow روی SHA خود `main` معرفی شود. هیچ Production deployment یا remote migration در این روند انجام نشده است.
 
 ## هدف محصول
 
@@ -133,27 +133,27 @@ EnglishCodeApp/
 
 ## ترتیب اجرای باقی‌مانده
 
-1. اجرای typecheck، تست‌ها و workflow CI روی commit جاری؛ اصلاح خطاها.
-2. اجرای migration و seed روی Local D1 تازه و ثبت شواهد.
-3. تکمیل Telegram HMAC، replay protection اتمیک و session lifecycle.
-4. پیاده‌سازی attempt، ثبت پاسخ idempotent، grading سمت سرور و progress اتمیک.
-5. تکمیل rate limiting، origin policy، امنیت cross-user و retention/export/delete.
-6. افزودن قابلیت‌های content authoring و administration بر اساس نیاز.
-7. ارزیابی R2، Queues و AI فقط پس از اثبات use case و بررسی هزینه.
-8. آزمون بازیابی، بار و سهمیه؛ سپس بررسی جداگانهٔ staging. Production نیازمند تأیید صریح است.
+1. اجرای مستقل workflowها روی SHA دقیق `main` و حفظ شواهد CI برای همان commit.
+2. تکرار fresh Local D1 migration/seed و آزمون upgrade/concurrency روی commitهای بعدی؛ نتیجهٔ PR #30 فقط برای head همان PR معتبر است.
+3. تکمیل تست‌های امنیت cross-user، role revocation، idempotency و رقابت answer/complete.
+4. تکمیل owner-operated bootstrap و مسیرهای export/delete و backup/restore.
+5. تکمیل آزمون چرخهٔ author → reviewer → publisher و ارزیابی کیفیت محتوای A1 چهارمهارته.
+6. ارزیابی R2، Queues و AI فقط پس از اثبات use case، بررسی حریم خصوصی و هزینهٔ جاری.
+7. آزمون بازیابی، بار و سهمیه؛ سپس بررسی جداگانهٔ Development/Staging. Production نیازمند تأیید صریح و مستقل است.
 
 ## وضعیت قابلیت‌ها
 
 - [x] ثبت سیاست Free-first و معماری Modular Monolith
 - [x] Worker/Hono پایه و endpointهای health/readiness
 - [x] API خواندنی دوره و درس؛ حذف answer key از DTO عمومی
-- [x] migration اولیه و seed مصنوعی (فایل‌ها ثبت شده‌اند؛ Local D1 هنوز اجرا نشده)
-- [x] تست اولیه و workflow CI (نتیجهٔ اجرا هنوز تأیید نشده)
-- [ ] Telegram authentication و session
-- [x] attempt، answer، grading و progress write (کد ثبت شده؛ D1 integration/concurrency هنوز تأیید نشده)
-- [ ] rate limit، RBAC، retention و export/delete
-- [ ] آزمون یکپارچگی D1/Workers، امنیت و بار
-- [ ] انتشار عملیاتی
+- [x] Telegram authentication، session lifecycle و rate limiting در کد main
+- [x] attempt، answer، grading سمت سرور و progress write در کد main
+- [x] RBAC، author/reviewer workflow، publication controls و audit events
+- [x] migrationهای SQL و seed مصنوعی؛ زنجیرهٔ main تا 0016
+- [x] CI شامل typecheck، Vitest، SQLite، Local D1 و Development API smoke روی head دقیق PR #30 (نه SHA خود main)
+- [ ] اجرای مستقل CI روی SHA دقیق main و تکرار Local D1/concurrency روی commitهای بعدی
+- [ ] owner-operated bootstrap، export/delete و backup/restore کامل
+- [ ] آزمون امنیت cross-user، بار و آمادگی انتشار عملیاتی
 
 ## اسناد
 
