@@ -13,7 +13,9 @@
     "db:seed:dev": "wrangler d1 execute englishcodeapp-dev --remote --file=../../database/seeds/0001_demo.sql",
     "deploy:dry-run": "wrangler deploy --dry-run",
     "deploy:dev": "wrangler deploy",
-    "test:d1-local": "python3 ../../scripts/verify_backend_d1_local.py"
+    "test:d1-local": "python3 ../../scripts/verify_backend_d1_local.py",
+    "db:seed:a1:local": "wrangler d1 execute englishcode-local --local --file=../../database/seeds/0002_a1_foundations.sql",
+    "db:seed:a1:dev": "wrangler d1 execute englishcodeapp-dev --remote --file=../../database/seeds/0002_a1_foundations.sql"
   },
   "dependencies": {
     "hono": "^4.8.0"
