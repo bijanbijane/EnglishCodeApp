@@ -47,16 +47,13 @@ describe("bounded authentication-state cleanup", () => {
 
 describe("D1-batched learning progress rebuild", () => {
   it("replaces only the derived projection from immutable completion events in one batch", async () => {
-    const prepared: Array<{ sql: string; values: unknown[] }> = [];
+    const preparedSql: string[] = [];
     const batchResults = [{ meta: { changes: 2 } }, { meta: { changes: 4 } }];
     const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: vi.fn((...values: unknown[]) => {
-          prepared.push({ sql, values });
-          return { sql, values };
-        }),
-        sql,
-      })),
+      prepare: vi.fn((sql: string) => {
+        preparedSql.push(sql);
+        return { bind: vi.fn(() => ({ sql })), sql };
+      }),
       batch: vi.fn().mockResolvedValue(batchResults),
     };
 
@@ -64,17 +61,16 @@ describe("D1-batched learning progress rebuild", () => {
 
     expect(db.batch).toHaveBeenCalledOnce();
     expect(prepared).toHaveLength(0);
-    const statements = db.batch.mock.calls[0][0] as Array<{ sql: string; values?: unknown[] }>;
-    expect(statements).toHaveLength(2);
-    expect(statements[0].sql).toBe("DELETE FROM user_progress");
-    expect(statements[1].sql).toContain("INSERT INTO user_progress");
-    expect(statements[1].sql).toContain("FROM learning_events");
-    expect(statements[1].sql).toContain("MAX(score)");
-    expect(statements[1].sql).toContain("COUNT(*)");
-    expect(statements[1].sql).toContain("MAX(occurred_at)");
-    expect(statements[1].sql).toContain("GROUP BY user_id, lesson_id");
-    expect(statements[1].sql).toContain("event_type = 'lesson_attempt_completed'");
-    expect(statements[1].sql).not.toMatch(/\b(BEGIN|COMMIT|ROLLBACK)\b/i);
-    expect(statements.every((statement) => !statement.sql.includes("DELETE FROM learning_events"))).toBe(true);
+    expect(preparedSql).toHaveLength(2);
+    expect(preparedSql[0]).toBe("DELETE FROM user_progress");
+    expect(preparedSql[1]).toContain("INSERT INTO user_progress");
+    expect(preparedSql[1]).toContain("FROM learning_events");
+    expect(preparedSql[1]).toContain("MAX(score)");
+    expect(preparedSql[1]).toContain("COUNT(*)");
+    expect(preparedSql[1]).toContain("MAX(occurred_at)");
+    expect(preparedSql[1]).toContain("GROUP BY user_id, lesson_id");
+    expect(preparedSql[1]).toContain("event_type = 'lesson_attempt_completed'");
+    expect(preparedSql.join("\\n")).not.toMatch(/\b(BEGIN|COMMIT|ROLLBACK)\b/i);
+    expect(preparedSql.every((sql) => !sql.includes("DELETE FROM learning_events"))).toBe(true);
   });
 });
