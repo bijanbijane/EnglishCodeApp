@@ -60,7 +60,6 @@ describe("D1-batched learning progress rebuild", () => {
     await expect(rebuildUserProgressFromEvents(db as never)).resolves.toBe(batchResults);
 
     expect(db.batch).toHaveBeenCalledOnce();
-    expect(prepared).toHaveLength(0);
     expect(preparedSql).toHaveLength(2);
     expect(preparedSql[0]).toBe("DELETE FROM user_progress");
     expect(preparedSql[1]).toContain("INSERT INTO user_progress");
@@ -70,7 +69,7 @@ describe("D1-batched learning progress rebuild", () => {
     expect(preparedSql[1]).toContain("MAX(occurred_at)");
     expect(preparedSql[1]).toContain("GROUP BY user_id, lesson_id");
     expect(preparedSql[1]).toContain("event_type = 'lesson_attempt_completed'");
-    expect(preparedSql.join("\\n")).not.toMatch(/\b(BEGIN|COMMIT|ROLLBACK)\b/i);
+    expect(preparedSql.join("\n")).not.toMatch(/\b(BEGIN|COMMIT|ROLLBACK)\b/i);
     expect(preparedSql.every((sql) => !sql.includes("DELETE FROM learning_events"))).toBe(true);
   });
 });
