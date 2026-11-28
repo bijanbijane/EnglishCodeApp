@@ -246,3 +246,14 @@ This addendum supersedes the earlier PR #23 and PR #28 head/check statements abo
 - Main remains at `f3671f2194e562fc194d23e9602b768455d8e483`.
 - PR #29 remains a documentation-only Draft candidate. This addendum does not authorize merging PR #23, PR #28 or any other branch.
 - No remote D1 write, Worker configuration/secret mutation, Production deployment, branch deletion or history rewrite was performed.
+
+
+## Addendum — PR #25 exact-head review and backfill verification (2026-11-28)
+
+- PR #25 current code head: `c6af8eef95788eb4a199eb1dc5f388d9e473d6ad`; 20 commits ahead / 0 behind main. A subsequent documentation-only commit `facb4e2882caa030aa9a00b9653bd8650ae9afd0` reconciles the implementation plan and PR description.
+- Exact-head Backend CI run [#46122389777](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/46122389777) passed all substantive steps: npm 10.9.2 install, dependency audit (0 vulnerabilities), typecheck, Vitest (20 files / 80 tests), SQLite verification, Wrangler Local D1 integration, and Development API smoke.
+- The SQLite verifier now creates a synthetic completed attempt before applying migration 0016 and asserts the migrated event ID, user, type, lesson, score, completion timestamp and lesson-version payload. This closes the previously identified migration-backfill test gap for SQLite compatibility.
+- Local D1 integration separately verifies concurrent completion, exactly-once progress, event count/idempotency, pre-existing-event conflict behavior, direct-delete rejection and user-delete cascade.
+- Static review confirms the D1 batch order is conditional attempt update → progress projection gated by the immediately preceding `changes() = 1` → immutable event append → final read. This avoids coupling progress correctness to event-insert row count.
+- Remaining limitation: `database/maintenance/rebuild_user_progress_from_events.sql` is explicitly SQLite-only. A D1-compatible deterministic progress rebuild procedure remains unimplemented.
+- PR #25 remains Draft, open and unmerged; no human review is recorded. Migration 0016 has not been applied to any remote database. No deployment, remote seed, Worker secret/config mutation, production data change, or merge was performed.
