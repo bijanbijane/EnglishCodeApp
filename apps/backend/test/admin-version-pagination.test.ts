@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Env } from "../src/env";
 import app from "../src/app";
-import { encodeAuthorVersionCursor } from "../src/modules/admin/version-pagination";
+import { decodeAuthorVersionCursor, encodeAuthorVersionCursor } from "../src/modules/admin/version-pagination";
 
 const bearer = "x".repeat(43);
 const versionRows = [
@@ -55,6 +55,11 @@ function makeDatabase(roles: string[] = ["content_author"]) {
 }
 
 describe("author lesson version history pagination", () => {
+  it("round-trips real colon-delimited lesson version ids", () => {
+    const id = "a1-u01-l01:v1";
+    expect(decodeAuthorVersionCursor(encodeAuthorVersionCursor(1, id))).toEqual({ version: 1, id });
+  });
+
   it("preserves version-descending order when timestamps and ID order disagree", async () => {
     const fake = makeDatabase();
     const response = await app.request(
