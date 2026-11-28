@@ -14,6 +14,7 @@ Seedها فقط برای داده‌های پایه و قابل تکرار هس�
 After applying migrations 0001–0015 and running the base demo seed, apply the original A1 Unit 1 content:
 
 - Local: from `apps/backend`, run `npm run db:seed:a1:local`.
+- The local commands use the `englishcodeapp-dev` D1 database name from `wrangler.jsonc` with Wrangler's local persistence; they do not access the remote development database.
 - Development remote: from `apps/backend`, run `npm run db:seed:a1:dev` only after verifying the target database and obtaining explicit owner approval for that remote write.
 - The seed creates one A1 course, five lessons and twenty deterministic multiple-choice questions. It is idempotent and publishes each lesson only after its four question versions exist.
 - Teaching notes, vocabulary focus, model dialogues, communicative tasks and editorial methodology are documented in `docs/curriculum/A1-FOUNDATIONS-UNIT-01.md`.

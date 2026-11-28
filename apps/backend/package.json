@@ -7,14 +7,14 @@
     "dev": "wrangler dev",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "db:migrate:local": "wrangler d1 migrations apply englishcode-local --local",
-    "db:seed:local": "wrangler d1 execute englishcode-local --local --file=../../database/seeds/0001_demo.sql",
+    "db:migrate:local": "wrangler d1 migrations apply englishcodeapp-dev --local",
+    "db:seed:local": "wrangler d1 execute englishcodeapp-dev --local --file=../../database/seeds/0001_demo.sql",
     "db:migrate:dev": "wrangler d1 migrations apply englishcodeapp-dev --remote",
     "db:seed:dev": "wrangler d1 execute englishcodeapp-dev --remote --file=../../database/seeds/0001_demo.sql",
     "deploy:dry-run": "wrangler deploy --dry-run",
     "deploy:dev": "wrangler deploy",
     "test:d1-local": "python3 ../../scripts/verify_backend_d1_local.py",
-    "db:seed:a1:local": "wrangler d1 execute englishcode-local --local --file=../../database/seeds/0002_a1_foundations.sql",
+    "db:seed:a1:local": "wrangler d1 execute englishcodeapp-dev --local --file=../../database/seeds/0002_a1_foundations.sql",
     "db:seed:a1:dev": "wrangler d1 execute englishcodeapp-dev --remote --file=../../database/seeds/0002_a1_foundations.sql"
   },
   "dependencies": {
