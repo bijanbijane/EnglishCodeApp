@@ -10,6 +10,44 @@ const MAX_AUDIO_BYTES = 1024 * 1024;
 const MAX_DURATION_SECONDS = 60;
 const GLOBAL_DAILY_LIMIT = 60;
 const USER_DAILY_LIMIT = 2;
+const PRE_PARSE_WINDOW_MS = 60 * 1000;
+const PRE_PARSE_REQUEST_LIMIT = 10;
+type Result = { text?: string; word_count?: number; transcription_info?: { language?: string } };
+
+async function consumePreParseRateLimit(db: D1Database, userId: string, now = new Date()): Promise<number> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(`ai-transcription:${userId}`),
+  );
+  const bucketKey = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  const windowStart = new Date(
+    Math.floor(now.getTime() / PRE_PARSE_WINDOW_MS) * PRE_PARSE_WINDOW_MS,
+  ).toISOString();
+  const updatedAt = now.toISOString();
+
+  try {
+    const result = await db.prepare(
+      `INSERT INTO auth_rate_limits (bucket_key, window_start, request_count, updated_at)
+       VALUES (?, ?, 1, ?)
+       ON CONFLICT(bucket_key) DO UPDATE SET
+         request_count = CASE
+           WHEN auth_rate_limits.window_start = excluded.window_start
+             THEN auth_rate_limits.request_count + 1
+           ELSE 1
+         END,
+         window_start = excluded.window_start,
+         updated_at = excluded.updated_at
+       RETURNING request_count`,
+    ).bind(bucketKey, windowStart, updatedAt).first<{ request_count: number }>();
+
+    if (!result || !Number.isSafeInteger(result.request_count) || result.request_count < 1) {
+      throw new Error("Rate limit storage returned an invalid result.");
+    }
+    return result.request_count;
+  } catch {
+    throw new AppError("SERVICE_UNAVAILABLE", "Transcription request protection is temporarily unavailable.", 503);
+  }
+}
 type Result = { text?: string; word_count?: number; transcription_info?: { language?: string } };
 
 function parsePayload(value: unknown): { audioBase64: string; durationSeconds: number } {
@@ -63,7 +101,13 @@ function parsePayload(value: unknown): { audioBase64: string; durationSeconds: n
 
   return { audioBase64: body.audioBase64, durationSeconds };
 }
-ai.post("/ai/transcriptions", requireSession, bodyLimit({ maxSize: 1536 * 1024, onError: (c) => c.json({
+ai.post("/ai/transcriptions", requireSession, async (c, next) => {
+  const count = await consumePreParseRateLimit(c.env.DB, c.get("userId"));
+  if (count > PRE_PARSE_REQUEST_LIMIT) {
+    throw new AppError("RATE_LIMITED", "Too many transcription requests. Try again in a minute.", 429);
+  }
+  await next();
+}, bodyLimit({ maxSize: 1536 * 1024, onError: (c) => c.json({
   error: { code: "PAYLOAD_TOO_LARGE", message: "Audio request exceeds the allowed size.", requestId: c.get("requestId") },
 }, 413) }), async (c) => {
   if (!c.req.header("content-type")?.toLowerCase().includes("application/json")) throw new AppError("VALIDATION_ERROR", "Content-Type must be application/json.", 400);
