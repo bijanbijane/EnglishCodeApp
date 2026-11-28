@@ -342,3 +342,39 @@ This section supersedes earlier PR head and CI statements above where they confl
 
 - No PR was merged or closed; no branch was deleted or force-pushed.
 - No remote D1 migration/seed, Worker configuration or secret mutation, deployment, billing change, or production operation was performed.
+
+
+## Addendum — mainline consolidation progress (2026-11-28)
+
+### Confirmed squash merges
+
+The following reviewed changes were merged to `main` with expected-head SHA checks:
+
+| PR | Change | Merge commit |
+|---|---|---|
+| #24 | Environment-aware Telegram Mini App launch URL with HTTPS validation and safe omission on invalid configuration | `56134fc9697df8fd4d875c36aece846a8aa27aff` |
+| #25 | Immutable learning completion-event ledger, forward-only migration 0016, idempotent event append, Local D1/SQLite coverage | `732199089f82fe57b2fea89f33fcdedad1713e45` |
+| #26 | Author lesson-version keyset pagination, colon-delimited ID cursor fix, isolated Local D1 fixtures and deterministic rate-limit test | `4e52df5910e913b7af95733a8ca3f40aa2ee738b` |
+| #21 | Open learning library: supplementary vocabulary/error-correction lookup, original A2 lesson sample, source/license register, checksum-verified local content sync and frontend tests | `06925ec6e28030b35348a1fdbabcc001e5074382` |
+
+All listed PRs had successful exact-head checks before merge. PR #26 required two test fixes before merge: the pagination fixture now uses its own lesson so it cannot alter the next version in the authoring workflow, and the rate-limit integration test seeds a 30-request bucket in the current UTC minute instead of sending 30 network requests across a possible minute boundary. Its exact-head run passed typecheck, 85 Vitest tests, SQLite, Wrangler Local D1 and Development API smoke.
+
+The main commit immediately after PR #21 merge is `06925ec6e28030b35348a1fdbabcc001e5074382`. Its Backend and Frontend push checks were still running at the time this addendum was written; do not treat them as passed until their exact-head conclusions are successful.
+
+### Remaining active candidates
+
+- PR #28 (A1 Foundations) is the next content candidate. Its current head at this checkpoint is `726d638f1209c46489e0f79e1bfe8bc09d5d942c`. The CI workflow was reconciled with main's npm 10.9.2 install/audit steps and includes both `packages/learning-core/**` and curriculum/assessment documentation paths. Its exact-head Backend CI completed successfully before this addendum. Recheck mergeability and run checks against the current main base before merging.
+- PR #29 is this documentation-only audit PR. The branch-distance table above is a historical snapshot compared with main baseline `f3671f2`, before the four merges in this addendum. It must not be read as current branch distance.
+- PR #23 is a status-refresh documentation proposal whose README and implementation/operations plans still describe migration 0015, open PR #24/#25, and pre-runner-allocation CI failures. It is stale after the merges above and should not be merged without a fresh documentation reconciliation.
+- PR #27's npm fix is redundant with the npm 10.9.2 workflow already merged through PR #24/#25 and the CI path now present in main. Do not merge it separately without identifying unique remaining behavior.
+- PR #22 remains blocked: its grammar exercise pack is imported into the browser with correct answers/accepted answers, and local frontend code evaluates correctness. This violates the server-authoritative grading boundary for assessed work. It may be reconsidered only after answer keys and grading move server-side, or the feature is explicitly redesigned as ungraded study content.
+- PR #20 introduces a Workers AI binding and speech-transcription endpoint. It is outside the current no-AI baseline and needs a separate demonstrated-use-case, privacy, quota and cost review; do not merge as part of this consolidation.
+- PR #11's development Wrangler configuration is stale; current main already has the isolated `englishcode-backend-dev` Worker and `englishcodeapp-dev` D1 binding. The old branch does not add a required capability.
+- PR #17 is superseded by PR #24; PR #19 is an alternative implementation superseded by PR #25; PR #18's pagination work is superseded by PR #26.
+- Older architecture/foundation branches that are hundreds of commits behind main are not merge candidates as whole branches. Their useful behavior has to be compared with current main and ported selectively; no blind merge is safe.
+
+### Data and deployment boundary
+
+- Main's schema migration sequence now includes `0016_immutable_learning_events.sql`.
+- PR #28's nine curriculum SQL files are seeds, not migrations. They remain unmerged at this checkpoint.
+- No remote D1 migration, remote seed, secret mutation, Worker configuration change, Production deployment or paid service activation was performed.
