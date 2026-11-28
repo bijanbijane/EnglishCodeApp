@@ -48,7 +48,6 @@ async function consumePreParseRateLimit(db: D1Database, userId: string, now = ne
     throw new AppError("SERVICE_UNAVAILABLE", "Transcription request protection is temporarily unavailable.", 503);
   }
 }
-type Result = { text?: string; word_count?: number; transcription_info?: { language?: string } };
 
 function parsePayload(value: unknown): { audioBase64: string; durationSeconds: number } {
   if (typeof value !== "object" || value === null) {
