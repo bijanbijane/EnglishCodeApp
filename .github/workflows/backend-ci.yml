@@ -6,6 +6,7 @@ on:
       - "apps/backend/**"
       - "database/migrations/**"
       - "database/seeds/**"
+      - "docs/backend/**"
       - "scripts/**"
       - ".github/workflows/backend-ci.yml"
   push:
@@ -14,6 +15,7 @@ on:
       - "apps/backend/**"
       - "database/migrations/**"
       - "database/seeds/**"
+      - "docs/backend/**"
       - "scripts/**"
       - ".github/workflows/backend-ci.yml"
 
@@ -32,7 +34,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      # Match the repository's declared packageManager instead of the runner's floating npm.
+      - run: npm install --global npm@10.9.2
+      # Work around npm 10's optional-peer Arborist resolver crash with Vitest 4.1.x.
+      - run: npm install --legacy-peer-deps --no-audit --no-fund
+      - run: npm audit --audit-level=moderate
       - run: npm run typecheck
       - run: npm test
       - name: Verify migration and transaction SQL invariants with SQLite
