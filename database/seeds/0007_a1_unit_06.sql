@@ -25,7 +25,7 @@ INSERT OR IGNORE INTO question_versions (id,lesson_version_id,source_question_id
 UPDATE lesson_versions SET status='published',published_at=CURRENT_TIMESTAMP WHERE id='a1-u06-l02:v1' AND status='draft' AND (SELECT COUNT(*) FROM question_versions WHERE lesson_version_id='a1-u06-l02:v1')=4;
 UPDATE lessons SET current_published_version_id='a1-u06-l02:v1' WHERE id='a1-u06-l02' AND EXISTS (SELECT 1 FROM lesson_versions WHERE id='a1-u06-l02:v1' AND status='published');
 
-INSERT OR IGNORE INTO lessons (id,course_id,slug,title,description,level,position,version,status) VALUES ('a1-u06-l03','course-a1-foundations','where-is-it','Where Is It?','Describe where places and objects are with there is, there are and prepositions.','A1',28,1,'published');
+INSERT OR IGNORE INTO lessons (id,course_id,slug,title,description,level,position,version,status) VALUES ('a1-u06-l03','course-a1-foundations','where-things-are','Where Is It?','Describe where places and objects are with there is, there are and prepositions.','A1',28,1,'published');
 INSERT OR IGNORE INTO questions (id,lesson_id,type,prompt,options_json,answer_key,explanation,position) VALUES
 ('a1-u06-l03-q01','a1-u06-l03','multiple_choice','Complete: ___ a park near my home.','[{"id":"a","text":"There is"},{"id":"b","text":"There are"},{"id":"c","text":"It are"}]','a','Use There is with a singular noun.',1),
 ('a1-u06-l03-q02','a1-u06-l03','multiple_choice','Complete: ___ two chairs in the room.','[{"id":"a","text":"There is"},{"id":"b","text":"There are"},{"id":"c","text":"It is"}]','b','Use There are with plural nouns.',2),
