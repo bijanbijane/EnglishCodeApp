@@ -33,6 +33,8 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Report dependency audit advisories
+        run: npm audit --json || true
       - run: npm run typecheck
       - run: npm test
       - name: Verify migration and transaction SQL invariants with SQLite
