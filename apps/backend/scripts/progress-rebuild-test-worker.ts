@@ -5,7 +5,12 @@ interface Env {
 }
 
 export default {
-  async fetch(_request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+    if (request.method !== "POST" || url.pathname !== "/rebuild") {
+      return new Response(null, { status: 404 });
+    }
+
     try {
       const results = await rebuildUserProgressFromEvents(env.DB);
       return Response.json({
