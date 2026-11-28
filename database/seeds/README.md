@@ -35,3 +35,7 @@ After applying migrations 0001–0015 and running the base demo seed, apply the 
 - Unit 5 local: from `apps/backend`, run `npm run db:seed:a1:unit-05:local` after Units 1–4.
 - Unit 5 development remote: run `npm run db:seed:a1:unit-05:dev` only after verifying the target database and obtaining explicit owner approval.
 - Unit 5 adds five lessons and twenty questions to the existing A1 course; it is independently idempotent.
+
+- Unit 6 local: from `apps/backend`, run `npm run db:seed:a1:unit-06:local` after Units 1–5.
+- Unit 6 development remote: run `npm run db:seed:a1:unit-06:dev` only after verifying the target database and obtaining explicit owner approval.
+- Unit 6 adds five lessons and twenty questions to the existing A1 course; it is independently idempotent. See `docs/curriculum/A1-FOUNDATIONS-UNIT-06.md`.
