@@ -69,10 +69,16 @@ This register identifies public, no-API references for curriculum design and edi
 
 ## Current curriculum coverage
 
-The first four A1 units are authored as original content:
-- Unit 1 — First Conversations
-- Unit 2 — Everyday Objects and Classroom Things
-- Unit 3 — Family and Friends
-- Unit 4 — Daily Routines and Time
+The A1 Foundations branch currently contains nine authored units, 45 lessons and 180 deterministic multiple-choice assessment items:
 
-The four units currently provide deterministic recognition questions. They are a partial A1 foundation, not a claim of complete CEFR A1 coverage. Listening/audio and productive speaking/writing tasks remain planned.
+1. Unit 1 — First Conversations
+2. Unit 2 — Everyday Objects and Classroom Things
+3. Unit 3 — Family and Friends
+4. Unit 4 — Daily Routines and Time
+5. Unit 5 — Food, Drinks and Preferences
+6. Unit 6 — Home, Places and Directions
+7. Unit 7 — Work, Study and Free-time Activities
+8. Unit 8 — Weather, Clothes and Everyday Plans
+9. Unit 9 — Practical Places, Travel and Services
+
+These units are an original, partial A1 foundation, not a claim of complete CEFR A1 coverage. The current assessment items primarily test recognition through multiple choice. Listening/audio, integrated reading, productive speaking and writing, performance rubrics, and cumulative assessment remain gaps to address before claiming balanced four-skill A1 coverage.
