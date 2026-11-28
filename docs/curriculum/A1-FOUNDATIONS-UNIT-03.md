@@ -19,7 +19,7 @@
 By the end of this unit, a learner can:
 1. name close family members and state simple relationships;
 2. ask and answer how old familiar people are;
-3. describe a person's basic appearance;
+3. describe a person's basic appearance and character;
 4. say what they and another person like;
 5. ask who owns a familiar object.
 
@@ -102,8 +102,8 @@ By the end of this unit, a learner can:
 **Model dialogue:**
 > A: Do you like music?  
 > B: Yes, I do. I like pop music.  
-> A: Does your friend like music?  
-> B: Yes, she does.
+> A: Do your friends like music?  
+> B: Yes, they do.
 
 **Teaching notes:** In the present simple, use *like* with I/you/we/they and *likes* with he/she/it. Questions with *do* use the base verb: *Do you like …?* Later lessons can extend to *does* questions.
 
