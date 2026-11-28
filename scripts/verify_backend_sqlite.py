@@ -32,8 +32,52 @@ def main() -> None:
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA foreign_keys = ON")
 
+        backfill_fixture_created = False
         for migration in sorted(MIGRATIONS.glob("*.sql")):
-            db.executescript(migration.read_text(encoding="utf-8"))
+            if migration.name == "0016_immutable_learning_events.sql":
+                # Apply the demo seed before 0016, then create a legacy completed
+                # attempt to prove the migration backfills pre-existing history.
+                db.executescript(SEED.read_text(encoding="utf-8"))
+                db.execute(
+                    "INSERT INTO users (id, display_name) VALUES (?, ?)",
+                    ("migration-backfill-user", "Migration Backfill User"),
+                )
+                db.execute(
+                    """INSERT INTO lesson_attempts
+                         (id,user_id,lesson_id,status,score,started_at,completed_at,
+                          lesson_version,lesson_version_id,assessment_policy_version_id)
+                       VALUES (?,?,?,'completed',87,?,?,1,?,?)""",
+                    (
+                        "migration-backfill-attempt",
+                        "migration-backfill-user",
+                        "lesson-greetings-001",
+                        "2026-11-26T14:00:00.000Z",
+                        "2026-11-26T14:05:00.000Z",
+                        "lesson-greetings-001:v1",
+                        "percentage-v1",
+                    ),
+                )
+                db.commit()
+
+                db.executescript(migration.read_text(encoding="utf-8"))
+                backfilled = db.execute(
+                    """SELECT event_id,user_id,event_type,aggregate_id,lesson_id,score,
+                              occurred_at,
+                              json_extract(payload_json,'$.lessonVersionId') AS lesson_version_id
+                       FROM learning_events WHERE aggregate_id=?""",
+                    ("migration-backfill-attempt",),
+                ).fetchone()
+                assert backfilled is not None, "migration 0016 must backfill completed attempts"
+                assert backfilled["event_id"] == "attempt-completed:migration-backfill-attempt"
+                assert backfilled["user_id"] == "migration-backfill-user"
+                assert backfilled["event_type"] == "lesson_attempt_completed"
+                assert backfilled["lesson_id"] == "lesson-greetings-001"
+                assert backfilled["score"] == 87
+                assert backfilled["occurred_at"] == "2026-11-26T14:05:00.000Z"
+                assert backfilled["lesson_version_id"] == "lesson-greetings-001:v1"
+                backfill_fixture_created = True
+            else:
+                db.executescript(migration.read_text(encoding="utf-8"))
         db.executescript(SEED.read_text(encoding="utf-8"))
 
         # Telegram identity + replay-gated session issuance.
@@ -241,7 +285,10 @@ def main() -> None:
         ])
         assert [result.rowcount for result in completion_results] == [1, 1, 1]
         event = db.execute(
-            "SELECT event_type,aggregate_id,score,json_extract(payload_json,'$.attemptId') AS payload_attempt_id FROM learning_events"
+            """SELECT event_type,aggregate_id,score,
+                      json_extract(payload_json,'$.attemptId') AS payload_attempt_id
+               FROM learning_events WHERE aggregate_id=?""",
+            (attempt_id,),
         ).fetchone()
         assert event["event_type"] == "lesson_attempt_completed"
         assert event["aggregate_id"] == attempt_id and event["payload_attempt_id"] == attempt_id
@@ -268,7 +315,10 @@ def main() -> None:
             (user_id, lesson_id),
         ).fetchone()
         assert progress["completed_count"] == 1, "duplicate completion must not double-count progress"
-        assert db.execute("SELECT COUNT(*) FROM learning_events").fetchone()[0] == 1
+        assert db.execute(
+            "SELECT COUNT(*) FROM learning_events WHERE user_id=?",
+            (user_id,),
+        ).fetchone()[0] == 1, "completion must create exactly one event for the active test user"
 
         # Parent-user deletion must cascade despite the direct-delete guard trigger.
         db.execute("INSERT INTO users (id,display_name) VALUES (?,?)", ("cascade-user-1", "Cascade User"))
