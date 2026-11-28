@@ -209,7 +209,7 @@ function App() {
               <p>{item.courseTitle} · {new Date(item.completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</p>
             </div>
             <div className="history-result">
-              <strong>{item.score}%</strong>
+              <strong>{item.score === null ? "—" : `${item.score}%`}</strong>
               <small>{item.correctAnswerCount}/{item.questionCount} correct</small>
             </div>
           </article>
