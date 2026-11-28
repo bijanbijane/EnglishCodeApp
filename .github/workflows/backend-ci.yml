@@ -32,7 +32,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      # Match the repository's declared packageManager instead of runner's floating npm.
+      - run: npm install --global npm@10.9.2
+      - run: npm install --no-audit --no-fund
       - run: npm run typecheck
       - run: npm test
       - name: Verify migration and transaction SQL invariants with SQLite

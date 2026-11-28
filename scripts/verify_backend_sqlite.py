@@ -35,6 +35,27 @@ def main() -> None:
         for migration in sorted(MIGRATIONS.glob("*.sql")):
             db.executescript(migration.read_text(encoding="utf-8"))
         db.executescript(SEED.read_text(encoding="utf-8"))
+        a1_seed = ROOT / "database" / "seeds" / "0002_a1_foundations.sql"
+        a1_seed_sql = a1_seed.read_text(encoding="utf-8")
+        db.executescript(a1_seed_sql)
+        db.executescript(a1_seed_sql)  # Reapplying a published seed must be idempotent.
+
+        a1_counts = db.execute(
+            """SELECT COUNT(*) AS lesson_count,
+                      SUM(CASE WHEN lv.status='published'
+                                AND l.current_published_version_id=lv.id THEN 1 ELSE 0 END) AS published_count
+               FROM lessons l
+               JOIN lesson_versions lv ON lv.lesson_id=l.id
+               WHERE l.course_id='course-a1-foundations'"""
+        ).fetchone()
+        assert a1_counts["lesson_count"] == 5, a1_counts
+        assert a1_counts["published_count"] == 5, a1_counts
+        assert db.execute(
+            """SELECT COUNT(*) FROM question_versions qv
+               JOIN lesson_versions lv ON lv.id=qv.lesson_version_id
+               JOIN lessons l ON l.id=lv.lesson_id
+               WHERE l.course_id='course-a1-foundations' AND lv.status='published'"""
+        ).fetchone()[0] == 20
 
         # Telegram identity + replay-gated session issuance.
         now = "2026-11-26T15:00:00.000Z"
