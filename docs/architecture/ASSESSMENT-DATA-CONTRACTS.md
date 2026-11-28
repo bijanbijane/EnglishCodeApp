@@ -417,3 +417,59 @@ The following facts were checked against the branch's actual migrations and API 
 3. Define whether one rater or two independent raters are required per productive response, and how disagreements are resolved.
 4. Separate cumulative scoring policy versioning from lesson `assessment_policy_versions`.
 5. Reconcile response DTOs with the existing API envelope and error codes.
+
+
+## 10. Account deletion and rater authorization — physical schema impact
+
+This section records implementation consequences discovered by tracing the actual migrations. It does not silently select a product retention policy.
+
+### 10.1 Existing account-deletion graph
+
+The current schema has these relevant FK actions:
+
+| Relation | Current FK action on user deletion | Consequence |
+|---|---|---|
+| `external_identities.user_id` | CASCADE | Telegram identity is deleted with the account |
+| `sessions.user_id` | CASCADE | Sessions are revoked by row deletion |
+| `user_roles.user_id` | CASCADE | Role grants disappear |
+| `lesson_attempts.user_id` | CASCADE | Lesson attempts and their cascading answers/snapshots disappear |
+| `user_progress.user_id` | CASCADE | Learner progress disappears |
+| `admin_audit_events.actor_user_id` | SET NULL | Audit event remains, actor identity is detached |
+| `content_review_requests.author_user_id` / `reviewed_by_user_id` | SET NULL | Review record remains, user attribution is detached |
+| `content_review_events.actor_user_id` | SET NULL | Event remains, actor identity is detached |
+
+There is currently no account-deletion API or workflow in `apps/backend/src/modules/users/routes.ts`; it exposes only the authenticated profile read. The cascade behavior above is database behavior, not evidence that a complete deletion request workflow exists.
+
+### 10.2 Consequence for cumulative assessment
+
+A blanket `ON DELETE RESTRICT` on `assessment_attempts.user_id` would prevent deleting an account that has assessment history. A blanket cascade would delete written responses, ratings and final results as well. Both are material product/privacy decisions.
+
+Three viable policies need explicit owner selection:
+
+1. **Full erasure:** assessment attempts, responses, ratings and results are deleted with the learner. This is simplest and aligns with existing lesson-attempt cascade semantics, but no learner assessment history remains.
+2. **Pseudonymized assessment evidence:** delete direct account identity and credentials while retaining a minimized assessment record under a non-reversible/de-linked subject key for a documented, limited retention period. This needs a defined re-identification threat model, retention schedule, export behavior and legal review; merely replacing `user_id` with a random UUID is not automatically anonymization.
+3. **Selective retention:** erase free-text responses and other directly identifying material while retaining only narrowly defined score/audit evidence. Each retained field needs a purpose, access policy, retention period and deletion trigger.
+
+No assessment migration should encode one of these policies by accident. In particular, do not copy `lesson_attempts.user_id ON DELETE CASCADE` or the conceptual model's provisional `RESTRICT` without an approved decision.
+
+### 10.3 Rater role migration impact
+
+Migration `0009_admin_rbac_audit.sql` defines `user_roles.role` with a SQLite CHECK constraint limited to `admin`, `content_author`, `content_reviewer` and `support`. Adding `assessment_rater` cannot be accomplished by inserting a role row; the CHECK rejects it.
+
+The migration plan must therefore include a reviewed SQLite-compatible table rebuild (create replacement table with the expanded CHECK, copy existing grants, replace the original table, and recreate both active-unique and lookup indexes). Validate foreign-key behavior and preserve existing grant IDs, grantors, timestamps and revocation state. Do not edit migration 0009 after application.
+
+A role alone is insufficient authorization for rating. The future rating write must also verify an explicit assignment or queue scope, the response's pending state, the allowed rubric version and the rater's separation from the candidate. Content-review permission must not imply assessment-rating permission. Role grants remain owner-controlled; there must be no public role-grant endpoint.
+
+### 10.4 Audit and privacy boundary
+
+Use append-only audit events for rating assignment, rating submission, reassignment, moderation and correction. Store allowlisted identifiers and action metadata only. Do not copy candidate free text, transcripts, answer keys, criterion-level sensitive notes or full response payloads into general admin audit JSON. Define whether rating rows survive candidate deletion independently from whether response text survives; a retained rating without its response may still be personal data when linkable to a learner.
+
+### 10.5 Required decisions before physical migration
+
+- Select one of the retention policies above, including field-level retention periods and deletion/export behavior.
+- Decide whether raters are employees/trusted staff with owner-granted role plus per-response assignment, and define who can assign/revoke those assignments.
+- Decide single rating versus independent double rating, including disagreement resolution and correction history.
+- Define whether ratings and final scores are erased, retained or pseudonymized when either candidate or rater account is deleted.
+- Specify the account-deletion request lifecycle, authorization/re-authentication, audit behavior and completion guarantees.
+
+Until these decisions are recorded, implementation remains blocked at the schema gate. The objective Listening/Reading vertical slice can be designed independently, but it must use the same approved attempt retention policy before its first migration.
