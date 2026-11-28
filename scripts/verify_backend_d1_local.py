@@ -159,6 +159,13 @@ def main():
     ]
     run(a1_unit_04_seed_command)
     run(a1_unit_04_seed_command)  # Unit 4 is also safe to reapply.
+    a1_unit_05_seed_command = [
+        "npx", "wrangler", "d1", "execute", DATABASE,
+        "--local", "--persist-to", persist,
+        "--file=../../database/seeds/0006_a1_unit_05.sql",
+    ]
+    run(a1_unit_05_seed_command)
+    run(a1_unit_05_seed_command)  # Unit 5 is also safe to reapply.
 
 
     log_path = PERSIST_DIR / "wrangler-dev.log"
@@ -226,6 +233,16 @@ def main():
             assert len(a1_unit_04_lesson.get("data", {}).get("questions", [])) == 4
             assert "answer_key" not in json.dumps(a1_unit_04_lesson)
             assert "answerKey" not in json.dumps(a1_unit_04_lesson)
+
+            a1_unit_05_lesson = expect_status(
+                request("GET", "/api/v1/lessons/a1-u05-l01"),
+                200,
+                "read published A1 Unit 5 lesson",
+            )
+            assert a1_unit_05_lesson.get("data", {}).get("title") == "Fruit and Vegetables"
+            assert len(a1_unit_05_lesson.get("data", {}).get("questions", [])) == 4
+            assert "answer_key" not in json.dumps(a1_unit_05_lesson)
+            assert "answerKey" not in json.dumps(a1_unit_05_lesson)
 
             webhook_headers = {"X-Telegram-Bot-Api-Secret-Token": "local-test-webhook-secret"}
             invalid_update = expect_status(
