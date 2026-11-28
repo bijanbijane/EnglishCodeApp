@@ -60,6 +60,10 @@ npm run deploy:dev
 
 Use `npm run db:migrate:dev` only when a new migration is pending, and `npm run db:seed:dev` only for the idempotent development demo seed. These commands target remote development D1; never substitute a production database name. Before deployment, configure the `TELEGRAM_BOT_TOKEN` Worker secret through a protected Cloudflare secret workflow. The secret value must never be committed or placed in a `VITE_` variable.
 
+## Telegram Mini App launch URL
+
+The Telegram `/start` and `/app` commands read the Mini App destination from the server-side `TELEGRAM_MINI_APP_URL` Worker binding. Configure a separate HTTPS URL for each Worker environment through its protected runtime configuration; do not hard-code environment URLs in source code or use a `VITE_*` frontend variable for this server-side decision. The URL must not contain credentials or a fragment. If the binding is missing or invalid, the bot responds without a Web App button and does not expose an unsafe destination.
+
 ## API behavior
 
 - Success: `{ "data": ..., "meta": { "requestId": "..." } }`

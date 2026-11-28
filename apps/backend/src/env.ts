@@ -3,6 +3,7 @@ export interface Env {
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_WEBHOOK_SECRET?: string;
   TELEGRAM_SETUP_KEY?: string;
+  TELEGRAM_MINI_APP_URL?: string;
   APP_ENV?: "local" | "development" | "staging" | "production";
   ALLOWED_ORIGINS?: string;
 }

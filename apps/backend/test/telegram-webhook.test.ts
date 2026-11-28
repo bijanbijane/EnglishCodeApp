@@ -5,6 +5,7 @@ const webhookSecret = "test-webhook-secret";
 const setupKey = "test-one-time-setup-key";
 const botToken = "123456:TEST_BOT_TOKEN";
 const webhookUrl = "https://englishcode-backend-dev.bijanbijane-1.workers.dev/api/v1/telegram/webhook";
+const miniAppUrl = new URL("https://englishcode-frontend-dev.bijanbijane-1.workers.dev").toString();
 function createD1Mock() {
   const updates = new Map<number, { status: string; updatedAt: number }>();
   return {
@@ -59,6 +60,7 @@ const env = {
   TELEGRAM_BOT_TOKEN: botToken,
   TELEGRAM_WEBHOOK_SECRET: webhookSecret,
   TELEGRAM_SETUP_KEY: setupKey,
+  TELEGRAM_MINI_APP_URL: miniAppUrl,
   DB: createD1Mock(),
 } as never;
 
@@ -185,6 +187,70 @@ describe("Telegram webhook setup", () => {
 });
 
 describe("Telegram webhook", () => {
+  it("adds a Mini App button for /start commands addressed to the bot", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, result: { message_id: 8 } }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const response = await app.request(
+      "/api/v1/telegram/webhook",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Telegram-Bot-Api-Secret-Token": webhookSecret },
+        body: JSON.stringify({
+          update_id: 8, message: { text: "/start@EnglishCodeBot", chat: { id: 42, type: "private" } },
+        }),
+      },
+      env,
+    );
+    expect(response.status).toBe(200);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      text: expect.stringContaining("Open the app"),
+      reply_markup: { inline_keyboard: [[{ web_app: { url: miniAppUrl } }]] },
+    });
+  });
+
+  it.each([
+    ["missing", undefined, 90],
+    ["non-HTTPS", "http://example.com", 91],
+    ["credential-bearing", "https://user:pass@example.com", 92],
+    ["fragment-bearing", "https://example.com/#section", 93],
+    ["whitespace-padded", " https://example.com ", 94],
+  ])("does not expose a Mini App button for %s URL configuration", async (_label, configuredUrl, updateId) => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, result: { message_id: 9 } }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const invalidEnv = {
+      TELEGRAM_BOT_TOKEN: botToken,
+      TELEGRAM_WEBHOOK_SECRET: webhookSecret,
+      TELEGRAM_SETUP_KEY: setupKey,
+      TELEGRAM_MINI_APP_URL: configuredUrl,
+      DB: createD1Mock(),
+    } as never;
+    const response = await app.request(
+      "/api/v1/telegram/webhook",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Telegram-Bot-Api-Secret-Token": webhookSecret },
+        body: JSON.stringify({
+          update_id: updateId, message: { text: "/app", chat: { id: 42, type: "private" } },
+        }),
+      },
+      invalidEnv,
+    );
+    expect(response.status).toBe(200);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const payload = JSON.parse(String(init.body));
+    expect(payload.text).toContain("link is not configured");
+    expect(payload).not.toHaveProperty("reply_markup");
+  });
+
   it("rejects requests without the Telegram secret header", async () => {
     const response = await app.request(
       "/api/v1/telegram/webhook",
@@ -222,7 +288,13 @@ describe("Telegram webhook", () => {
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe(`https://api.telegram.org/bot${botToken}/sendMessage`);
     expect(JSON.parse(String(init.body))).toMatchObject({
-      chat_id: 42, text: expect.stringContaining("Welcome to EnglishCode"),
+      chat_id: 42, text: expect.stringContaining("Open the app"),
+      reply_markup: {
+        inline_keyboard: [[{
+          text: "Open EnglishCode",
+          web_app: { url: miniAppUrl },
+        }]],
+      },
     });
     const replay = await app.request(
       "/api/v1/telegram/webhook",
