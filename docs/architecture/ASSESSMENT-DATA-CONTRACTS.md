@@ -378,7 +378,7 @@ Do not allow direct submitted → in_progress, completed → in_progress or fina
 
 Do not assign a migration number or write SQL until:
 1. The target branch head and current migration directory are re-fetched.
-2. Existing `0001`–`0015` are applied to isolated Local D1 and the resulting schema is inspected.
+2. Existing mainline migrations `0001`–`0016` are applied to isolated Local D1 and the resulting schema is inspected.
 3. Product decisions in section 1 are resolved.
 4. A physical ERD is reconciled with the actual user deletion/retention model and RBAC tables.
 5. Constraints and triggers are reviewed for SQLite/D1 compatibility.
@@ -401,7 +401,7 @@ No production deployment, remote D1 migration, secret mutation, paid service, au
 
 The following facts were checked against the branch's actual migrations and API documentation, not inferred from the conceptual model:
 
-- The branch contains migrations `0001`–`0015`; the main-branch data-model document still describes the earlier `0001`–`0010` sequence. New work must use the feature branch's full schema history.
+- The current mainline contains migrations `0001`–`0016`, including `0016_immutable_learning_events.sql` merged through PR #25. Assessment design and future migration planning must use the current mainline schema, not the older pre-consolidation `0001`–`0015` feature-branch snapshot or earlier `0001`–`0010` documentation.
 - `users` is the internal principal. `sessions` cascade on user deletion. `lesson_attempts` also currently cascade on user deletion, while lesson references are restrictive. The proposed assessment retention behavior must explicitly choose whether candidate deletion cascades, anonymizes, or retains legally required scoring evidence; do not silently choose RESTRICT or copy the lesson behavior.
 - Current `user_roles.role` CHECK permits only `admin`, `content_author`, `content_reviewer`, and `support`. There is no `assessment_rater` role or rater-assignment table. Do not reuse `content_reviewer` as a rater implicitly: content review and learner assessment rating are different privileges. A dedicated role and assignment scope require a reviewed forward-only migration and owner-controlled grants.
 - `admin_audit_events` already provides append-only privileged-action history with actor anonymization on deletion. Rating decisions and any reassignment/re-rating should emit allowlisted audit events, while criterion scores and learner response content should not be copied into general audit metadata.
@@ -505,3 +505,18 @@ The following describes the currently implemented lesson quiz API in `apps/backe
 
 Reuse only the proven infrastructure patterns where they fit: authenticated ownership, immutable snapshots, server-side scoring, conditional state transitions, unique response constraints, bounded DTOs and Local D1 concurrency tests. Do not reuse the lesson quiz's `percentage-v1` policy, immediate correctness disclosure, weighted-percentage aggregation, permissive unanswered-question completion or progress semantics as implicit cumulative-assessment requirements.
 
+
+
+## 12. Mainline migration baseline after A1 and learning-event consolidation
+
+This section supersedes the pre-merge migration-count statements in sections 7 and 9.
+
+- The verified `main` baseline at the time of this review is `15b9b47c32e5f0a04542d946d61679f62b15f47c`.
+- Its forward-only migration directory contains `0001` through `0016`. The current assessment migration gate is therefore to apply and inspect **all sixteen** migrations on isolated Local D1 before designing or numbering any assessment migration.
+- Migration `0016_immutable_learning_events.sql` adds an append-only `learning_events` ledger for completed lesson attempts, with unique `(event_type, aggregate_id)`, user/lesson time indexes, a backfill from completed attempts, and update/direct-delete guards. Its user FK is `ON DELETE CASCADE`; the SQLite verification script explicitly tests that parent-user deletion still cascades while direct deletion is blocked.
+- This event ledger records lesson completion facts. It is not a cumulative-assessment result store and must not be repurposed as one without a separate domain contract.
+- A future cumulative assessment must decide whether its result/evidence is independently retained or erased, and how that policy interacts with the existing user-erasure cascade. Do not infer a retention policy from the lesson-event table.
+- The A1 curriculum merged through PR #28 contributes nine seed scripts, not schema migrations. The current content baseline is nine units, 45 lessons and 180 deterministic MCQs; the content remains a partial recognition-focused A1 foundation rather than a complete four-skill course.
+- The current mainline has already merged PR #28 as `9798020de379c438db5485661299ab2f79d12c58`; the later audit refresh is at `15b9b47c32e5f0a04542d946d61679f62b15f47c`. These are verified mainline history facts, not a claim that cumulative-assessment runtime exists.
+
+Before a future assessment migration, re-run the empty-database and upgrade-path checks against the then-current mainline head, inspect the actual D1 schema after all `0001`–`0016` migrations, and verify FK/trigger behavior in Local D1 as well as SQLite. Never renumber or edit an applied migration.
