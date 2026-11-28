@@ -131,6 +131,71 @@ def main():
         "--local", "--persist-to", persist,
         "--file=../../database/seeds/0001_demo.sql",
     ])
+    a1_seed_command = [
+        "npx", "wrangler", "d1", "execute", DATABASE,
+        "--local", "--persist-to", persist,
+        "--file=../../database/seeds/0002_a1_foundations.sql",
+    ]
+    run(a1_seed_command)
+    run(a1_seed_command)  # The published seed must be safe to reapply.
+    a1_unit_02_seed_command = [
+        "npx", "wrangler", "d1", "execute", DATABASE,
+        "--local", "--persist-to", persist,
+        "--file=../../database/seeds/0003_a1_unit_02.sql",
+    ]
+    run(a1_unit_02_seed_command)
+    run(a1_unit_02_seed_command)  # Unit 2 is also safe to reapply.
+    a1_unit_03_seed_command = [
+        "npx", "wrangler", "d1", "execute", DATABASE,
+        "--local", "--persist-to", persist,
+        "--file=../../database/seeds/0004_a1_unit_03.sql",
+    ]
+    run(a1_unit_03_seed_command)
+    run(a1_unit_03_seed_command)  # Unit 3 is also safe to reapply.
+    a1_unit_04_seed_command = [
+        "npx", "wrangler", "d1", "execute", DATABASE,
+        "--local", "--persist-to", persist,
+        "--file=../../database/seeds/0005_a1_unit_04.sql",
+    ]
+    run(a1_unit_04_seed_command)
+    run(a1_unit_04_seed_command)  # Unit 4 is also safe to reapply.
+    a1_unit_05_seed_command = [
+        "npx", "wrangler", "d1", "execute", DATABASE,
+        "--local", "--persist-to", persist,
+        "--file=../../database/seeds/0006_a1_unit_05.sql",
+    ]
+    run(a1_unit_05_seed_command)
+    run(a1_unit_05_seed_command)  # Unit 5 is also safe to reapply.
+    a1_unit_06_seed_command = [
+        "npx", "wrangler", "d1", "execute", DATABASE,
+        "--local", "--persist-to", persist,
+        "--file=../../database/seeds/0007_a1_unit_06.sql",
+    ]
+    run(a1_unit_06_seed_command)
+    run(a1_unit_06_seed_command)  # Unit 6 is also safe to reapply.
+    a1_unit_07_seed_command = [
+        "npx", "wrangler", "d1", "execute", DATABASE,
+        "--local", "--persist-to", persist,
+        "--file=../../database/seeds/0008_a1_unit_07.sql",
+    ]
+    run(a1_unit_07_seed_command)
+    run(a1_unit_07_seed_command)  # Unit 7 is also safe to reapply.
+    a1_unit_08_seed_command = [
+        "npx", "wrangler", "d1", "execute", DATABASE,
+        "--local", "--persist-to", persist,
+        "--file=../../database/seeds/0009_a1_unit_08.sql",
+    ]
+    run(a1_unit_08_seed_command)
+    run(a1_unit_08_seed_command)  # Unit 8 is also safe to reapply.
+    a1_unit_09_seed_command = [
+        "npx", "wrangler", "d1", "execute", DATABASE,
+        "--local", "--persist-to", persist,
+        "--file=../../database/seeds/0010_a1_unit_09.sql",
+    ]
+    run(a1_unit_09_seed_command)
+    run(a1_unit_09_seed_command)  # Unit 9 is also safe to reapply.
+
+
 
     log_path = PERSIST_DIR / "wrangler-dev.log"
     with log_path.open("w", encoding="utf-8") as log_file:
@@ -157,6 +222,96 @@ def main():
 
             ready = expect_status(request("GET", "/api/v1/ready"), 200, "readiness")
             assert ready.get("data", {}).get("database") == "ok"
+
+            a1_lesson = expect_status(
+                request("GET", "/api/v1/lessons/a1-u01-l01"),
+                200,
+                "read published A1 lesson",
+            )
+            assert a1_lesson.get("data", {}).get("title") == "Hello and Introductions"
+            assert len(a1_lesson.get("data", {}).get("questions", [])) == 4
+            assert "answer_key" not in json.dumps(a1_lesson)
+            assert "answerKey" not in json.dumps(a1_lesson)
+
+            a1_unit_02_lesson = expect_status(
+                request("GET", "/api/v1/lessons/a1-u02-l01"),
+                200,
+                "read published A1 Unit 2 lesson",
+            )
+            assert a1_unit_02_lesson.get("data", {}).get("title") == "What's This?"
+            assert len(a1_unit_02_lesson.get("data", {}).get("questions", [])) == 4
+            assert "answer_key" not in json.dumps(a1_unit_02_lesson)
+            assert "answerKey" not in json.dumps(a1_unit_02_lesson)
+
+            a1_unit_03_lesson = expect_status(
+                request("GET", "/api/v1/lessons/a1-u03-l01"),
+                200,
+                "read published A1 Unit 3 lesson",
+            )
+            assert a1_unit_03_lesson.get("data", {}).get("title") == "My Family"
+            assert len(a1_unit_03_lesson.get("data", {}).get("questions", [])) == 4
+            assert "answer_key" not in json.dumps(a1_unit_03_lesson)
+            assert "answerKey" not in json.dumps(a1_unit_03_lesson)
+
+            a1_unit_04_lesson = expect_status(
+                request("GET", "/api/v1/lessons/a1-u04-l01"),
+                200,
+                "read published A1 Unit 4 lesson",
+            )
+            assert a1_unit_04_lesson.get("data", {}).get("title") == "My Day"
+            assert len(a1_unit_04_lesson.get("data", {}).get("questions", [])) == 4
+            assert "answer_key" not in json.dumps(a1_unit_04_lesson)
+            assert "answerKey" not in json.dumps(a1_unit_04_lesson)
+
+            a1_unit_05_lesson = expect_status(
+                request("GET", "/api/v1/lessons/a1-u05-l01"),
+                200,
+                "read published A1 Unit 5 lesson",
+            )
+            assert a1_unit_05_lesson.get("data", {}).get("title") == "Fruit and Vegetables"
+            assert len(a1_unit_05_lesson.get("data", {}).get("questions", [])) == 4
+            assert "answer_key" not in json.dumps(a1_unit_05_lesson)
+            assert "answerKey" not in json.dumps(a1_unit_05_lesson)
+
+            a1_unit_06_lesson = expect_status(
+                request("GET", "/api/v1/lessons/a1-u06-l01"),
+                200,
+                "read published A1 Unit 6 lesson",
+            )
+            assert a1_unit_06_lesson.get("data", {}).get("title") == "Rooms and Furniture"
+            assert len(a1_unit_06_lesson.get("data", {}).get("questions", [])) == 4
+            assert "answer_key" not in json.dumps(a1_unit_06_lesson)
+            assert "answerKey" not in json.dumps(a1_unit_06_lesson)
+
+            a1_unit_07_lesson = expect_status(
+                request("GET", "/api/v1/lessons/a1-u07-l01"),
+                200,
+                "read published A1 Unit 7 lesson",
+            )
+            assert a1_unit_07_lesson.get("data", {}).get("title") == "Jobs and Workplaces"
+            assert len(a1_unit_07_lesson.get("data", {}).get("questions", [])) == 4
+            assert "answer_key" not in json.dumps(a1_unit_07_lesson)
+            assert "answerKey" not in json.dumps(a1_unit_07_lesson)
+
+            a1_unit_08_lesson = expect_status(
+                request("GET", "/api/v1/lessons/a1-u08-l01"),
+                200,
+                "read published A1 Unit 8 lesson",
+            )
+            assert a1_unit_08_lesson.get("data", {}).get("title") == "Weather Today"
+            assert len(a1_unit_08_lesson.get("data", {}).get("questions", [])) == 4
+            assert "answer_key" not in json.dumps(a1_unit_08_lesson)
+            assert "answerKey" not in json.dumps(a1_unit_08_lesson)
+
+            a1_unit_09_lesson = expect_status(
+                request("GET", "/api/v1/lessons/a1-u09-l01"),
+                200,
+                "read published A1 Unit 9 lesson",
+            )
+            assert a1_unit_09_lesson.get("data", {}).get("title") == "Getting Around Town"
+            assert len(a1_unit_09_lesson.get("data", {}).get("questions", [])) == 4
+            assert "answer_key" not in json.dumps(a1_unit_09_lesson)
+            assert "answerKey" not in json.dumps(a1_unit_09_lesson)
 
             webhook_headers = {"X-Telegram-Bot-Api-Secret-Token": "local-test-webhook-secret"}
             invalid_update = expect_status(

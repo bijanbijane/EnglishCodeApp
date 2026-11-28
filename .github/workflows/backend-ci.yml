@@ -7,6 +7,8 @@ on:
       - "packages/learning-core/**"
       - "database/migrations/**"
       - "database/seeds/**"
+      - "docs/curriculum/**"
+      - "docs/architecture/ASSESSMENT-*.md"
       - "scripts/**"
       - ".github/workflows/backend-ci.yml"
   push:
@@ -16,6 +18,8 @@ on:
       - "packages/learning-core/**"
       - "database/migrations/**"
       - "database/seeds/**"
+      - "docs/curriculum/**"
+      - "docs/architecture/ASSESSMENT-*.md"
       - "scripts/**"
       - ".github/workflows/backend-ci.yml"
 
