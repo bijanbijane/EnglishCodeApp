@@ -1,11 +1,10 @@
 name: Backend CI
 
-# Keep curriculum and assessment architecture changes in the backend validation path.
-
 on:
   pull_request:
     paths:
       - "apps/backend/**"
+      - "packages/learning-core/**"
       - "database/migrations/**"
       - "database/seeds/**"
       - "docs/curriculum/**"
@@ -16,6 +15,7 @@ on:
     branches: [main]
     paths:
       - "apps/backend/**"
+      - "packages/learning-core/**"
       - "database/migrations/**"
       - "database/seeds/**"
       - "docs/curriculum/**"
@@ -38,12 +38,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # Match the repository's declared packageManager instead of runner's floating npm.
-      - run: npm install --global npm@10.9.2
-      # npm 10's Arborist optional-peer resolver crashes with this Vitest graph;
-      # required dependencies are validated by the audit, typecheck and test gates below.
-      - run: npm install --legacy-peer-deps --no-audit --no-fund
-      - run: npm audit --audit-level=moderate
+      - name: Pin npm to packageManager version
+        run: |
+          npm install --global npm@10.9.2
+          test "$(npm --version)" = "10.9.2"
+      - run: npm install --legacy-peer-deps
+      - name: Audit dependencies
+        run: npm audit --audit-level=moderate
       - run: npm run typecheck
       - run: npm test
       - name: Verify migration and transaction SQL invariants with SQLite
