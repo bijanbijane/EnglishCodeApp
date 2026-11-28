@@ -2,7 +2,7 @@
 
 ## Verified baseline
 
-This document is aligned to `main` commit `533cab6821b39191338473e8fb13ce89c8013589` (2026-11-28).
+This document is aligned to `main` commit `[current main HEAD](https://github.com/bijanbijane/EnglishCodeApp/tree/main)` (2026-11-28).
 
 - Backend: Cloudflare Workers, TypeScript and Hono; versioned API under `/api/v1`.
 - Data: Cloudflare D1/SQLite; forward-only migrations `0001`–`0016`.

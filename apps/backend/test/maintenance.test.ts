@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { cleanupExpiredAuthState } from "../src/modules/maintenance/cleanup";
+import { rebuildUserProgressFromEvents } from "../src/modules/maintenance/progress";
 
 describe("bounded authentication-state cleanup", () => {
   it("uses separate indexed session expiry predicates and bounded batches", async () => {
@@ -40,5 +41,35 @@ describe("bounded authentication-state cleanup", () => {
     expect(prepared[1].values).toEqual(["2026-11-24T03:17:00.000Z"]);
     expect(prepared[2].values).toEqual(["2026-11-19T03:17:00.000Z"]);
     expect(prepared[3].values).toEqual(["2026-10-27T03:17:00.000Z"]);
+  });
+});
+
+
+describe("D1-batched learning progress rebuild", () => {
+  it("replaces only the derived projection from immutable completion events in one batch", async () => {
+    const preparedSql: string[] = [];
+    const batchResults = [{ meta: { changes: 2 } }, { meta: { changes: 4 } }];
+    const db = {
+      prepare: vi.fn((sql: string) => {
+        preparedSql.push(sql);
+        return { bind: vi.fn(() => ({ sql })), sql };
+      }),
+      batch: vi.fn().mockResolvedValue(batchResults),
+    };
+
+    await expect(rebuildUserProgressFromEvents(db as never)).resolves.toBe(batchResults);
+
+    expect(db.batch).toHaveBeenCalledOnce();
+    expect(preparedSql).toHaveLength(2);
+    expect(preparedSql[0]).toBe("DELETE FROM user_progress");
+    expect(preparedSql[1]).toContain("INSERT INTO user_progress");
+    expect(preparedSql[1]).toContain("FROM learning_events");
+    expect(preparedSql[1]).toContain("MAX(score)");
+    expect(preparedSql[1]).toContain("COUNT(*)");
+    expect(preparedSql[1]).toContain("MAX(occurred_at)");
+    expect(preparedSql[1]).toContain("GROUP BY user_id, lesson_id");
+    expect(preparedSql[1]).toContain("event_type = 'lesson_attempt_completed'");
+    expect(preparedSql.join("\n")).not.toMatch(/\b(BEGIN|COMMIT|ROLLBACK)\b/i);
+    expect(preparedSql.every((sql) => !sql.includes("DELETE FROM learning_events"))).toBe(true);
   });
 });

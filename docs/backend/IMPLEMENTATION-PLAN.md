@@ -1,6 +1,6 @@
 # Backend Implementation Plan
 
-**Baseline:** `main` at `533cab6821b39191338473e8fb13ce89c8013589` (2026-11-28).  
+**Baseline:** `main` at `[current main HEAD](https://github.com/bijanbijane/EnglishCodeApp/tree/main)` (2026-11-28).  
 **Rule:** implementation, exact-commit validation and release readiness are separate states.
 
 ## B0 — Runtime and content foundation
@@ -34,7 +34,7 @@
 - [x] Idempotent same-answer retry and conditional attempt completion.
 - [x] Append-only lesson completion event and progress projection update in one D1 batch.
 - [x] Current-user progress endpoint.
-- [ ] Implement a D1-compatible deterministic progress projection rebuild; the current maintenance SQL is SQLite-only.
+- [ ] Complete and verify a D1-compatible progress projection rebuild. An internal D1-batched helper now exists, but Local D1 execution/rollback verification and an owner-controlled invocation procedure remain outstanding.
 - [ ] Expand concurrent completion, cross-user isolation and retry-race coverage on Local D1.
 - [ ] Finalize pass thresholds, retry policy and future question types as explicit product decisions.
 
