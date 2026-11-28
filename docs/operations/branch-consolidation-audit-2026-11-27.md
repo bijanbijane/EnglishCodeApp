@@ -144,3 +144,45 @@ No source changes have been merged to main during this checkpoint. The audit bra
 - PR #26 received a targeted cursor fix and requires fresh CI.
 - PR #23 requires rerun after npm workflow correction.
 - No remote D1 write, remote seed, secret/config mutation, production deployment, or production migration was performed.
+
+
+## Complete branch-distance snapshot — 2026-11-28
+
+The branch-list API was refreshed after the latest candidate commits. The following compares every non-main branch against the unchanged main baseline `f3671f2194e562fc194d23e9602b768455d8e483`.
+
+| Branch | Ahead | Behind |
+|---|---:|---:|
+| `backend/dev-live-smoke` | 1 | 73 |
+| `backend/dev-live-smoke-v2` | 1 | 69 |
+| `backend/dev-live-smoke-v3` | 1 | 68 |
+| `docs/backend-architecture-v2` | 1 | 721 |
+| `docs/backend-status-refresh-2026-11-27` | 19 | 0 |
+| `feat/a1-foundations-curriculum` | 25 | 0 |
+| `feat/admin-author-version-pagination` | 4 | 20 |
+| `feat/backend-admin-reads` | 2 | 653 |
+| `feat/backend-architecture-v3` | 0 | 653 |
+| `feat/backend-domain-foundation` | 0 | 721 |
+| `feat/backend-foundation` | 36 | 779 |
+| `feat/backend-review-pagination-main` | 20 | 154 |
+| `feat/curated-course-source-integration` | 77 | 0 |
+| `feat/frontend-architecture-audit` | 10 | 721 |
+| `feat/frontend-modular-foundation` | 56 | 445 |
+| `feat/immutable-learning-events` | 16 | 19 |
+| `feat/immutable-learning-events-mainline` | 18 | 0 |
+| `feat/minimal-app-foundation` | 1 | 777 |
+| `feat/open-learning-content-module` | 65 | 0 |
+| `feat/telegram-learning-experience` | 10 | 721 |
+| `feat/telegram-start-mini-app-launch` | 3 | 28 |
+| `feat/telegram-webhook-dev` | 0 | 34 |
+| `fix/author-version-pagination-order` | 9 | 0 |
+| `fix/backend-npm10-vitest-install` | 5 | 0 |
+| `fix/backend-p0-correctness` | 0 | 707 |
+| `fix/telegram-mini-app-url-config` | 14 | 0 |
+| `fix/telegram-webhook-reapply-secret` | 2 | 33 |
+| `fix/telegram-webhook-reapply-secret-v2` | 0 | 31 |
+| `infra/cloudflare-dev-wrangler` | 2 | 154 |
+| `infra/cloudflare-free-tier-foundation` | 117 | 0 |
+| `integration/branch-consolidation` | 0 | 558 |
+| `integration/complete-branch-consolidation-2026-11` | 6 | 0 |
+
+Summary: 32 non-main branches; 26 ahead of main; 6 with zero ahead; 16 diverged; 10 ahead-only; 6 behind-only. The sum of ahead counts is 521 and double-counts shared commits across branches, so it is not a unique-change count. Branch distances are ancestry metrics, not merge-readiness assessments.
