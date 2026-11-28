@@ -147,5 +147,9 @@ describe("learning write API", () => {
     expect(statements.some((sql) => sql.includes("question_weight"))).toBe(true);
     expect(statements.some((sql) => sql.includes("SUM(q.question_weight)"))).toBe(true);
     expect(statements.some((sql) => sql.includes("INSERT INTO learning_events"))).toBe(true);
+    const progressUpsert = statements.find((sql) => sql.includes("INSERT INTO user_progress"));
+    expect(progressUpsert).toContain(
+      "last_completed_at = MAX(user_progress.last_completed_at, excluded.last_completed_at)",
+    );
   });
 });

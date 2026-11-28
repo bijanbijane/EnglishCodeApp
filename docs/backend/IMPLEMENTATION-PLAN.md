@@ -34,7 +34,8 @@
 - [x] Idempotent same-answer retry and conditional attempt completion.
 - [x] Append-only lesson completion event and progress projection update in one D1 batch.
 - [x] Current-user progress endpoint.
-- [ ] Complete and verify a D1-compatible progress projection rebuild. An internal D1-batched helper now exists, but Local D1 execution/rollback verification and an owner-controlled invocation procedure remain outstanding.
+- [x] Verify the internal D1-batched progress projection rebuild against real Local D1, including successful execution and rollback when the projection insert is forced to fail.
+- [ ] Define a separately reviewed, owner-controlled invocation and recovery procedure before any shared-database use; no public route, cron trigger or operator command is provided.
 - [x] Cover concurrent completion, same-answer retries, conflicting concurrent answer writes, cross-user attempt access and role revocation on Local D1.
 - [ ] Finalize pass thresholds, retry policy and future question types as explicit product decisions.
 

@@ -279,7 +279,7 @@ learning.post("/attempts/:attemptId/complete", requireSession, async (c) => {
        ON CONFLICT(user_id, lesson_id) DO UPDATE SET
          best_score = MAX(user_progress.best_score, excluded.best_score),
          completed_count = user_progress.completed_count + 1,
-         last_completed_at = excluded.last_completed_at`,
+         last_completed_at = MAX(user_progress.last_completed_at, excluded.last_completed_at)`,
     ).bind(attemptId, completedAt),
     c.env.DB.prepare(
       `INSERT INTO learning_events

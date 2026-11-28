@@ -120,6 +120,151 @@ def wait_for_worker(process, log_path):
     )
 
 
+
+def query_progress_projection(persist):
+    query_file = PERSIST_DIR / "progress-projection-snapshot.sql"
+    query_file.write_text(
+        "SELECT user_id, lesson_id, best_score, completed_count, last_completed_at "
+        "FROM user_progress ORDER BY user_id, lesson_id;",
+        encoding="utf-8",
+    )
+    output = run([
+        "npx", "wrangler", "d1", "execute", DATABASE,
+        "--local", "--persist-to", persist, f"--file={query_file}", "--json",
+    ])
+    payload = json.loads(output)
+    rows = payload[0]["results"] if isinstance(payload, list) else payload["results"]
+    return rows
+
+
+def query_event_progress_projection(persist):
+    query_file = PERSIST_DIR / "event-progress-projection.sql"
+    query_file.write_text(
+        "SELECT user_id, lesson_id, MAX(score) AS best_score, "
+        "COUNT(*) AS completed_count, MAX(occurred_at) AS last_completed_at "
+        "FROM learning_events WHERE event_type='lesson_attempt_completed' "
+        "GROUP BY user_id, lesson_id ORDER BY user_id, lesson_id;",
+        encoding="utf-8",
+    )
+    output = run([
+        "npx", "wrangler", "d1", "execute", DATABASE,
+        "--local", "--persist-to", persist, f"--file={query_file}", "--json",
+    ])
+    payload = json.loads(output)
+    rows = payload[0]["results"] if isinstance(payload, list) else payload["results"]
+    return rows
+
+
+def run_progress_rebuild_integration(persist):
+    """Exercise the actual D1 batch helper and verify rollback on insert failure."""
+    harness_log = PERSIST_DIR / "progress-rebuild-worker.log"
+    harness = subprocess.Popen(
+        [
+            "npx", "wrangler", "dev", "--config", "wrangler.progress-test.jsonc",
+            "--local", "--ip", "127.0.0.1", "--port", "8797",
+            "--persist-to", persist,
+        ],
+        cwd=BACKEND,
+        stdout=harness_log.open("w", encoding="utf-8"),
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    try:
+        ready = False
+        for _ in range(60):
+            if harness.poll() is not None:
+                raise RuntimeError(
+                    "Progress rebuild test Worker exited early:\n"
+                    + harness_log.read_text(errors="replace")[-10000:]
+                )
+            try:
+                urlopen("http://127.0.0.1:8797/not-found", timeout=2)
+            except HTTPError as error:
+                if error.code == 404:
+                    ready = True
+                    break
+            except (URLError, TimeoutError):
+                pass
+            time.sleep(0.5)
+        if not ready:
+            raise TimeoutError(
+                "Progress rebuild test Worker did not become ready:\n"
+                + harness_log.read_text(errors="replace")[-10000:]
+            )
+
+        before = query_progress_projection(persist)
+        expected = query_event_progress_projection(persist)
+        assert expected, "Expected completion events before progress rebuild"
+
+        trigger_sql = PERSIST_DIR / "force-progress-rebuild-failure.sql"
+        trigger_sql.write_text(
+            "CREATE TRIGGER test_fail_progress_rebuild "
+            "BEFORE INSERT ON user_progress BEGIN "
+            "SELECT RAISE(ABORT, 'forced progress rebuild failure'); END;",
+            encoding="utf-8",
+        )
+        run([
+            "npx", "wrangler", "d1", "execute", DATABASE,
+            "--local", "--persist-to", persist, f"--file={trigger_sql}",
+        ])
+
+        try:
+            try:
+                urlopen(
+                    Request("http://127.0.0.1:8797/rebuild", data=b"",
+                            headers={"Content-Length": "0"}, method="POST"),
+                    timeout=10,
+                )
+                raise AssertionError("Expected injected D1 batch failure, received success")
+            except HTTPError as error:
+                failure_body = json.loads(error.read().decode())
+                assert error.code == 500, (error.code, failure_body)
+                assert failure_body == {"ok": False, "error": "progress_rebuild_failed"}
+        finally:
+            drop_trigger = PERSIST_DIR / "drop-progress-rebuild-failure.sql"
+            drop_trigger.write_text(
+                "DROP TRIGGER IF EXISTS test_fail_progress_rebuild;",
+                encoding="utf-8",
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist, f"--file={drop_trigger}",
+            ])
+
+        after_failure = query_progress_projection(persist)
+        assert after_failure == before, {
+            "before": before,
+            "after_failed_batch": after_failure,
+        }
+
+        response = urlopen(
+            Request("http://127.0.0.1:8797/rebuild", data=b"",
+                    headers={"Content-Length": "0"}, method="POST"),
+            timeout=10,
+        )
+        success = json.loads(response.read().decode())
+        assert success.get("ok") is True, success
+        assert len(success.get("changes", [])) == 2, success
+
+        after_success = query_progress_projection(persist)
+        assert after_success == expected, {
+            "expected_from_immutable_events": expected,
+            "after_successful_rebuild": after_success,
+        }
+        print(
+            "D1 progress rebuild passed: actual D1 batch invocation, "
+            "forced insert failure rolls back the preceding projection delete, "
+            "and successful rebuild preserves the expected projection."
+        )
+    finally:
+        harness.terminate()
+        try:
+            harness.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            harness.kill()
+            harness.wait(timeout=5)
+
+
 def main():
     persist = str(PERSIST_DIR)
     run([
@@ -1135,6 +1280,17 @@ def main():
             assert status == 429, (status, limited_body)
             assert limited_body.get("error", {}).get("code") == "RATE_LIMITED"
             assert response_headers.get("Retry-After") == "60", response_headers
+
+            # Stop the application Worker before opening a second Wrangler Worker
+            # against the same Local D1 persistence directory.
+            process.terminate()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=5)
+
+            run_progress_rebuild_integration(persist)
 
             print(
                 "Wrangler local D1 integration passed: Telegram HMAC/replay, "
