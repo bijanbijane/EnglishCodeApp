@@ -78,3 +78,35 @@ No source changes have been merged to main during this checkpoint. The audit bra
 - Original remote branches were preserved.
 - No force-push, branch deletion, production deployment, remote migration, secret mutation, or paid infrastructure activation was performed.
 - Main remained at the recorded baseline SHA at the time of this checkpoint.
+
+
+## Addendum — 2026-11-28 refresh
+
+### Repository and branch checkpoint
+
+- Repository identity rechecked: `bijanbijane/EnglishCodeApp`.
+- `main` remains at `f3671f2194e562fc194d23e9602b768455d8e483`; no source changes were merged to main in this refresh.
+- The latest branch-list response contains 33 branches including main (32 non-main).
+- Latest compare summary: 26 non-main branches are ahead of main; 6 have no commits exclusive to their tips; 16 are diverged (ahead and behind); 10 are ahead-only; 6 are behind-only. Ahead counts overlap across branches and are not unique-change counts.
+- The full per-branch ahead/behind table was reported separately in the 2026-11-28 branch-distance review. Branch tips are moving; refresh comparisons before any future write or integration.
+
+### New curriculum and CI work
+
+- PR #28, `feat/a1-foundations-curriculum`, targets main and is open/non-draft. Its current head at review was `a62bcc5820e2252ddf967d0159a00b6bd2712ead`, 23 commits ahead and 0 behind main.
+- PR #28 adds nine original A1 units, 45 lessons and 180 deterministic multiple-choice questions, plus seed idempotency checks, SQLite verification, Local D1 smoke coverage and curriculum source/rights documentation.
+- Exact-head GitHub Actions check for `a62bcc5` completed successfully. All 11 substantive steps passed: npm 10.9.2 pin, dependency audit, typecheck, Vitest, SQLite SQL verification, Wrangler Local D1 integration and Development API smoke test (plus setup/checkout).
+- The branch uses the existing D1 binding name `englishcodeapp-dev` for local seed commands. No remote seed, remote migration or deployment was run.
+- Editorial scope remains partial: the 180 items are multiple-choice recognition checks. Balanced listening, reading, productive speaking/writing, rubrics and cumulative assessment are not yet delivered. The reference register was corrected in a follow-up commit to enumerate all nine units and state these gaps explicitly; that follow-up requires its own exact-head CI run.
+- All content is declared original, with CEFR, Oxford, Cambridge, Longman and British Council resources used as editorial references only. The rights register explicitly prohibits copying protected publisher materials or scraping external sites.
+
+### CI consolidation candidate
+
+- PR #27, `fix/backend-npm10-vitest-install`, is open Draft, 5 commits ahead and 0 behind main. Its exact-head backend CI check completed successfully.
+- PR #27 and PR #28 both update the backend CI npm installation/audit path and Workers types. PR #28 already includes the npm 10.9.2 pin, legacy peer resolution, explicit moderate-level audit, and the Workers types update. Treat PR #27 as overlapping/redundant with PR #28 unless a later diff demonstrates unique required behavior; do not merge both blindly.
+- PR #28 is not merged. Its green check is evidence for that exact checked head only; any subsequent commit must receive fresh validation.
+
+### Updated disposition
+
+- PR #28 is the strongest current content candidate and has passed its exact-head automated validation. It still requires human review of pedagogical quality and content breadth; it must not be represented as a complete A1 course.
+- PR #27 is a focused CI fix, but its implementation overlaps the CI work now present in PR #28.
+- No branch was deleted, no shared history was rewritten, and no production or remote data operation was performed.
