@@ -138,8 +138,7 @@ By the end of this unit, a learner can:
 
 ## Next A1 units
 
-1. Family and Friends
-2. Daily Routines and Time
-3. Food, Drinks and Preferences
-4. Home, Places and Directions
-5. Work, Study and Free-time Activities
+1. Daily Routines and Time
+2. Food, Drinks and Preferences
+3. Home, Places and Directions
+4. Work, Study and Free-time Activities
