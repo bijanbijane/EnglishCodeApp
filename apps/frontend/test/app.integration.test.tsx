@@ -9,6 +9,7 @@ import {
   type Attempt,
   type Course,
   type Lesson,
+  type LearningHistoryEntry,
   type Profile,
   type ProgressEntry,
 } from "../src/api";
@@ -46,6 +47,21 @@ const savedProgress: ProgressEntry = {
   completed_count: 1,
   lesson_title: lesson.title,
   last_completed_at: "2026-11-27T00:05:00.000Z",
+};
+
+const savedHistory: LearningHistoryEntry = {
+  attemptId: "attempt-history-1",
+  lessonId: lesson.id,
+  lessonVersion: 1,
+  lessonTitle: lesson.title,
+  courseId: course.id,
+  courseTitle: course.title,
+  status: "completed",
+  score: 100,
+  startedAt: "2026-11-27T00:00:00.000Z",
+  completedAt: "2026-11-27T00:05:00.000Z",
+  questionCount: 2,
+  correctAnswerCount: 2,
 };
 
 function makeAttempt(answers: Record<string, string> = {}): Attempt {
@@ -141,6 +157,14 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
     progressReads += 1;
     return progressReads === 1 ? [] : [savedProgress];
   });
+  let historyReads = 0;
+  vi.spyOn(api, "history").mockImplementation(async () => {
+    historyReads += 1;
+    return {
+      data: historyReads === 1 ? [] : [savedHistory],
+      meta: { nextCursor: null },
+    };
+  });
   vi.spyOn(api, "startAttempt").mockResolvedValue({
     attemptId: "attempt-integration-1",
     status: "in_progress",
@@ -198,6 +222,7 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
     expect(api.login).toHaveBeenCalledOnce();
     expect(secureValues.get("englishcode_session")).toBe("local-integration-session");
     expect(container.textContent).toContain("English Foundations");
+    expect(container.textContent).toContain("Recent attempts");
 
     await act(async () => {
       findButton(container, "English Foundations").click();
@@ -239,6 +264,8 @@ it("runs the Telegram sign-in, lesson, answer, completion, progress, and logout 
       findButton(container, "Back to courses").click();
     });
     expect(container.textContent).toContain("1 unique lesson");
+    expect(container.textContent).toContain("Recent attempts");
+    expect(container.textContent).toContain("2/2 correct");
     expect(container.textContent).toContain("Greetings and Introductions");
 
     await act(async () => {
@@ -287,6 +314,10 @@ it("restores an existing Telegram Secure Storage session after a fresh app mount
   const profileRequest = vi.spyOn(api, "profile").mockResolvedValue(profile);
   const loginRequest = vi.spyOn(api, "login").mockRejectedValue(new Error("Login must not run when a saved session is valid."));
   const progressRequest = vi.spyOn(api, "progress").mockResolvedValue([savedProgress]);
+  vi.spyOn(api, "history").mockResolvedValue({
+    data: [savedHistory],
+    meta: { nextCursor: null },
+  });
 
   const { default: App } = await import("../src/App");
   const container = document.createElement("div");

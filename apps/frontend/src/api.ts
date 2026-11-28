@@ -1,4 +1,4 @@
-export type ApiEnvelope<T> = { data: T; meta?: { requestId?: string } };
+export type ApiEnvelope<T> = { data: T; meta?: { requestId?: string; nextCursor?: string | null } };
 export type Course = {
   id: string; slug: string; title: string; description: string | null;
   source_language: string; target_language: string;
@@ -18,6 +18,12 @@ export type Attempt = {
 };
 export type Profile = { id: string; display_name: string | null; created_at: string };
 export type ProgressEntry = { lesson_id: string; course_id: string; best_score: number; completed_count: number; lesson_title: string; last_completed_at: string };
+export type LearningHistoryEntry = {
+  attemptId: string; lessonId: string; lessonVersion: number;
+  lessonTitle: string; courseId: string; courseTitle: string;
+  status: "completed"; score: number | null; startedAt: string; completedAt: string;
+  questionCount: number; correctAnswerCount: number;
+};
 
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number, public readonly code?: string) {
@@ -31,7 +37,7 @@ let accessToken: string | null = null;
 
 export function setAccessToken(token: string | null) { accessToken = token; }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function requestEnvelope<T>(path: string, init: RequestInit = {}): Promise<ApiEnvelope<T>> {
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
   if (init.body) headers.set("Content-Type", "application/json");
@@ -40,7 +46,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     ...init, headers, credentials: "omit",
   });
   const payload = await response.json().catch(() => null) as
-    | { data?: T; error?: { message?: string; code?: string; requestId?: string } }
+    | { data?: T; meta?: ApiEnvelope<T>["meta"]; error?: { message?: string; code?: string; requestId?: string } }
     | null;
   if (!response.ok) {
     const message = payload?.error?.message ?? `Request failed (${response.status})`;
@@ -51,7 +57,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     );
   }
   if (!payload || !("data" in payload)) throw new Error("The server returned an invalid response.");
-  return payload.data as T;
+  return { data: payload.data as T, meta: payload.meta };
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  return (await requestEnvelope<T>(path, init)).data;
 }
 
 export const api = {
@@ -73,6 +83,11 @@ export const api = {
     `/attempts/${encodeURIComponent(attemptId)}/complete`, { method: "POST", body: "{}" },
   ),
   progress: () => request<ProgressEntry[]>("/me/progress"),
+  history: (limit = 5, cursor?: string | null) => {
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (cursor) query.set("cursor", cursor);
+    return requestEnvelope<LearningHistoryEntry[]>(`/me/history?${query.toString()}`);
+  },
   logout: () => request<{ loggedOut: boolean }>("/auth/logout", { method: "POST", body: "{}" }),
 };
 

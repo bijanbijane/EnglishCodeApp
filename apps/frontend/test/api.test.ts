@@ -110,4 +110,32 @@ describe("frontend API client", () => {
     expect(request.method).toBe("POST");
     expect(new Headers(request.headers).get("Authorization")).toBe("Bearer active-session");
   });
+
+  it("loads a cursor-paginated learner history envelope", async () => {
+    const records = [{
+      attemptId: "attempt-1",
+      lessonId: "lesson-1",
+      lessonVersion: 2,
+      lessonTitle: "Greetings",
+      courseId: "course-1",
+      courseTitle: "Foundations",
+      status: "completed" as const,
+      score: 90,
+      startedAt: "2026-11-28T10:00:00.000Z",
+      completedAt: "2026-11-28T10:05:00.000Z",
+      questionCount: 5,
+      correctAnswerCount: 4,
+    }];
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: records, meta: { nextCursor: "next-page" } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(api.history(5, "previous-page")).resolves.toEqual({
+      data: records,
+      meta: { nextCursor: "next-page" },
+    });
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/v1/me/history?limit=5&cursor=previous-page");
+  });
 });

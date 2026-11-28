@@ -18,7 +18,8 @@ Base path: `/api/v1`. Timestamps are UTC ISO-8601. Success and error responses i
 | GET | `/attempts/:attemptId` | Bearer session | Read own immutable attempt snapshot |
 | POST | `/attempts/:attemptId/answers` | Bearer session | Validate and grade answer server-side |
 | POST | `/attempts/:attemptId/complete` | Bearer session | Complete attempt and update progress |
-| GET | `/me/progress` | Bearer session | Current user's progress |
+| GET | `/me/progress` | Bearer session | Current user's progress projection |
+| GET | `/me/history` | Bearer session | Newest-first, cursor-paginated completed attempts (limit 1–50) |
 
 ## Role-protected administration
 
