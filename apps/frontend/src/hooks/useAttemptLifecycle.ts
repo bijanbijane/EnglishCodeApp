@@ -46,13 +46,13 @@ export function useAttemptLifecycle({
 
   const submitAnswer = useCallback(async (question: AttemptQuestion, answer: string | null) => {
     const currentAttempt = attempt;
-    if (!currentAttempt || !answer || question.submittedAnswer !== null || busy) return;
+    if (!currentAttempt || !answer || question.submittedAnswer !== null || busy) return false;
     const requestGeneration = generation.current;
     setBusy(true);
     onError("");
     try {
       const result = await api.answer(currentAttempt.id, question.id, answer);
-      if (generation.current !== requestGeneration) return;
+      if (generation.current !== requestGeneration) return false;
       if (!result.accepted) throw new Error("The server did not accept this answer.");
 
       // The accepted POST is authoritative; a subsequent read is only a refresh.
@@ -74,8 +74,10 @@ export function useAttemptLifecycle({
           ? "Correct answer. Your answer was saved, but the lesson could not refresh. You can continue."
           : "Answer saved. The lesson could not refresh. You can continue.");
       }
+      return generation.current === requestGeneration;
     } catch (error) {
       if (generation.current === requestGeneration) onError(messageOf(error, "Could not submit the answer."));
+      return false;
     } finally {
       if (generation.current === requestGeneration) setBusy(false);
     }
