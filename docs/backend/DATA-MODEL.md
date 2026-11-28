@@ -2,7 +2,7 @@
 
 **Store:** Cloudflare D1 / SQLite.  
 **Canonical schema:** forward-only SQL under `database/migrations/`.  
-**Main migration sequence:** `0001`–`0016` (baseline commit `15b9b47c32e5f0a04542d946d61679f62b15f47c`).
+**Main migration sequence:** `0001`–`0016` (baseline commit `533cab6821b39191338473e8fb13ce89c8013589`).
 
 ## Identity and security
 
