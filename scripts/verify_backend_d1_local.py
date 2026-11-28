@@ -770,26 +770,30 @@ def main():
             assert logout["data"]["loggedOut"] is True
             expect_status(request("GET", "/api/v1/me", token), 401, "revoked session")
 
-            clear_limits = PERSIST_DIR / "clear-rate-limits.sql"
-            clear_limits.write_text("DELETE FROM auth_rate_limits;", encoding="utf-8")
+            # Seed the bucket at its threshold rather than sending 30 requests.
+            # This keeps the integration check deterministic across minute boundaries.
+            rate_limit_ip = "203.0.113.12"
+            rate_limit_key = hmac.new(
+                BOT_TOKEN.encode(),
+                f"telegram-login-rate-limit:{rate_limit_ip}".encode(),
+                hashlib.sha256,
+            ).hexdigest()
+            seed_rate_limit = PERSIST_DIR / "seed-rate-limit.sql"
+            seed_rate_limit.write_text(
+                "INSERT INTO auth_rate_limits (bucket_key,window_start,request_count,updated_at) "
+                f"VALUES ('{rate_limit_key}',strftime('%Y-%m-%dT%H:%M:00.000Z','now'),30,strftime('%Y-%m-%dT%H:%M:%fZ','now')) "
+                "ON CONFLICT(bucket_key) DO UPDATE SET "
+                "window_start=excluded.window_start,request_count=excluded.request_count,updated_at=excluded.updated_at;",
+                encoding="utf-8",
+            )
             run([
                 "npx", "wrangler", "d1", "execute", DATABASE,
-                "--local", "--persist-to", persist, f"--file={clear_limits}",
+                "--local", "--persist-to", persist, f"--file={seed_rate_limit}",
             ])
-            for attempt_number in range(30):
-                status, _ = request(
-                    "POST", "/api/v1/auth/telegram",
-                    payload={"initData": "invalid"},
-                    ip="203.0.113.12",
-                )
-                if status != 401:
-                    raise AssertionError(
-                        f"Rate limit request {attempt_number + 1} expected 401, got {status}"
-                    )
             status, limited_body, response_headers = request(
                 "POST", "/api/v1/auth/telegram",
                 payload={"initData": "invalid"},
-                ip="203.0.113.12",
+                ip=rate_limit_ip,
                 include_headers=True,
             )
             assert status == 429, (status, limited_body)
