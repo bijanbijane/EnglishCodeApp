@@ -1,5 +1,7 @@
 name: Backend CI
 
+# Keep curriculum seed and API checks in the backend validation path.
+
 on:
   pull_request:
     paths:
