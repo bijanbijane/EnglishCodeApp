@@ -17,7 +17,9 @@
     "db:seed:a1:local": "wrangler d1 execute englishcodeapp-dev --local --file=../../database/seeds/0002_a1_foundations.sql",
     "db:seed:a1:dev": "wrangler d1 execute englishcodeapp-dev --remote --file=../../database/seeds/0002_a1_foundations.sql",
     "db:seed:a1:unit-02:local": "wrangler d1 execute englishcodeapp-dev --local --file=../../database/seeds/0003_a1_unit_02.sql",
-    "db:seed:a1:unit-02:dev": "wrangler d1 execute englishcodeapp-dev --remote --file=../../database/seeds/0003_a1_unit_02.sql"
+    "db:seed:a1:unit-02:dev": "wrangler d1 execute englishcodeapp-dev --remote --file=../../database/seeds/0003_a1_unit_02.sql",
+    "db:seed:a1:unit-03:local": "wrangler d1 execute englishcodeapp-dev --local --file=../../database/seeds/0004_a1_unit_03.sql",
+    "db:seed:a1:unit-03:dev": "wrangler d1 execute englishcodeapp-dev --remote --file=../../database/seeds/0004_a1_unit_03.sql"
   },
   "dependencies": {
     "hono": "^4.8.0"
