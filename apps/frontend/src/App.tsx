@@ -6,6 +6,7 @@ import { getTelegramWebApp } from "./platform/telegram";
 import { useLearningProgress } from "./hooks/useLearningProgress";
 import { useAttemptLifecycle } from "./hooks/useAttemptLifecycle";
 import { useCourseCatalog } from "./hooks/useCourseCatalog";
+import { useLearningHistory } from "./hooks/useLearningHistory";
 
 type Screen = "home" | "lesson" | "result" | "content";
 function App() {
@@ -32,6 +33,12 @@ function App() {
     setNotice(e instanceof Error ? e.message : "Could not load learning progress.");
   }, []);
   const { progress, progressLoading, refreshProgress } = useLearningProgress(profile, handleProgressError);
+  const handleHistoryError = useCallback((e: unknown) => {
+    setNotice(e instanceof Error ? e.message : "Could not load learning history.");
+  }, []);
+  const {
+    history, historyLoading, historyLoadingMore, hasMoreHistory, loadMoreHistory,
+  } = useLearningHistory({ profile, onError: handleHistoryError });
   const handleCatalogError = useCallback((message: string) => setError(message), []);
   const {
     courses, lessons, coursesLoadFailed, lessonsLoadFailed, loading,
@@ -185,6 +192,27 @@ function App() {
           <article className="progress-stat"><span>LESSON RECORDS</span><strong>{progress.length}</strong><small>unique lessons practiced</small></article>
         </div>
         {progress.length > 0 && <div className="recent-progress"><h3>Recently completed</h3>{progress.slice(0,3).map((item) => <div className="recent-row" key={item.lesson_id}><span>{item.lesson_title}</span><strong>{item.best_score}%</strong></div>)}</div>}
+      </section>}
+      {profile && (history.length > 0 || historyLoading) && <section className="history-section" aria-label="Recent learning history">
+        <div className="history-heading">
+          <div><p className="eyebrow">YOUR LEARNING RECORD</p><h2>Recent attempts</h2></div>
+          <span className="progress-caption">{historyLoading ? "Loading…" : `${history.length} attempts`}</span>
+        </div>
+        {history.length > 0 ? <div className="history-list">{history.map((item) =>
+          <article className="history-row" key={item.attemptId}>
+            <div className="history-main">
+              <h3>{item.lessonTitle}</h3>
+              <p>{item.courseTitle} · {new Date(item.completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</p>
+            </div>
+            <div className="history-result">
+              <strong>{item.score}%</strong>
+              <small>{item.correctAnswerCount}/{item.questionCount} correct</small>
+            </div>
+          </article>
+        )}</div> : <div className="history-empty">No completed lessons yet. Finish a lesson to see your results here.</div>}
+        {hasMoreHistory && <button className="text-button history-more" onClick={() => void loadMoreHistory()} disabled={historyLoadingMore}>
+          {historyLoadingMore ? "Loading more…" : "Load more attempts"}
+        </button>}
       </section>}
       <section className="library-launch">
         <div><p className="eyebrow">EXPLORE & PRACTISE</p><h2>Build stronger English foundations.</h2><p>Search 2,138 vocabulary records or work through 40 common learner-error examples.</p></div>
