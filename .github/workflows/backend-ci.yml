@@ -8,6 +8,8 @@ on:
       - "database/migrations/**"
       - "database/seeds/**"
       - "docs/curriculum/**"
+      - "docs/backend/**"
+      - "README.md"
       - "docs/architecture/ASSESSMENT-*.md"
       - "scripts/**"
       - ".github/workflows/backend-ci.yml"
