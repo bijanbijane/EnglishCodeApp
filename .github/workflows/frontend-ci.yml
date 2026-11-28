@@ -26,7 +26,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
+      - name: Pin npm to packageManager version
+        run: |
+          npm install --global npm@10.9.2
+          test "$(npm --version)" = "10.9.2"
+      - run: npm install --legacy-peer-deps
       - name: Audit dependencies
         run: npm audit --audit-level=moderate
       - run: npm run typecheck
