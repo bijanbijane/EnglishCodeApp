@@ -79,3 +79,26 @@ it("clears history and ignores stale page results after the profile is removed",
     await act(async () => root.unmount());
   }
 });
+
+
+it("exposes a retry after the first history page fails", async () => {
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  vi.spyOn(api, "history")
+    .mockRejectedValueOnce(new Error("History service unavailable"))
+    .mockResolvedValueOnce({ data: [entry("attempt-recovered")], meta: { nextCursor: null } });
+  let latest: ReturnType<typeof useLearningHistory> | undefined;
+  function Harness() {
+    latest = useLearningHistory({ profile, onError });
+    return null;
+  }
+  const root = createRoot(document.createElement("div"));
+  try {
+    await act(async () => { root.render(<Harness />); });
+    expect(latest?.historyLoadFailed).toBe(true);
+    await act(async () => { await latest?.refreshHistory(); });
+    expect(latest?.historyLoadFailed).toBe(false);
+    expect(latest?.history.map((item) => item.attemptId)).toEqual(["attempt-recovered"]);
+  } finally {
+    await act(async () => root.unmount());
+  }
+});
