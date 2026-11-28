@@ -79,7 +79,6 @@ No source changes have been merged to main during this checkpoint. The audit bra
 - No force-push, branch deletion, production deployment, remote migration, secret mutation, or paid infrastructure activation was performed.
 - Main remained at the recorded baseline SHA at the time of this checkpoint.
 
-
 ## Addendum — 2026-11-28 refresh
 
 ### Repository and branch checkpoint
@@ -110,7 +109,6 @@ No source changes have been merged to main during this checkpoint. The audit bra
 - PR #28 is the strongest current content candidate and has passed its exact-head automated validation. It still requires human review of pedagogical quality and content breadth; it must not be represented as a complete A1 course.
 - PR #27 is a focused CI fix, but its implementation overlaps the CI work now present in PR #28.
 - No branch was deleted, no shared history was rewritten, and no production or remote data operation was performed.
-
 
 ## Addendum — PR validation and code-review findings (2026-11-28)
 
@@ -144,7 +142,6 @@ No source changes have been merged to main during this checkpoint. The audit bra
 - PR #26 received a targeted cursor fix and requires fresh CI.
 - PR #23 requires rerun after npm workflow correction.
 - No remote D1 write, remote seed, secret/config mutation, production deployment, or production migration was performed.
-
 
 ## Complete branch-distance snapshot — 2026-11-28
 
@@ -186,3 +183,38 @@ The branch-list API was refreshed after the latest candidate commits. The follow
 | `integration/complete-branch-consolidation-2026-11` | 6 | 0 |
 
 Summary: 32 non-main branches; 26 ahead of main; 6 with zero ahead; 16 diverged; 10 ahead-only; 6 behind-only. The sum of ahead counts is 521 and double-counts shared commits across branches, so it is not a unique-change count. Branch distances are ancestry metrics, not merge-readiness assessments.
+
+## Addendum — exact-head refresh (2026-11-28 10:57 +03:30)
+
+This section supersedes earlier status statements above where they refer to old branch tips, old CI attempts, or pre-refresh dispositions. It is a snapshot, not a claim that later branch movement cannot occur.
+
+### Main and active pull requests
+
+- Repository identity and write permission were rechecked for `bijanbijane/EnglishCodeApp`.
+- `main` remains at `f3671f2194e562fc194d23e9602b768455d8e483`.
+- PR #28 is open, non-Draft, mergeable, targets main, and is 25 commits ahead / 0 behind. Its current head is `e8823293853fb08876b4cc2df8dc8c2f0af93f9c`.
+- PR #28 exact-head Backend CI run [#46120470480](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/46120470480) completed successfully. npm 10.9.2 install, dependency audit, TypeScript, Vitest, SQLite verification, Wrangler Local D1 integration and Development API smoke all passed. No human review is recorded. The curriculum remains a partial A1 foundation: 45 lessons / 180 MCQ recognition items, not complete four-skill A1.
+- PR #24 is open Draft at `c9c4c87a9c481e311d9ab72f16908f47f8bc7c59`; Backend CI #46115550576 passed on that exact head.
+- PR #25 is open Draft at `64f0b4c63d56a92d4ee4cedceed5a856949c9aef`; Backend CI #46115705935 passed on that exact head. It remains the selected candidate for migration `0016`; no remote migration was run.
+- PR #26 is open Draft at `4f1a775e02a2a38f1ed80e16aa6947358ccfd703`; its refreshed Backend CI #46120645652 passed on that exact head, including the colon-delimited lesson-version cursor regression.
+- PR #20 remains open Draft at `dd5976a47ef680af8a2ba5a242939827b5ffde93`. Backend and Frontend CI passed on that exact head (runs #46119415319 and #46119415305); device testing and account-level Workers AI usage/billing review remain blockers. Its migration `0017` depends on #25's `0016`.
+- PR #21 remains open Draft at `13a8984639555b7f2b0f05a447b8f4b83d51f319`; Backend #46116867108 and Frontend #46116867112 passed. Carryword remains an AI-assisted draft requiring human editorial verification.
+- PR #22 remains open Draft at `d5099790751b51497b1e2f314a1a91b526cff11c`, stacked on PR #21's older base. Its recorded Backend #46116791489 and Frontend #46116791486 checks passed on its head, but client-imported answer keys/client-side grading remain a hard architecture blocker. Do not merge as assessed learning content.
+- PR #23 remains open Draft at `c85e0dac6c5fb9701bfaed5d35afbfc4b7badff4`; Backend CI #46065261063 failed during npm install with npm 10 Arborist `edgesOut` resolver error. Test steps did not run. Its workflow still needs the validated npm 10.9.2 / legacy-peer workaround and a fresh exact-head CI run.
+- PR #27 remains open Draft at `a15a662d06ad62bbd44097d8a9d44a9681c5abd2`; Backend CI #46115736975 passed. Its dependency/CI changes overlap #24 and #28; avoid integrating duplicate fixes.
+- PR #29 is this documentation-only audit, open Draft at `a4e2e8eadff2707f7f234909aa9c1c137e38c299`, 7 commits ahead / 0 behind main. Its single changed file is this audit document. No source branch is merged by this PR.
+
+### Integration sequence and approval gates
+
+1. PR #24 (Telegram URL configuration) and PR #26 (author-version pagination) are main-based, no-migration candidates with green exact-head CI. They still require human review and owner approval before integration.
+2. PR #25 is the sole selected migration `0016` candidate. It must be reviewed as an additive schema/data change; PR #19 is the competing implementation and must not be combined with it.
+3. PR #20 migration `0017` can only be considered after #25's `0016` path is selected and the resulting chain is revalidated. Device and Cloudflare account usage/billing gates remain open.
+4. PR #28 is a separate content/seed candidate; its seeds assume migrations `0001`–`0015` and the demo seed, and its local checks passed. It does not require a new schema migration. Human pedagogical review remains necessary.
+5. PR #21/#22 require editorial/license review; #22 additionally requires server-authoritative grading redesign.
+6. PR #23 needs the npm CI workaround and rerun. PR #27 is redundant if the equivalent dependency fix is integrated through #24 or #28.
+
+### Safety and unperformed actions
+
+- No PR was merged or closed; no branch was deleted or force-pushed.
+- No remote D1 migration, remote seed, Worker secret/config mutation, Production deployment, billing change or paid-resource activation was performed.
+- All CI evidence above is exact-head evidence for the named SHA only. Recheck after any branch update.
