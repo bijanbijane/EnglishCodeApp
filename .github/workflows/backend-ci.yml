@@ -32,9 +32,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Pin npm to packageManager version
+        run: |
+          npm install --global npm@10.9.2
+          test "$(npm --version)" = "10.9.2"
       - run: npm install
-      - name: Report dependency audit advisories
-        run: npm audit --json || true
+      - name: Audit dependencies
+        run: npm audit --audit-level=moderate
       - run: npm run typecheck
       - run: npm test
       - name: Verify migration and transaction SQL invariants with SQLite
