@@ -316,3 +316,29 @@ This addendum supersedes the earlier PR #23 and PR #28 head/check statements abo
 3. Only after 0016 is confirmed, consider PR #20 and migration 0017, with its own review and explicit approval for remote operations.
 
 Main remains unchanged; all listed PRs remain open and unmerged.
+
+
+## Addendum — exact-head refresh (2026-11-28, 12:40 +03:30)
+
+This section supersedes earlier PR head and CI statements above where they conflict.
+
+### Current candidate heads and validation
+
+- `main` remains at `f3671f2194e562fc194d23e9602b768455d8e483`; repository identity and write permission were rechecked.
+- PR #19: `feat/immutable-learning-events`, head `30fded8726f936f7a8c3ce89703f696e52c093e5`, open/Draft, 16 commits ahead. Its exact-head Backend CI run #45960589692 failed. This branch contains the same migration 0016 blob as PR #25; do not integrate both.
+- PR #20: `infra/cloudflare-free-tier-foundation`, head `dd5976a47ef680af8a2ba5a242939827b5ffde93`, open/Draft, 117 commits ahead. Exact-head Backend CI #46119426831 and Frontend CI #46119426817 both passed. Device/browser recording validation, development inference under actual account quota, account-level billing/usage review, and migration ordering remain open gates.
+- PR #25: `feat/immutable-learning-events-mainline`, head `facb4e2882caa030aa9a00b9653bd8650ae9afd0`, open/Draft, 21 commits ahead. Backend CI #46122484210 passed on this exact head. The code/test commit `c6af8eef95788eb4a199eb1dc5f388d9e473d6ad` also has its dedicated successful CI run #46122389777. Migration 0016 is still not applied remotely.
+- PR #26: `fix/author-version-pagination-order`, head `4f1a775e02a2a38f1ed80e16aa6947358ccfd703`, open/Draft, 9 commits ahead. Backend CI #46120645652 passed. The route tests use a mocked D1 object and inspect SQL text/bind values; they do not execute the keyset predicate against SQLite/D1. The existing Local D1 integration script does not call this author-version endpoint. A review comment already requests a real successive-page D1 integration test. This is an evidence gap, not a confirmed SQL defect.
+- PR #28: `feat/a1-foundations-curriculum`, head `93c90aff2c87818163932736e9fa57f28ccbeedb`, open/non-Draft, 31 commits ahead. Backend CI run #46129274724 is in progress; the previous green run on a different head does not validate this SHA. Curriculum remains a partial A1 foundation, not a complete four-skill course.
+- PR #29: this documentation branch, head `aab004b04afbb0422085d9cd5100d3896f3c4225`, open/Draft, 13 commits ahead. This addendum is documentation-only and does not validate itself via application CI.
+
+### Migration identity check
+
+- Fetched `database/migrations/0016_immutable_learning_events.sql` from PR #19 and PR #25. Both returned the same Git blob SHA `b58630b876ba80972e65b457f55f071eddc56de0`; the migration content is identical.
+- PR #20 migration `0017_ai_transcription_quota.sql` has blob SHA `16c1ba7b06205ab4db439181ba3eb54492daddb5` and is ordered after the selected 0016 path in its feature documentation.
+- Integration order remains: choose one canonical 0016 (PR #25 preferred), review/approve and separately authorize its intended non-production migration, then reconsider PR #20/0017 under its independent device, quota and operational gates. No migration was run.
+
+### Safety
+
+- No PR was merged or closed; no branch was deleted or force-pushed.
+- No remote D1 migration/seed, Worker configuration or secret mutation, deployment, billing change, or production operation was performed.
