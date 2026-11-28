@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "englishcode-progress-rebuild-test",
+  "main": "scripts/progress-rebuild-test-worker.ts",
+  "compatibility_date": "2026-11-26",
+  "workers_dev": false,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "englishcodeapp-dev",
+      "database_id": "0e36d435-fcfa-48a9-bc2c-8b14894a39f3",
+      "migrations_dir": "../../database/migrations"
+    }
+  ]
+}
