@@ -1,7 +1,7 @@
 # Cumulative Assessment — Data Model and API Contracts
 
 **Status:** Design proposal only; no runtime implementation.  
-**Target branch reviewed:** `feat/a1-foundations-curriculum` at `b460c2434af8e88461c0c2f4da2afbd3d0a2dbc2`.  
+**Target branch reviewed:** `feat/a1-foundations-curriculum` at `27e3126fefbba1f08f2b16d9a0500158b453dd27` (including migrations `0001`–`0015`).  
 **Current branch migration history:** `0001`–`0015`.  
 **Related documents:** `ASSESSMENT-IMPLEMENTATION-DESIGN.md`, `A1-CUMULATIVE-ASSESSMENT.md`.
 
