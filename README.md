@@ -2,7 +2,7 @@
 
 پلتفرم آموزش زبان انگلیسی با محوریت Telegram Bot و Telegram Mini App؛ با مسیر توسعهٔ تدریجی به وب‌اپلیکیشن و اپلیکیشن موبایل.
 
-> **وضعیت مخزن (۲۸ نوامبر ۲۰۲۶):** `main` در commit `15b9b47c32e5f0a04542d946d61679f62b15f47c` قرار دارد. Backend مبتنی بر Workers/Hono و API نسخه‌بندی‌شده، Telegram HMAC/session، attempt و grading سمت سرور، progress، RBAC و گردش author/reviewer/publisher در کد main وجود دارند. زنجیرهٔ migrationهای main از `0001` تا `0016` است. GitHub Actions روی PRهای مشخص، از جمله PRهای #26، #28 و #30، برای commitهای دقیق آن‌ها موفق بوده است؛ این شواهد به‌تنهایی موفقیت workflow مستقل روی head فعلی main را ثابت نمی‌کند. محتوای A1 فعلی شامل ۹ واحد، ۴۵ درس و ۱۸۰ MCQ است و هنوز دورهٔ کامل چهارمهارته محسوب نمی‌شود. هیچ Production deployment یا remote migration در این روند انجام نشده است.
+> **وضعیت مخزن (۲۸ نوامبر ۲۰۲۶):** `main` در commit `533cab6821b39191338473e8fb13ce89c8013589` قرار دارد. Backend مبتنی بر Workers/Hono و API نسخه‌بندی‌شده، Telegram HMAC/session، attempt و grading سمت سرور، progress، RBAC و گردش author/reviewer/publisher در کد main وجود دارند. زنجیرهٔ migrationهای main از `0001` تا `0016` است. GitHub Actions روی PRهای مشخص، از جمله PRهای #26، #28 و #30، برای commitهای دقیق آن‌ها موفق بوده است؛ این شواهد به‌تنهایی موفقیت workflow مستقل روی head فعلی main را ثابت نمی‌کند. محتوای A1 فعلی شامل ۹ واحد، ۴۵ درس و ۱۸۰ MCQ است و هنوز دورهٔ کامل چهارمهارته محسوب نمی‌شود. هیچ Production deployment یا remote migration در این روند انجام نشده است.
 
 ## هدف محصول
 
