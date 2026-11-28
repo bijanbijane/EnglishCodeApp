@@ -32,9 +32,11 @@ describe("API request body limits", () => {
         return {
           bind() {
             return {
-              first: async () => sql.includes("FROM sessions")
-                ? { id: "session-1", user_id: "user-1" }
-                : null,
+              first: async () => {
+                if (sql.includes("FROM sessions")) return { id: "session-1", user_id: "user-1" };
+                if (sql.includes("RETURNING request_count")) return { request_count: 1 };
+                return null;
+              },
             };
           },
         };
