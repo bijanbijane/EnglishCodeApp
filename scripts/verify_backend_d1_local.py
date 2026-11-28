@@ -317,6 +317,46 @@ def main():
             assert user_quota_rows[0]["global_count"] == 0, user_quota_rows
             assert user_quota_rows[0]["user_count"] == 2, user_quota_rows
 
+            # User-scoped quota reservations must be removed immediately when
+            # the account is deleted; account-wide '*' reservations are retained.
+            delete_user_seed_sql = (
+                "INSERT INTO users (id, display_name) VALUES ('quota-delete-user', 'Quota deletion test'); "
+                "INSERT INTO ai_transcription_reservations (id,day_utc,user_id) VALUES "
+                f"('quota-delete-user-reservation','{quota_day}','quota-delete-user'),"
+                f"('quota-delete-global-reservation','{quota_day}','*');"
+            )
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", delete_user_seed_sql,
+            ])
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", "DELETE FROM users WHERE id='quota-delete-user';",
+            ])
+            delete_user_check = run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", "SELECT "
+                    "(SELECT COUNT(*) FROM ai_transcription_reservations WHERE user_id='quota-delete-user') AS user_count, "
+                    "(SELECT COUNT(*) FROM ai_transcription_reservations WHERE id='quota-delete-global-reservation') AS global_count;",
+                "--json",
+            ])
+            delete_user_payload = json.loads(delete_user_check)
+            delete_user_rows = (
+                delete_user_payload[0]["results"]
+                if isinstance(delete_user_payload, list)
+                else delete_user_payload["results"]
+            )
+            assert delete_user_rows[0]["user_count"] == 0, delete_user_rows
+            assert delete_user_rows[0]["global_count"] == 1, delete_user_rows
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", "DELETE FROM ai_transcription_reservations WHERE id='quota-delete-global-reservation';",
+            ])
+
             # Reset the short-window parser limiter so the next quota scenario
             # exercises the daily global reservation path independently.
             run([
