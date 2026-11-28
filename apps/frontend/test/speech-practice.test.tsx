@@ -41,6 +41,10 @@ class MockMediaRecorder {
   }
 }
 
+function getLastRecorder(): MockMediaRecorder | null {
+  return MockMediaRecorder.lastInstance;
+}
+
 function button(container: HTMLElement, label: string): HTMLButtonElement {
   const found = [...container.querySelectorAll("button")].find(
     (item) => item.textContent?.includes(label),
@@ -187,7 +191,7 @@ it("detaches recorder event handlers when the component unmounts", async () => {
     await Promise.resolve();
   });
 
-  const recorder = MockMediaRecorder.lastInstance;
+  const recorder = getLastRecorder();
   expect(recorder).not.toBeNull();
   expect(recorder?.onerror).toBeTypeOf("function");
   expect(recorder?.onstop).toBeTypeOf("function");
@@ -257,7 +261,7 @@ it("stops the active recorder and releases the microphone when the learner signs
     button(view, "Start recording").click();
     await Promise.resolve();
   });
-  const recorder = MockMediaRecorder.lastInstance;
+  const recorder = getLastRecorder();
   expect(recorder?.state).toBe("recording");
 
   await act(async () => {
