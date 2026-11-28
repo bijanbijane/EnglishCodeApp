@@ -18,6 +18,7 @@ npm test
 python3 ../../scripts/verify_backend_sqlite.py
 npm run db:migrate:local
 npm run db:seed:local
+npm run test:d1-local
 npm run dev
 ```
 
@@ -25,12 +26,12 @@ The Python script exercises migrations and core SQLite transaction/trigger invar
 
 ## Migration policy
 
-1. Review SQL, foreign keys, triggers and indexes.
-2. On `main`, the migration sequence is `0001`–`0015`; this feature branch adds `0016_immutable_learning_events.sql`. Confirm the exact commit and migration files before applying.
-3. Apply migrations to a copy of the previous supported schema.
-4. Verify indexes, constraints and representative query plans.
-5. Record exact migration version and evidence.
-6. Remote migration is a separate, explicitly approved operation with backup and recovery plan.
+1. Review SQL, foreign keys, triggers, indexes, and compatibility with the current schema.
+2. On the inspected `main` commit `15b9b47c32e5f0a04542d946d61679f62b15f47c`, the migration sequence is `0001`–`0016`, including `0016_immutable_learning_events.sql`. Re-read the actual files on the target commit before applying or documenting a newer range.
+3. Apply the full sequence to a fresh Local D1 and verify migrations, synthetic seed data, constraints, and representative query behavior.
+4. Test upgrades from the previous supported schema when a migration changes existing data or constraints.
+5. Record the exact commit, migration range, command, and result.
+6. Treat any remote migration as a separate operation requiring explicit owner approval, backup, and recovery plan.
 
 Never edit a migration applied to a shared database. Prefer forward-only migrations. Old feature branches have incompatible migration histories; do not copy their old numbered migrations onto main.
 
@@ -42,7 +43,11 @@ Never edit a migration applied to a shared database. Prefer forward-only migrati
 - Local D1 migration and synthetic seed.
 - Later: Worker integration tests, security tests, frontend contract compatibility and migration-upgrade tests.
 
-Current GitHub Actions runs fail before runner allocation (`runner_id=0`, no steps). This is not a code-test failure or a passing result. The connected Mac was also offline during the latest work session.
+The GitHub Actions run [#46132304990](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/46132304990) passed on PR #30 head `1adc37f6a80ffca3795d72d7415b2b35bac1e4a2`, which is a documentation-only change based on the inspected main commit. Dependency audit, typecheck, Vitest, SQLite migration/transaction checks, Wrangler Local D1 integration, and Development API smoke all passed on that exact PR head. This is not a separately triggered run on the `main` SHA; always report the exact tested commit.
+
+## Migration 0016 — immutable learning events
+
+The mainline migration `0016_immutable_learning_events.sql` adds an append-only ledger for completed lesson attempts, backfills events for historical completed attempts, and adds user/lesson read indexes and uniqueness constraints. Update and direct-delete guards preserve event immutability; deleting the parent user follows the existing cascade policy. This event ledger is not a cumulative assessment-result store.
 
 ## Observability
 
