@@ -3,9 +3,9 @@ const LearningContentModule = lazy(() => import("./features/learning-content/Lea
 import { api, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
 import { getSessionErrorMessage, restoreSession, revokeSession } from "./auth";
 import { getTelegramWebApp } from "./platform/telegram";
+import { useLearningProgress } from "./hooks/useLearningProgress";
 
 type Screen = "home" | "lesson" | "result" | "content";
-type ProgressEntry = { lesson_id: string; course_id: string; best_score: number; completed_count: number; lesson_title: string; last_completed_at: string };
 function App() {
   const telegram = getTelegramWebApp();
   const [courses, setCourses] = useState<Course[]>([]);
@@ -15,8 +15,6 @@ function App() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [progress, setProgress] = useState<ProgressEntry[]>([]);
-  const [progressLoading, setProgressLoading] = useState(false);
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [screen, setScreen] = useState<Screen>("home");
   const [loading, setLoading] = useState(true);
@@ -31,6 +29,10 @@ function App() {
   const authStarted = useRef(false);
   const authInFlight = useRef(false);
   const courseRequestId = useRef(0);
+  const handleProgressError = useCallback((e: unknown) => {
+    setNotice(e instanceof Error ? e.message : "Could not load learning progress.");
+  }, []);
+  const { progress, progressLoading, refreshProgress } = useLearningProgress(profile, handleProgressError);
 
   const loadCourses = useCallback(async () => {
     setLoading(true); setError(""); setCoursesLoadFailed(false);
@@ -112,16 +114,6 @@ function App() {
     finally { setBusy(false); }
   };
 
-  useEffect(() => {
-    if (!profile) { setProgress([]); return; }
-    let active = true;
-    setProgressLoading(true);
-    api.progress().then((entries) => { if (active) setProgress(entries); })
-      .catch((e: unknown) => { if (active) setNotice(e instanceof Error ? e.message : "Could not load learning progress."); })
-      .finally(() => { if (active) setProgressLoading(false); });
-    return () => { active = false; };
-  }, [profile]);
-
   const currentQuestion = attempt?.questions[questionIndex];
   const completed = useMemo(() => attempt?.questions.filter((q) => q.submittedAnswer !== null).length ?? 0, [attempt]);
 
@@ -163,7 +155,7 @@ function App() {
       setScore(result.score);
       setScreen("result");
       try {
-        setProgress(await api.progress());
+        await refreshProgress();
       } catch {
         setNotice("Lesson completed. Progress details will refresh when you return.");
       }
@@ -211,7 +203,7 @@ function App() {
         logout: api.logout,
         setToken: setAccessToken,
       });
-      setProfile(null); setProgress([]); setSignedOut(true);
+      setProfile(null); setSignedOut(true);
       setNotice(result.storageCleared
         ? "You have signed out. Close and reopen the Mini App to start a new Telegram sign-in session."
         : "You are signed out on the server, but Telegram could not clear the saved local token. Close and reopen the Mini App; the expired token will be replaced during sign-in.");
