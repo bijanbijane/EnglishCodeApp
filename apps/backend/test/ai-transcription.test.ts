@@ -168,6 +168,22 @@ describe("AI speech transcription API", () => {
     expect(db.batch).not.toHaveBeenCalled();
   });
 
+  it("authenticates before applying the larger transcription body limit", async () => {
+    const { db } = makeDb();
+    const response = await app.request(
+      "/api/v1/ai/transcriptions",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "x".repeat(300 * 1024),
+      },
+      { DB: db, AI: { run: vi.fn() } } as never,
+    );
+
+    expect(response.status).toBe(401);
+    expect(db.batch).not.toHaveBeenCalled();
+  });
+
   it("rejects malformed base64 without consuming quota", async () => {
     const token = await createSessionToken();
     const { db } = makeDb();
