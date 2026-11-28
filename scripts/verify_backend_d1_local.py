@@ -537,21 +537,6 @@ def main():
             )
             assert progress_after_second["data"][0]["completed_count"] == 2
 
-            # A second authenticated account must not inherit another user's
-            # derived progress or completion history.
-            other_user_progress = expect_status(
-                request("GET", "/api/v1/me/progress", second_token),
-                200,
-                "second user's isolated progress",
-            )
-            assert other_user_progress["data"] == [], other_user_progress
-            other_user_history = expect_status(
-                request("GET", "/api/v1/me/history", second_token),
-                200,
-                "second user's isolated learning history",
-            )
-            assert other_user_history["data"] == [], other_user_history
-
             # Two different answers racing for the same question must have exactly
             # one winner. The losing request receives 409 and no second row is stored.
             third_attempt = expect_status(
@@ -743,6 +728,21 @@ def main():
             second_user_id = second_profile["data"]["id"]
             if not second_user_id.replace("-", "").replace("_", "").isalnum():
                 raise AssertionError("Unexpected user ID format")
+
+            # The first user has already completed attempts above. The second
+            # authenticated account must not inherit their progress or history.
+            other_user_progress = expect_status(
+                request("GET", "/api/v1/me/progress", second_token),
+                200,
+                "second user's isolated progress",
+            )
+            assert other_user_progress["data"] == [], other_user_progress
+            other_user_history = expect_status(
+                request("GET", "/api/v1/me/history", second_token),
+                200,
+                "second user's isolated learning history",
+            )
+            assert other_user_history["data"] == [], other_user_history
 
             # Distinct valid Telegram payloads for the same provider identity
             # must converge on one canonical account under concurrent requests.
