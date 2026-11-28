@@ -378,3 +378,13 @@ The main commit immediately after PR #21 merge is `06925ec6e28030b35348a1fdbabcc
 - Main's schema migration sequence now includes `0016_immutable_learning_events.sql`.
 - PR #28's nine curriculum SQL files are seeds, not migrations. They remain unmerged at this checkpoint.
 - No remote D1 migration, remote seed, secret mutation, Worker configuration change, Production deployment or paid service activation was performed.
+
+
+## Final checkpoint before audit merge — 2026-11-28
+
+- PR #28 was merged by squash as `9798020de379c438db5485661299ab2f79d12c58`.
+- The merge brings nine original A1 units, 45 lessons and 180 deterministic multiple-choice assessment items into the versioned D1 seed set. The nine seed scripts are idempotent and the public lesson API tests assert answer keys are not exposed.
+- The A1 content remains a partial recognition-focused foundation, not complete four-skill CEFR A1. Listening, integrated reading, productive speaking/writing and cumulative assessment remain gaps.
+- Exact-head PR #28 Backend CI passed after the workflow reconciliation. Main push CI for `9798020` was still running when this checkpoint was recorded; verify its final result separately.
+- Mainline merges in this consolidation: PR #24, #25, #26, #21 and #28. Main's migration sequence now includes 0016; A1 seed files are not migrations.
+- The four earlier merge checkpoints are preserved above. The branch-distance table remains a historical comparison against `f3671f2`, not a current distance table.
