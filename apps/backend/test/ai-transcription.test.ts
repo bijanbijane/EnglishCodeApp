@@ -119,18 +119,18 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-function makeDb(quotaGranted = true) {
+function makeDb(quotaGranted = true, rateCount = 1) {
   const statements: string[] = [];
   const db = {
     prepare: vi.fn((sql: string) => {
       statements.push(sql);
       return {
         bind: vi.fn(() => ({
-          first: vi.fn().mockResolvedValue(
-            sql.includes("FROM sessions")
-              ? { id: "session-1", user_id: "user-1" }
-              : null,
-          ),
+          first: vi.fn().mockImplementation(async () => {
+            if (sql.includes("FROM sessions")) return { id: "session-1", user_id: "user-1" };
+            if (sql.includes("RETURNING request_count")) return { request_count: rateCount };
+            return null;
+          }),
           run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
         })),
       };
@@ -181,6 +181,26 @@ describe("AI speech transcription API", () => {
     );
 
     expect(response.status).toBe(401);
+    expect(db.batch).not.toHaveBeenCalled();
+  });
+
+  it("rate-limits authenticated parsing before applying the larger body limit", async () => {
+    const token = await createSessionToken();
+    const { db } = makeDb(true, 11);
+    const response = await app.request(
+      "/api/v1/ai/transcriptions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: "x".repeat(2 * 1024 * 1024),
+      },
+      { DB: db, AI: { run: vi.fn() } } as never,
+    );
+
+    expect(response.status).toBe(429);
     expect(db.batch).not.toHaveBeenCalled();
   });
 
