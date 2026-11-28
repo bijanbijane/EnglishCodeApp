@@ -27,7 +27,9 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Audit dependencies
+        run: npm audit --audit-level=moderate
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - run: wrangler deploy --dry-run
+      - run: npx wrangler deploy --dry-run
