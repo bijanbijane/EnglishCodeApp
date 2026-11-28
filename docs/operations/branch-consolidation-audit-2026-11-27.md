@@ -291,3 +291,28 @@ This addendum supersedes the earlier PR #23 and PR #28 head/check statements abo
 - Backend CI run [#46122965940](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/46122965940) completed successfully on the exact current head. The backend job succeeded.
 - No runtime code, migration, seed, API contract, Worker configuration or data changed in this docs-only commit. The curriculum remains a partial A1 foundation; listening, integrated reading, productive speaking/writing, rubrics and cumulative assessment are still gaps.
 - PR #28 remains open and non-Draft; no human review, merge, remote seed, remote migration or deployment was performed.
+
+
+## Addendum — PR #19 / #20 migration dependency review (2026-11-28)
+
+### PR #19 versus PR #25 — competing migration 0016
+
+- Both open Draft PRs add `database/migrations/0016_immutable_learning_events.sql`; the migration contents in the reviewed patches are byte-for-byte equivalent.
+- Only one canonical implementation may be integrated. PR #25 remains the preferred candidate because it has additional exact-head historical-backfill fixture coverage in SQLite and Local D1 runtime validation documented above.
+- Review comments were submitted on both PRs to prevent duplicate migration integration. PR #19 must not be merged in addition to PR #25. No branch was closed and no migration was applied.
+
+### PR #20 — speech transcription migration 0017
+
+- Current head remains `dd5976a47ef680af8a2ba5a242939827b5ffde93`, based directly on main. Exact-head Backend CI [#46119426831](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/46119426831) and Frontend CI [#46119426817](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/46119426817) passed.
+- PR #20 adds migration `0017_ai_transcription_quota.sql`; its own operating documentation specifies that it follows migration 0016. Since 0016 is still pending and duplicated by #19/#25, #20 must remain unmerged until one canonical 0016 is selected and applied in the correct environment. Review comment submitted on the exact #20 head.
+- The Worker config adds the native Workers AI binding; application guardrails include authenticated access, WebM/Opus validation, a 1 MiB audio cap, server-derived duration capped at 60 seconds, pre-parse abuse throttling, per-user/account daily reservations, fail-closed quota storage, no raw audio persistence, and no paid fallback.
+- Remaining rollout evidence: real Chrome/Android WebView/Telegram Mini App recording compatibility, development-environment inference smoke under the account's actual shared free quota, and explicit owner approval for any remote migration, binding/config change or deployment. CI/local mocks do not replace those checks.
+- A review comment was submitted on PR #19 and #20 documenting the duplicate migration and required order. No remote migration, inference, config change or deployment was performed.
+
+### Integration order constraint
+
+1. Select exactly one 0016 implementation (preferred: PR #25); never merge both #19 and #25.
+2. Review and approve that PR, then separately authorize and apply 0016 to the intended non-production environment after verifying the migration ledger.
+3. Only after 0016 is confirmed, consider PR #20 and migration 0017, with its own review and explicit approval for remote operations.
+
+Main remains unchanged; all listed PRs remain open and unmerged.
