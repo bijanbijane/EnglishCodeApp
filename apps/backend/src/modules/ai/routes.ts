@@ -63,9 +63,9 @@ function parsePayload(value: unknown): { audioBase64: string; durationSeconds: n
 
   return { audioBase64: body.audioBase64, durationSeconds };
 }
-ai.post("/ai/transcriptions", bodyLimit({ maxSize: 1536 * 1024, onError: (c) => c.json({
+ai.post("/ai/transcriptions", requireSession, bodyLimit({ maxSize: 1536 * 1024, onError: (c) => c.json({
   error: { code: "PAYLOAD_TOO_LARGE", message: "Audio request exceeds the allowed size.", requestId: c.get("requestId") },
-}, 413) }), requireSession, async (c) => {
+}, 413) }), async (c) => {
   if (!c.req.header("content-type")?.toLowerCase().includes("application/json")) throw new AppError("VALIDATION_ERROR", "Content-Type must be application/json.", 400);
   let raw: unknown;
   try { raw = await c.req.json(); } catch { throw new AppError("VALIDATION_ERROR", "A valid JSON audio payload is required.", 400); }
