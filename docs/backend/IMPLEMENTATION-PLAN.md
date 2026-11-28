@@ -35,7 +35,7 @@
 - [x] Append-only lesson completion event and progress projection update in one D1 batch.
 - [x] Current-user progress endpoint.
 - [ ] Complete and verify a D1-compatible progress projection rebuild. An internal D1-batched helper now exists, but Local D1 execution/rollback verification and an owner-controlled invocation procedure remain outstanding.
-- [ ] Expand concurrent completion, cross-user isolation and retry-race coverage on Local D1.
+- [x] Cover concurrent completion, same-answer retries, conflicting concurrent answer writes, cross-user attempt access and role revocation on Local D1.
 - [ ] Finalize pass thresholds, retry policy and future question types as explicit product decisions.
 
 ## B3 — Content governance and administration

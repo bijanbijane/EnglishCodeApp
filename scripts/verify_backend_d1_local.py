@@ -537,6 +537,69 @@ def main():
             )
             assert progress_after_second["data"][0]["completed_count"] == 2
 
+            # Two different answers racing for the same question must have exactly
+            # one winner. The losing request receives 409 and no second row is stored.
+            third_attempt = expect_status(
+                request(
+                    "POST", "/api/v1/lessons/lesson-greetings-001/attempts",
+                    token, {},
+                ),
+                201,
+                "start conflicting-answer race attempt",
+            )
+            third_attempt_id = third_attempt["data"]["attemptId"]
+            third_attempt_detail = expect_status(
+                request("GET", f"/api/v1/attempts/{third_attempt_id}", token),
+                200,
+                "read conflicting-answer race attempt",
+            )
+            race_question_id = third_attempt_detail["data"]["questions"][0]["id"]
+
+            def submit_racing_answer(option_id):
+                return request(
+                    "POST", f"/api/v1/attempts/{third_attempt_id}/answers",
+                    token,
+                    {"questionId": race_question_id, "answer": option_id},
+                )
+
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                conflicting_answer_results = list(
+                    pool.map(submit_racing_answer, ["a", "b"])
+                )
+            assert sorted(status for status, _ in conflicting_answer_results) == [201, 409], (
+                "conflicting concurrent answers must produce one winner and one conflict: "
+                + json.dumps(conflicting_answer_results)
+            )
+            accepted_race = next(
+                body for status, body in conflicting_answer_results if status == 201
+            )
+            rejected_race = next(
+                body for status, body in conflicting_answer_results if status == 409
+            )
+            assert accepted_race.get("data", {}).get("accepted") is True
+            assert accepted_race.get("data", {}).get("duplicate") is False
+            assert rejected_race.get("error", {}).get("code") == "CONFLICT"
+
+            race_answer_sql = PERSIST_DIR / "conflicting-answer-race-count.sql"
+            race_answer_sql.write_text(
+                "SELECT COUNT(*) AS answer_count, MIN(submitted_answer) AS submitted_answer "
+                "FROM attempt_answers "
+                f"WHERE attempt_id='{third_attempt_id}' AND question_id='{race_question_id}';",
+                encoding="utf-8",
+            )
+            race_answer_output = run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                f"--file={race_answer_sql}", "--json",
+            ])
+            race_answer_payload = json.loads(race_answer_output)
+            if isinstance(race_answer_payload, list):
+                race_answer_rows = race_answer_payload[0]["results"]
+            else:
+                race_answer_rows = race_answer_payload["results"]
+            assert race_answer_rows[0]["answer_count"] == 1, race_answer_rows
+            assert race_answer_rows[0]["submitted_answer"] in ("a", "b"), race_answer_rows
+
             # The completion ledger must contain one fact per completed attempt.
             event_count_sql = PERSIST_DIR / "learning-event-count.sql"
             event_count_sql.write_text(
