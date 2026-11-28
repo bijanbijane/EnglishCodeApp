@@ -317,6 +317,14 @@ def main():
             assert user_quota_rows[0]["global_count"] == 0, user_quota_rows
             assert user_quota_rows[0]["user_count"] == 2, user_quota_rows
 
+            # Reset the short-window parser limiter so the next quota scenario
+            # exercises the daily global reservation path independently.
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", "DELETE FROM auth_rate_limits;",
+            ])
+
             # A full global allowance must reject parallel requests without
             # creating user reservations or exceeding the account-wide limit.
             global_values = ",".join(
@@ -362,11 +370,33 @@ def main():
             assert global_quota_rows[0]["global_count"] == 60, global_quota_rows
             assert global_quota_rows[0]["user_count"] == 0, global_quota_rows
 
+            # Invalid payloads do not consume inference reservations, but they
+            # must still be bounded before the parser/body reader is reached.
+            run([
+                "npx", "wrangler", "d1", "execute", DATABASE,
+                "--local", "--persist-to", persist,
+                "--command", "DELETE FROM auth_rate_limits;",
+            ])
+            invalid_payload = "x" * (300 * 1024)
+
+            def request_invalid_transcription():
+                return request(
+                    "POST", "/api/v1/ai/transcriptions",
+                    token, invalid_payload,
+                )
+
+            with ThreadPoolExecutor(max_workers=11) as pool:
+                parse_limit_results = list(pool.map(
+                    lambda _: request_invalid_transcription(), range(11)
+                ))
+            parse_limit_statuses = sorted(status for status, _ in parse_limit_results)
+            assert parse_limit_statuses == [400] * 10 + [429], parse_limit_results
+
             # Leave the D1 test database clean for subsequent integration cases.
             run([
                 "npx", "wrangler", "d1", "execute", DATABASE,
                 "--local", "--persist-to", persist,
-                "--command", "DELETE FROM ai_transcription_reservations;",
+                "--command", "DELETE FROM ai_transcription_reservations; DELETE FROM auth_rate_limits;",
             ])
 
             expired_token = secrets.token_urlsafe(32)
