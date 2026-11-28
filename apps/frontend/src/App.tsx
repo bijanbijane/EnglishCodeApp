@@ -1,9 +1,10 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 const LearningContentModule = lazy(() => import("./features/learning-content/LearningContentModule"));
-import { api, setAccessToken, type Attempt, type Course, type Lesson, type Profile } from "./api";
+import { api, setAccessToken, type Course, type Lesson, type Profile } from "./api";
 import { getSessionErrorMessage, restoreSession, revokeSession } from "./auth";
 import { getTelegramWebApp } from "./platform/telegram";
 import { useLearningProgress } from "./hooks/useLearningProgress";
+import { useAttemptLifecycle } from "./hooks/useAttemptLifecycle";
 
 type Screen = "home" | "lesson" | "result" | "content";
 function App() {
@@ -15,10 +16,10 @@ function App() {
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [attempt, setAttempt] = useState<Attempt | null>(null);
+
   const [screen, setScreen] = useState<Screen>("home");
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [appBusy, setAppBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [answer, setAnswer] = useState<string | null>(null);
@@ -33,6 +34,20 @@ function App() {
     setNotice(e instanceof Error ? e.message : "Could not load learning progress.");
   }, []);
   const { progress, progressLoading, refreshProgress } = useLearningProgress(profile, handleProgressError);
+  const handleAttemptError = useCallback((message: string) => setError(message), []);
+  const handleAttemptNotice = useCallback((message: string) => setNotice(message), []);
+  const handleAttemptCompleted = useCallback((resultScore: number) => {
+    setScore(resultScore);
+    setScreen("result");
+  }, []);
+  const {
+    attempt, busy: attemptBusy, startAttempt, submitAnswer: runSubmitAnswer,
+    completeAttempt: runCompleteAttempt, clearAttempt,
+  } = useAttemptLifecycle({
+    profile, refreshProgress, onError: handleAttemptError,
+    onNotice: handleAttemptNotice, onCompleted: handleAttemptCompleted,
+  });
+  const busy = appBusy || attemptBusy;
 
   const loadCourses = useCallback(async () => {
     setLoading(true); setError(""); setCoursesLoadFailed(false);
@@ -105,65 +120,23 @@ function App() {
 
   const startLesson = async (lesson: Lesson) => {
     if (!profile) { setError("Open this app inside Telegram to sign in before starting a lesson."); return; }
-    setBusy(true); setError(""); setNotice("");
-    try {
-      const created = await api.startAttempt(lesson.id);
-      const loaded = await api.attempt(created.attemptId);
-      setSelectedLesson(lesson); setAttempt(loaded); setQuestionIndex(0); setAnswer(null); setScreen("lesson");
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not start this lesson."); }
-    finally { setBusy(false); }
+    setError(""); setNotice("");
+    if (await startAttempt(lesson)) {
+      setSelectedLesson(lesson); setQuestionIndex(0); setAnswer(null); setScreen("lesson");
+    }
   };
 
   const currentQuestion = attempt?.questions[questionIndex];
   const completed = useMemo(() => attempt?.questions.filter((q) => q.submittedAnswer !== null).length ?? 0, [attempt]);
 
   const submitAnswer = async () => {
-    if (!attempt || !currentQuestion || !answer) return;
-    setBusy(true); setError("");
-    try {
-      const result = await api.answer(attempt.id, currentQuestion.id, answer);
-      if (!result.accepted) throw new Error("The server did not accept this answer.");
-
-      // The answer POST is the authoritative confirmation. Reflect it immediately so
-      // a failed follow-up read cannot make an accepted answer appear unsubmitted.
-      setAttempt((current) => current?.id === attempt.id ? {
-        ...current,
-        questions: current.questions.map((question) => question.id === currentQuestion.id
-          ? { ...question, submittedAnswer: answer, isCorrect: result.isCorrect }
-          : question),
-      } : current);
-      setAnswer(null);
-      setNotice(result.isCorrect ? "Correct answer." : "Not quite. Keep going.");
-
-      try {
-        const refreshed = await api.attempt(attempt.id);
-        setAttempt((current) => current?.id === attempt.id ? refreshed : current);
-      } catch {
-        setNotice(result.isCorrect
-          ? "Correct answer. Your answer was saved, but the lesson could not refresh. You can continue."
-          : "Answer saved. The lesson could not refresh. You can continue.");
-      }
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not submit the answer."); }
-    finally { setBusy(false); }
+    if (!currentQuestion || !answer) return;
+    if (await runSubmitAnswer(currentQuestion, answer)) setAnswer(null);
   };
 
-  const finishAttempt = async () => {
-    if (!attempt) return;
-    setBusy(true); setError("");
-    try {
-      const result = await api.complete(attempt.id);
-      setScore(result.score);
-      setScreen("result");
-      try {
-        await refreshProgress();
-      } catch {
-        setNotice("Lesson completed. Progress details will refresh when you return.");
-      }
-    } catch (e) { setError(e instanceof Error ? e.message : "Could not complete the lesson."); }
-    finally { setBusy(false); }
-  };
+  const finishAttempt = () => { void runCompleteAttempt(); };
 
-  const goHome = () => { setScreen("home"); setSelectedLesson(null); setAttempt(null); setNotice(""); setError(""); };
+  const goHome = () => { setScreen("home"); setSelectedLesson(null); clearAttempt(); setNotice(""); setError(""); };
 
   const signIn = async () => {
     if (authInFlight.current) return;
@@ -173,7 +146,7 @@ function App() {
     }
     authInFlight.current = true;
     setAuthLoading(true);
-    setBusy(true); setError(""); setNotice("");
+    setAppBusy(true); setError(""); setNotice("");
     try {
       const restored = await restoreSession({
         storage: telegram.SecureStorage,
@@ -190,12 +163,12 @@ function App() {
     } finally {
       authInFlight.current = false;
       setAuthLoading(false);
-      setBusy(false);
+      setAppBusy(false);
     }
   };
 
   const logout = async () => {
-    setBusy(true); setError("");
+    setAppBusy(true); setError("");
     try {
       if (!telegram?.SecureStorage) throw new Error("Secure session storage is unavailable.");
       const result = await revokeSession({
@@ -208,7 +181,7 @@ function App() {
         ? "You have signed out. Close and reopen the Mini App to start a new Telegram sign-in session."
         : "You are signed out on the server, but Telegram could not clear the saved local token. Close and reopen the Mini App; the expired token will be replaced during sign-in.");
     } catch (e) { setError(e instanceof Error ? e.message : "Could not sign out."); }
-    finally { setBusy(false); }
+    finally { setAppBusy(false); }
   };
 
   return <main className="app-shell">
