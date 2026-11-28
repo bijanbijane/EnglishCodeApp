@@ -218,3 +218,31 @@ This section supersedes earlier status statements above where they refer to old 
 - No PR was merged or closed; no branch was deleted or force-pushed.
 - No remote D1 migration, remote seed, Worker secret/config mutation, Production deployment, billing change or paid-resource activation was performed.
 - All CI evidence above is exact-head evidence for the named SHA only. Recheck after any branch update.
+
+
+## Addendum — exact-head refresh (2026-11-28, after 11:00 +03:30)
+
+This addendum supersedes the earlier PR #23 and PR #28 head/check statements above where they conflict.
+
+### PR #28 — A1 Foundations
+
+- Refreshed PR head: `b460c2434af8e88461c0c2f4da2afbd3d0a2dbc2`, branch `feat/a1-foundations-curriculum`.
+- Current comparison against main `f3671f2194e562fc194d23e9602b768455d8e483`: 26 commits ahead, 0 behind.
+- Exact-head Backend CI run [#46121390869](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/46121390869) completed successfully. All substantive steps passed: npm 10.9.2 installation, legacy-peer dependency installation, moderate-level npm audit, TypeScript typecheck, Vitest, SQLite migration/seed verification, Wrangler Local D1 integration and Development API smoke test.
+- The PR contains nine original A1 units, 45 lessons and 180 deterministic multiple-choice items. Seed idempotency and public answer-key omission are included in automated checks.
+- Pedagogical review confirms that the lesson guides describe communicative tasks, but the committed executable assessment data is multiple-choice recognition only. Listening, integrated reading, productive speaking/writing, rubrics and cumulative assessment remain unimplemented. Keep the scope described as a partial A1 foundation, not a complete A1 course.
+- No human review, merge, remote seed, remote migration or deployment was performed.
+
+### PR #23 — backend documentation and CI
+
+- Refreshed PR head: `108985dbde2a25e942116938396d79d0e85abb50`, branch `docs/backend-status-refresh-2026-11-27`.
+- Current comparison against main: 20 commits ahead, 0 behind.
+- Exact-head Backend CI run [#46121421772](https://github.com/bijanbijane/EnglishCodeApp/actions/runs/46121421772) completed successfully. npm 10.9.2 install, legacy-peer install, moderate-level audit, typecheck, Vitest, SQLite verification, Wrangler Local D1 integration and Development API smoke all passed.
+- The previous npm Arborist `edgesOut` install failure was addressed on this branch with the pinned npm 10.9.2 / `--legacy-peer-deps` workflow path. This is a CI workaround; it bypasses npm's automatic peer-dependency resolution and should remain documented as such.
+- PR #23 remains Draft and unmerged. No main documentation or runtime code was changed by this refresh.
+
+### Audit safety
+
+- Main remains at `f3671f2194e562fc194d23e9602b768455d8e483`.
+- PR #29 remains a documentation-only Draft candidate. This addendum does not authorize merging PR #23, PR #28 or any other branch.
+- No remote D1 write, Worker configuration/secret mutation, Production deployment, branch deletion or history rewrite was performed.
