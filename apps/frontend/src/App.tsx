@@ -39,6 +39,9 @@ function App() {
   const {
     history, historyLoading, historyLoadingMore, hasMoreHistory, loadMoreHistory,
   } = useLearningHistory({ profile, onError: handleHistoryError });
+  const refreshLearnerData = useCallback(async () => {
+    await Promise.all([refreshProgress(), refreshHistory()]);
+  }, [refreshProgress, refreshHistory]);
   const handleCatalogError = useCallback((message: string) => setError(message), []);
   const {
     courses, lessons, coursesLoadFailed, lessonsLoadFailed, loading,
@@ -54,7 +57,7 @@ function App() {
     attempt, busy: attemptBusy, startAttempt, submitAnswer: runSubmitAnswer,
     completeAttempt: runCompleteAttempt, clearAttempt,
   } = useAttemptLifecycle({
-    profile, refreshProgress, onError: handleAttemptError,
+    profile, refreshProgress: refreshLearnerData, onError: handleAttemptError,
     onNotice: handleAttemptNotice, onCompleted: handleAttemptCompleted,
   });
   const busy = appBusy || attemptBusy;
@@ -193,12 +196,13 @@ function App() {
         </div>
         {progress.length > 0 && <div className="recent-progress"><h3>Recently completed</h3>{progress.slice(0,3).map((item) => <div className="recent-row" key={item.lesson_id}><span>{item.lesson_title}</span><strong>{item.best_score}%</strong></div>)}</div>}
       </section>}
-      {profile && (history.length > 0 || historyLoading) && <section className="history-section" aria-label="Recent learning history">
+      {profile && <section className="history-section" aria-label="Recent learning history">
         <div className="history-heading">
           <div><p className="eyebrow">YOUR LEARNING RECORD</p><h2>Recent attempts</h2></div>
           <span className="progress-caption">{historyLoading ? "Loading…" : `${history.length} attempts`}</span>
         </div>
-        {history.length > 0 ? <div className="history-list">{history.map((item) =>
+        {historyLoading && history.length === 0 ? <div className="history-empty">Loading recent attempts…</div>
+          : history.length > 0 ? <div className="history-list">{history.map((item) =>
           <article className="history-row" key={item.attemptId}>
             <div className="history-main">
               <h3>{item.lessonTitle}</h3>
