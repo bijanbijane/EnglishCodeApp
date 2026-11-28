@@ -1,4 +1,4 @@
-const CURSOR_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+const CURSOR_ID_PATTERN = /^[A-Za-z0-9_:-]{1,128}$/;
 
 export interface AuthorVersionCursor {
   version: number;
